@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrg, requireUser } from "@/lib/dal";
+import { countGuestProjects, getCurrentOrg, requireUser } from "@/lib/dal";
 import { MemberInviteForm } from "../forms";
 
 export const metadata: Metadata = { title: "Equipo" };
@@ -26,7 +26,7 @@ export default function TeamPage() {
 async function Team() {
   const user = await requireUser();
   const org = await getCurrentOrg();
-  if (!org) redirect("/onboarding");
+  if (!org) redirect((await countGuestProjects()) > 0 ? "/proyectos" : "/onboarding");
 
   const supabase = await createClient();
   const [{ data: members }, { data: invitations }] = await Promise.all([

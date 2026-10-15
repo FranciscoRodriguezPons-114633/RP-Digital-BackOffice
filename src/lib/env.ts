@@ -9,3 +9,17 @@ export function assertSupabaseEnv() {
     );
   }
 }
+
+// Ingreso rápido sin correo: solo en `next dev` y contra un Supabase local.
+// Usa los usuarios de supabase/seed.sql, que no existen en la nube.
+export const DEV_LOGIN_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/.test(SUPABASE_URL);
+
+export const DEV_USERS = [
+  { email: "ana@estudio.test", label: "Ana · dueña del estudio" },
+  { email: "beto@estudio.test", label: "Beto · miembro del estudio" },
+  { email: "cliente@estudio.test", label: "Cliente invitado" },
+] as const;
+
+export const DEV_PASSWORD = "dev-password-local";

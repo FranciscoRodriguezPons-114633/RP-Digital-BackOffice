@@ -78,3 +78,82 @@ export type FormState = {
 export function fieldErrors(error: z.ZodError): FormState {
   return { ok: false, errors: z.flattenError(error).fieldErrors as FormState["errors"] };
 }
+
+// ---------------------------------------------------------------------------
+// Honorarios y horas
+// ---------------------------------------------------------------------------
+
+// Números como los escribe la gente en Argentina: "1.234,50", "1234,5", "7,5" o "7.5".
+export function parseDecimal(input: unknown): number | null {
+  if (input === null || input === undefined) return null;
+  const raw = String(input).trim().replace(/\s|\$|USD|ARS/gi, "");
+  if (raw === "") return null;
+  let normalized: string;
+  if (raw.includes(",")) {
+    normalized = raw.replace(/\./g, "").replace(",", ".");
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(raw)) {
+    normalized = raw.replace(/\./g, ""); // "1.500" = mil quinientos
+  } else {
+    normalized = raw;
+  }
+  if (!/^-?\d+(\.\d+)?$/.test(normalized)) return Number.NaN;
+  return Number(normalized);
+}
+
+const decimal = (label: string, { max }: { max?: number } = {}) =>
+  z
+    .unknown()
+    .transform((v) => parseDecimal(v))
+    .refine((v) => v === null || !Number.isNaN(v), { error: `${label}: escribí solo números` })
+    .refine((v) => v === null || v >= 0, { error: `${label}: no puede ser negativo` })
+    .refine((v) => v === null || max === undefined || v <= max, { error: `${label}: hasta ${max}` });
+
+export const STAGE_KINDS = ["fixed", "hourly", "mixed"] as const;
+export type StageKind = (typeof STAGE_KINDS)[number];
+export const STAGE_KIND_LABEL: Record<StageKind, string> = {
+  fixed: "Monto fijo",
+  hourly: "Por hora",
+  mixed: "Fijo + horas extra",
+};
+export const CURRENCIES = ["USD", "ARS"] as const;
+
+export const stageSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, { error: "El nombre necesita al menos 2 caracteres" })
+      .max(120, { error: "Hasta 120 caracteres" }),
+    kind: z.enum(STAGE_KINDS, { error: "Elegí cómo se cobra" }),
+    currency: z.enum(CURRENCIES, { error: "Elegí la moneda" }),
+    amount: decimal("Monto"),
+    hourly_rate: decimal("Tarifa"),
+    budget_hours: decimal("Horas", { max: 999999 }),
+  })
+  .superRefine((s, ctx) => {
+    if (s.kind !== "hourly" && s.amount === null) {
+      ctx.addIssue({ code: "custom", path: ["amount"], message: "Indicá el monto de la etapa" });
+    }
+    if (s.kind !== "fixed" && s.hourly_rate === null) {
+      ctx.addIssue({ code: "custom", path: ["hourly_rate"], message: "Indicá la tarifa por hora" });
+    }
+  })
+  .transform((s) => ({
+    ...s,
+    amount: s.kind === "hourly" ? null : s.amount,
+    hourly_rate: s.kind === "fixed" ? null : s.hourly_rate,
+  }));
+
+export const timeEntrySchema = z.object({
+  stage_id: z.uuid({ error: "Elegí la etapa" }),
+  hours: decimal("Horas", { max: 24 }).refine((v) => v !== null && v > 0, {
+    error: "Indicá cuántas horas",
+  }),
+  work_date: z.iso.date({ error: "Fecha inválida" }),
+  note: z
+    .string()
+    .trim()
+    .max(500, { error: "Hasta 500 caracteres" })
+    .optional()
+    .transform((v) => (v ? v : null)),
+});

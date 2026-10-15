@@ -9,6 +9,8 @@ export function dbErrorMessage(error: DbError): string {
       return "Algún dato no es válido.";
     case "23505":
       return "Eso ya existe.";
+    case "23503":
+      return "Hay datos que dependen de esto: no se puede borrar.";
     case "23514":
       return "Revisá los datos: alguno no cumple el formato.";
     case "28000":

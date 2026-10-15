@@ -46,7 +46,7 @@ async function Projects() {
       {org && (
         <section className="card">
           <h2 className="mb-4 font-medium">Nuevo proyecto</h2>
-          <ProjectForm />
+          <ProjectForm isOwner={org.role === "owner"} />
         </section>
       )}
 

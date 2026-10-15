@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
+import { DevLogin } from "./dev-login";
 
 export const metadata: Metadata = { title: "Ingresar" };
 
@@ -15,6 +16,7 @@ export default function LoginPage() {
         <Suspense fallback={<div className="h-40" />}>
           <LoginForm />
         </Suspense>
+        <DevLogin />
       </div>
     </main>
   );

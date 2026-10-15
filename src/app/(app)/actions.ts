@@ -50,6 +50,11 @@ export async function createProject(_prev: FormState, formData: FormData): Promi
     .single();
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
+  if (org.role === "owner" && formData.get("template") === "on") {
+    const currency = formData.get("currency") === "ARS" ? "ARS" : "USD";
+    await supabase.rpc("apply_fee_template", { p_project_id: data.id, p_currency: currency });
+  }
+
   redirect(`/proyectos/${data.id}`);
 }
 

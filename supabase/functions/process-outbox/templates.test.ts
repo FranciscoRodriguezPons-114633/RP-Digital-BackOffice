@@ -42,6 +42,21 @@ describe("renderEmail", () => {
     expect(email.html).toContain("<strong>dueño</strong>");
   });
 
+  it("aviso de horas: asunto con etapa y umbral, horas con coma", () => {
+    const email = renderEmail(
+      {
+        id: 5,
+        kind: "hours_alert",
+        to_email: "ana@a.com",
+        payload: { project_name: "Edificio Alba", project_id: "p-1", stage_name: "Anteproyecto", threshold: 80, used: 72.5, budget: 90 },
+      },
+      APP,
+    );
+    expect(email.subject).toBe("Edificio Alba: «Anteproyecto» llegó al 80% de las horas previstas");
+    expect(email.text).toContain("Van 72,5 h de 90 h previstas");
+    expect(email.text).toContain("https://app.rp.test/proyectos/p-1");
+  });
+
   it("falla con un tipo desconocido (el outbox lo reintenta y termina en failed)", () => {
     expect(() => renderEmail({ id: 4, kind: "otro", to_email: "a@a.com", payload: {} }, APP)).toThrow();
   });

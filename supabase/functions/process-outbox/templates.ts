@@ -72,6 +72,28 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
         text: `${subject} como ${role}. Entrá acá: ${url}`,
       };
     }
+    case "hours_alert": {
+      const project = String(p.project_name ?? "un proyecto");
+      const stage = String(p.stage_name ?? "una etapa");
+      const threshold = Number(p.threshold) >= 100 ? "100%" : "80%";
+      const used = String(p.used ?? "").replace(".", ",");
+      const budget = String(p.budget ?? "").replace(".", ",");
+      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}`;
+      const subject = `${project}: «${stage}» llegó al ${threshold} de las horas previstas`;
+      const extra =
+        threshold === "100%"
+          ? "Si el cliente pidió cambios fuera de lo contratado, es buen momento para armar una orden de cambio."
+          : "Todavía estás a tiempo de revisar si hay trabajo fuera de lo contratado.";
+      return {
+        subject,
+        html: layout(
+          `«${escapeHtml(stage)}» llegó al ${threshold}`,
+          `<p style="margin:0 0 8px;line-height:1.5">En <strong>${escapeHtml(project)}</strong> van <strong>${escapeHtml(used)} h</strong> de <strong>${escapeHtml(budget)} h</strong> previstas.</p><p style="margin:0;line-height:1.5">${extra}</p>`,
+          { label: "Ver el proyecto", url },
+        ),
+        text: `${subject}.\nVan ${used} h de ${budget} h previstas. ${extra}\n${url}`,
+      };
+    }
     default:
       throw new Error(`Tipo de correo desconocido: ${msg.kind}`);
   }

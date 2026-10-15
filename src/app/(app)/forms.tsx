@@ -1,29 +1,28 @@
 "use client";
 
-import { useActionState } from "react";
-import { FieldError, FormMessage, SubmitButton } from "@/components/form";
-import { GUEST_KINDS, GUEST_KIND_LABEL, type FormState } from "@/lib/validation";
+import { FieldError, FormMessage, SubmitButton, useActionForm } from "@/components/form";
+import { GUEST_KINDS, GUEST_KIND_LABEL } from "@/lib/validation";
 import { createOrganization, createProject, inviteGuest, inviteMember } from "./actions";
 
 export function OrganizationForm() {
-  const [state, action] = useActionState<FormState, FormData>(createOrganization, {});
+  const { state, pending, formProps } = useActionForm(createOrganization);
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form {...formProps} className="flex flex-col gap-4">
       <label className="field">
         Nombre del estudio
         <input name="name" required minLength={2} maxLength={120} placeholder="Estudio Pons" className="input" />
       </label>
       <FieldError errors={state.errors?.name} />
-      <SubmitButton pendingLabel="Creando…">Crear estudio</SubmitButton>
+      <SubmitButton pending={pending} pendingLabel="Creando…">Crear estudio</SubmitButton>
       <FormMessage state={state} />
     </form>
   );
 }
 
-export function ProjectForm() {
-  const [state, action] = useActionState<FormState, FormData>(createProject, {});
+export function ProjectForm({ isOwner }: { isOwner: boolean }) {
+  const { state, pending, formProps } = useActionForm(createProject);
   return (
-    <form action={action} className="grid gap-4 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end">
+    <form {...formProps} className="grid gap-4 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end">
       <label className="field">
         Nombre
         <input name="name" required minLength={2} maxLength={160} placeholder="Edificio Alba" className="input" />
@@ -36,7 +35,22 @@ export function ProjectForm() {
         Cliente
         <input name="client_name" maxLength={160} placeholder="Desarrollos del Centro" className="input" />
       </label>
-      <SubmitButton pendingLabel="Creando…">Crear proyecto</SubmitButton>
+      <SubmitButton pending={pending} pendingLabel="Creando…">Crear proyecto</SubmitButton>
+      {isOwner && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:col-span-4">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="template" defaultChecked className="size-4 accent-[var(--accent)]" />
+            Crear las 4 etapas de honorarios (croquis, anteproyecto, documentación, dirección de obra)
+          </label>
+          <label className="flex items-center gap-2 text-muted">
+            en
+            <select name="currency" defaultValue="USD" className="input py-1">
+              <option value="USD">USD</option>
+              <option value="ARS">ARS</option>
+            </select>
+          </label>
+        </div>
+      )}
       <div className="sm:col-span-4">
         <FieldError errors={state.errors?.name} />
         <FormMessage state={state} />
@@ -46,9 +60,9 @@ export function ProjectForm() {
 }
 
 export function GuestInviteForm({ projectId }: { projectId: string }) {
-  const [state, action] = useActionState<FormState, FormData>(inviteGuest, {});
+  const { state, pending, formProps } = useActionForm(inviteGuest);
   return (
-    <form action={action} className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+    <form {...formProps} className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
       <input type="hidden" name="project_id" value={projectId} />
       <label className="field">
         Correo
@@ -64,7 +78,7 @@ export function GuestInviteForm({ projectId }: { projectId: string }) {
           ))}
         </select>
       </label>
-      <SubmitButton pendingLabel="Invitando…">Invitar</SubmitButton>
+      <SubmitButton pending={pending} pendingLabel="Invitando…">Invitar</SubmitButton>
       <div className="sm:col-span-3">
         <FieldError errors={state.errors?.email} />
         <FormMessage state={state} />
@@ -74,9 +88,9 @@ export function GuestInviteForm({ projectId }: { projectId: string }) {
 }
 
 export function MemberInviteForm({ orgId }: { orgId: string }) {
-  const [state, action] = useActionState<FormState, FormData>(inviteMember, {});
+  const { state, pending, formProps } = useActionForm(inviteMember);
   return (
-    <form action={action} className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+    <form {...formProps} className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
       <input type="hidden" name="org_id" value={orgId} />
       <label className="field">
         Correo
@@ -89,7 +103,7 @@ export function MemberInviteForm({ orgId }: { orgId: string }) {
           <option value="owner">Dueño</option>
         </select>
       </label>
-      <SubmitButton pendingLabel="Invitando…">Invitar</SubmitButton>
+      <SubmitButton pending={pending} pendingLabel="Invitando…">Invitar</SubmitButton>
       <div className="sm:col-span-3">
         <FieldError errors={state.errors?.email} />
         <FormMessage state={state} />

@@ -9,6 +9,9 @@
   --hover: #f0eee9;
   --accent: #1f4e46;
   --accent-fg: #ffffff;
+  --ok: #1f6b3a;
+  --danger: #b42318;
+  --warn: #8a5a00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +24,9 @@
     --hover: #26251f;
     --accent: #7cc4b4;
     --accent-fg: #0e1a17;
+    --ok: #86d4a2;
+    --danger: #f4a397;
+    --warn: #f0c36a;
   }
 }
 
@@ -32,6 +38,9 @@
   --color-line: var(--line);
   --color-hover: var(--hover);
   --color-accent: var(--accent);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -67,6 +76,17 @@ body {
   }
   .badge {
     @apply rounded-full border border-line px-2 py-0.5 text-xs text-muted;
+  }
+  .chip {
+    @apply flex min-h-12 cursor-pointer items-center justify-center rounded-md border border-line bg-surface text-base font-medium select-none;
+  }
+  .chip:has(input:checked) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+  }
+  .chip:has(input:focus-visible) {
+    @apply ring-2 ring-accent/40;
   }
   .nav-link {
     @apply text-muted hover:text-foreground;

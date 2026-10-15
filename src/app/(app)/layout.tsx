@@ -6,13 +6,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
-          <Link href="/proyectos" className="font-semibold tracking-tight">
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3 sm:gap-6">
+          <Link href="/proyectos" className="font-semibold tracking-tight whitespace-nowrap">
             RP Backoffice
           </Link>
-          <nav className="flex gap-4 text-sm">
+          <nav className="flex gap-3 text-sm sm:gap-4">
             <Link href="/proyectos" className="nav-link">Proyectos</Link>
-            <Link href="/equipo" className="nav-link">Equipo</Link>
+            <Suspense fallback={null}>
+              <TeamLink />
+            </Suspense>
           </nav>
           <div className="ml-auto">
             <Suspense fallback={<span className="text-sm text-muted">…</span>}>
@@ -23,6 +25,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
     </div>
+  );
+}
+
+// Los invitados externos no tienen estudio: no ven "Horas" ni "Equipo".
+async function TeamLink() {
+  const org = await getCurrentOrg();
+  if (!org) return null;
+  return (
+    <>
+      <Link href="/horas" className="nav-link">Horas</Link>
+      <Link href="/equipo" className="nav-link">Equipo</Link>
+    </>
   );
 }
 

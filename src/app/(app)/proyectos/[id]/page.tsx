@@ -7,6 +7,7 @@ import { GUEST_KIND_LABEL, idSchema, type GuestKind } from "@/lib/validation";
 import { removeGuest } from "../../actions";
 import { GuestInviteForm } from "../../forms";
 import { SubmitButton } from "@/components/form";
+import { FeesSection } from "./fees-section";
 
 type Guest = {
   id: string;
@@ -31,6 +32,16 @@ const EVENT_LABEL: Record<string, string> = {
   "guest.accepted": "Un invitado aceptó el acceso",
   "guest.removed": "quitó a",
 };
+
+function eventText(e: EventRow) {
+  if (e.type === "stage.hours_80" || e.type === "stage.hours_100") {
+    const pct = e.type.endsWith("80") ? "80%" : "100%";
+    return `«${String(e.data?.stage_name ?? "Una etapa")}» llegó al ${pct} de las horas previstas`;
+  }
+  const who = e.type === "guest.accepted" ? "" : `${e.actor_email ?? "Alguien"} `;
+  const email = typeof e.data?.email === "string" ? ` ${e.data.email}` : "";
+  return `${who}${EVENT_LABEL[e.type] ?? e.type}${email}`;
+}
 
 const dateFmt = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "short",
@@ -80,6 +91,7 @@ async function Project({ params }: { params: Promise<{ id: string }> }) {
 
       {isMember ? (
         <>
+          <FeesSection projectId={project.id} isOwner={org?.role === "owner"} />
           <Guests projectId={project.id} />
           <Activity projectId={project.id} />
         </>
@@ -117,8 +129,8 @@ async function Guests({ projectId }: { projectId: string }) {
       {guests.length > 0 && (
         <ul className="divide-y divide-line">
           {guests.map((g) => (
-            <li key={g.id} className="flex items-center gap-3 py-2 text-sm">
-              <span className="font-medium">{g.email}</span>
+            <li key={g.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
+              <span className="font-medium break-all">{g.email}</span>
               <span className="badge">{GUEST_KIND_LABEL[g.kind]}</span>
               <span className="text-muted">{g.accepted_at ? "Ingresó" : "Pendiente"}</span>
               <form action={removeGuest.bind(null, projectId, g.id)} className="ml-auto">
@@ -148,13 +160,9 @@ async function Activity({ projectId }: { projectId: string }) {
       <h2 className="mb-4 font-medium">Actividad</h2>
       <ol className="flex flex-col gap-2 text-sm">
         {events.map((e) => (
-          <li key={e.id} className="flex gap-3">
-            <time className="w-32 shrink-0 text-muted">{dateFmt.format(new Date(e.created_at))}</time>
-            <span>
-              {e.type === "guest.accepted" ? "" : `${e.actor_email ?? "Alguien"} `}
-              {EVENT_LABEL[e.type] ?? e.type}
-              {typeof e.data?.email === "string" ? ` ${e.data.email}` : ""}
-            </span>
+          <li key={e.id} className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+            <time className="shrink-0 text-muted sm:w-32">{dateFmt.format(new Date(e.created_at))}</time>
+            <span>{eventText(e)}</span>
           </li>
         ))}
       </ol>

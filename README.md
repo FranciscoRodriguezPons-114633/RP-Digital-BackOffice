@@ -2,7 +2,10 @@
 
 Backoffice para estudios de arquitectura: honorarios y adicionales cobrables, y planos vigentes compartidos con clientes, renderistas y contratistas.
 
-Este repo está en el **Sprint 0** (fundaciones): multiempresa, ingreso por enlace mágico, proyectos, invitados externos, auditoría y cola de correos. El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md).
+Estado:
+
+- **Sprint 0** (fundaciones): multiempresa, ingreso por enlace mágico, proyectos, invitados externos, auditoría y cola de correos.
+- **Sprint 1** (honorarios y horas): etapas con honorario fijo, por hora o mixto, en USD o ARS; plantilla de 4 etapas (croquis preliminar, anteproyecto, documentación de proyecto, dirección de obra); carga de horas desde el teléfono en `/horas`; aviso por correo al dueño cuando una etapa llega al 80% y al 100% de las horas previstas, una sola vez por umbral. El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md).
 
 ## Stack
 
@@ -23,6 +26,8 @@ npm run dev                   # http://localhost:3000
 ```
 
 Los correos del enlace mágico en local llegan a Mailpit: <http://127.0.0.1:54324>.
+
+**Ingreso rápido en desarrollo:** con `npm run dev` y Supabase local, la pantalla de ingreso muestra botones para entrar como Ana (dueña), Beto (miembro) o el cliente invitado, sin correo. Los usuarios y un estudio de ejemplo salen de `supabase/seed.sql`, que se carga con `npx supabase db reset`. En producción esos botones no existen y la nube no recibe el seed.
 
 Para probar el envío de invitaciones en local:
 
@@ -69,6 +74,9 @@ docs/                       propuesta, plan, operación, guía de entrevistas
 - **Invitados externos gratis**: clientes, renderistas y contratistas entran con su correo y solo ven los proyectos a los que fueron invitados. Al iniciar sesión, `claim_invitations()` vincula las invitaciones pendientes.
 - **Correos por cola (outbox)**: la invitación y su correo se guardan juntos; si Resend falla no se pierde nada y se reintenta.
 - **La app no usa la service role key**. Solo la Edge Function la usa, para procesar la cola.
+- **Honorarios en la base:** la vista `fee_stage_summary` calcula horas usadas, honorario y porcentaje con las mismas reglas de acceso que las tablas. Fija = monto; por hora = horas × tarifa; mixta = monto + horas que pasan de lo previsto × tarifa. Los totales se muestran por moneda, sin convertir.
+- **Quién toca qué:** el dueño crea y edita etapas; los miembros las ven y cargan sus propias horas; los invitados no ven honorarios ni horas.
+- **Formularios que no borran lo escrito:** `useActionForm` (en `src/components/form.tsx`) evita que React vacíe el formulario cuando la acción devuelve un error.
 - **Un estudio por persona** en el MVP (si pertenece a varios, se usa el más antiguo). Se puede agregar un selector más adelante.
 
 Puesta en marcha de staging/producción: [`docs/operacion.md`](docs/operacion.md).
