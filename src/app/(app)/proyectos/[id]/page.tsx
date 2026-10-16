@@ -9,6 +9,7 @@ import { GuestInviteForm } from "../../forms";
 import { SubmitButton } from "@/components/form";
 import { FeesSection } from "./fees-section";
 import { ChangeOrdersSection } from "./change-orders-section";
+import { DocumentsSection } from "./documents-section";
 import { changeOrderCode } from "@/lib/validation";
 import { formatMoney } from "@/lib/format";
 
@@ -53,6 +54,17 @@ function eventText(e: EventRow) {
     }
     const verb = { "change_order.created": "creó", "change_order.updated": "editó", "change_order.voided": "anuló" }[e.type] ?? e.type;
     return `${e.actor_email ?? "Alguien"} ${verb} ${code} «${title}»`;
+  }
+  if (e.type === "document.created") {
+    return `${e.actor_email ?? "Alguien"} creó el documento ${String(e.data?.code ?? "")} «${String(e.data?.title ?? "")}»`;
+  }
+  if (e.type === "revision.uploaded") {
+    return `${e.actor_email ?? "Alguien"} subió la revisión ${String(e.data?.code ?? "")} (${String(e.data?.file_name ?? "")})`;
+  }
+  if (e.type === "revision.published") {
+    const doc = String(e.data?.document_code ?? "");
+    const replaced = e.data?.superseded_code ? `, que reemplaza a ${String(e.data.superseded_code)}` : "";
+    return `${e.actor_email ?? "Alguien"} publicó ${doc} ${String(e.data?.code ?? "")}${replaced}`;
   }
   const who = e.type === "guest.accepted" ? "" : `${e.actor_email ?? "Alguien"} `;
   const email = typeof e.data?.email === "string" ? ` ${e.data.email}` : "";
@@ -116,6 +128,7 @@ async function Project({
         <>
           <FeesSection projectId={project.id} isOwner={org?.role === "owner"} />
           <ChangeOrdersSection projectId={project.id} isOwner={org?.role === "owner"} defaultStageId={ocStage} />
+          <DocumentsSection projectId={project.id} />
           <Guests projectId={project.id} />
           <Activity projectId={project.id} />
         </>

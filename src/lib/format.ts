@@ -82,3 +82,13 @@ export function sumAmounts(values: (number | string | null | undefined)[]) {
   const cents = values.reduce<number>((acc, v) => acc + Math.round(Number(v ?? 0) * 100), 0);
   return cents / 100;
 }
+
+const bytesFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
+
+// 1234567 → "1,2 MB"
+export function formatBytes(bytes: number | string | null | undefined) {
+  const n = Number(bytes ?? 0);
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${bytesFormatter.format(n / 1024)} KB`;
+  return `${bytesFormatter.format(n / (1024 * 1024))} MB`;
+}

@@ -69,7 +69,11 @@ Las invitaciones no se mandan desde la app: la base las deja en la tabla `outbox
    );
    ```
 
-## 4. Controles
+## 4. Archivos (Storage)
+
+La migración crea el bucket privado `documents` (PDF e imágenes, hasta 50 MB) y sus políticas; no hay que crearlo a mano. Revisar en **Storage → Settings** que el límite global de subida sea de al menos 50 MB (en el plan gratuito es 50 MB).
+
+## 5. Controles
 
 ```sql
 -- Correos trabados o fallidos
@@ -83,6 +87,6 @@ update public.outbox set status = 'pending', attempts = 0, next_try_at = now() w
 select * from cron.job_run_details order by start_time desc limit 20;
 ```
 
-## 5. Vercel
+## 6. Vercel
 
 Variables de entorno: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `APP_URL`. La app no usa la service role key: todo lo sensible lo resuelve la base con RLS y funciones.

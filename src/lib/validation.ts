@@ -297,3 +297,64 @@ export function isApprovalToken(token: string) {
 
 // Estado del link que devuelve get_change_order_for_approval.
 export type ApprovalLinkState = "valid" | "invalid" | "expired" | "used" | "changed" | "revoked" | "void";
+
+// ---------------------------------------------------------------------------
+// Documentos y revisiones
+// ---------------------------------------------------------------------------
+
+export const DISCIPLINES = ["architecture", "structure", "mep", "other"] as const;
+export type Discipline = (typeof DISCIPLINES)[number];
+export const DISCIPLINE_LABEL: Record<Discipline, string> = {
+  architecture: "Arquitectura",
+  structure: "Estructura",
+  mep: "Instalaciones",
+  other: "Otra",
+};
+
+export const documentSchema = z.object({
+  code: z
+    .string({ error: "Indicá el código" })
+    .trim()
+    .min(1, { error: "Indicá el código, por ejemplo A-301" })
+    .max(40, { error: "Hasta 40 caracteres" })
+    .transform((v) => v.toUpperCase()),
+  title: z
+    .string({ error: "Indicá el título" })
+    .trim()
+    .min(2, { error: "El título necesita al menos 2 caracteres" })
+    .max(160, { error: "Hasta 160 caracteres" }),
+  discipline: z.enum(DISCIPLINES, { error: "Elegí la disciplina" }),
+});
+
+export const REVISION_MIME_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"] as const;
+export const MAX_REVISION_BYTES = 50 * 1024 * 1024;
+
+export const revisionUploadSchema = z.object({
+  code: z
+    .string({ error: "Indicá la revisión" })
+    .trim()
+    .min(1, { error: "Indicá la revisión, por ejemplo C02" })
+    .max(20, { error: "Hasta 20 caracteres" })
+    .transform((v) => v.toUpperCase()),
+  notes: z
+    .string()
+    .trim()
+    .max(1000, { error: "Hasta 1000 caracteres" })
+    .optional()
+    .transform((v) => (v ? v : null)),
+  fileName: z.string().min(1, { error: "Elegí el archivo" }).max(200, { error: "El nombre del archivo es muy largo" }),
+  fileSize: z
+    .number()
+    .int()
+    .positive({ error: "El archivo está vacío" })
+    .max(MAX_REVISION_BYTES, { error: "El archivo pasa los 50 MB" }),
+  mimeType: z.enum(REVISION_MIME_TYPES, { error: "Solo PDF o imágenes (PNG, JPG, WebP)" }),
+});
+
+export type RevisionStatus = "draft" | "shared" | "published" | "superseded";
+export const REVISION_STATUS_LABEL: Record<RevisionStatus, string> = {
+  draft: "Borrador",
+  shared: "Compartida",
+  published: "Vigente",
+  superseded: "Reemplazada",
+};

@@ -75,10 +75,12 @@ select throws_ok($$ select public.send_change_order((select v from ids where k =
 
 reset role;
 select is((select payload ->> 'token' from public.outbox where kind = 'change_order_sent'
-           and to_email = 'cliente@gmail.com' order by id desc limit 1), (select v from tok where k = 't1'),
+           and org_id = (select v from ids where k = 'org_a') order by id desc limit 1), (select v from tok where k = 't1'),
   'El correo al cliente lleva el token mientras espera salir');
-select public.complete_outbox((select id from public.outbox where kind = 'change_order_sent' order by id desc limit 1), true);
-select ok(not exists (select 1 from public.outbox where kind = 'change_order_sent' and payload ? 'token' and status = 'sent'),
+select public.complete_outbox((select id from public.outbox where kind = 'change_order_sent'
+  and org_id = (select v from ids where k = 'org_a') order by id desc limit 1), true);
+select ok(not exists (select 1 from public.outbox where kind = 'change_order_sent' and payload ? 'token' and status = 'sent'
+  and org_id = (select v from ids where k = 'org_a')),
   'Enviado el correo, el token se borra del outbox');
 
 -- ---------- Página del cliente (sin sesión) ----------
@@ -116,9 +118,10 @@ select is((select a.content_hash from public.approvals a where a.change_order_id
   'La aprobación guarda la huella del contenido aprobado');
 select is((select signer_email from public.approvals where change_order_id = (select v from ids where k = 'oc1')),
   'cliente@gmail.com', 'Y el correo al que se envió el link');
-select is((select actor_email from public.events where type = 'change_order.approved'), 'cliente@gmail.com',
+select is((select actor_email from public.events where type = 'change_order.approved' and org_id = (select v from ids where k = 'org_a')), 'cliente@gmail.com',
   'El evento queda a nombre del cliente');
-select is((select array_agg(to_email order by to_email) from public.outbox where kind = 'change_order_decided'),
+select is((select array_agg(to_email order by to_email) from public.outbox where kind = 'change_order_decided'
+           and org_id = (select v from ids where k = 'org_a')),
   array['ana@estudio-a.com', 'beto@estudio-a.com'], 'Se avisa a la dueña y a quien creó y envió la orden');
 
 -- ---------- Editar después del envío ----------

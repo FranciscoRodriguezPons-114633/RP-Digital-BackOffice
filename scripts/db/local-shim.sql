@@ -33,3 +33,33 @@ grant select on auth.users to service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+
+-- Storage mínimo: buckets, objetos con RLS y storage.foldername.
+create schema if not exists storage;
+grant usage on schema storage to anon, authenticated, service_role;
+
+create table if not exists storage.buckets (
+  id text primary key,
+  name text not null,
+  public boolean default false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
+
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text references storage.buckets (id),
+  name text,
+  owner uuid,
+  metadata jsonb,
+  created_at timestamptz default now(),
+  unique (bucket_id, name)
+);
+alter table storage.objects enable row level security;
+-- Como en Supabase: los roles tienen permisos de tabla y las políticas RLS deciden.
+grant select, insert, update, delete on storage.objects to anon, authenticated;
+grant all on storage.objects, storage.buckets to service_role;
+
+create or replace function storage.foldername(name text) returns text[] language sql immutable as $$
+  select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1]
+$$;

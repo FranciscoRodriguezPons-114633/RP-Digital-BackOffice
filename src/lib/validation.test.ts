@@ -178,3 +178,20 @@ describe("aprobación por link", () => {
     expect(changeOrderSchema.safeParse({ ...base, amount: "180.000.000" }).success).toBe(true);
   });
 });
+
+import { documentSchema, revisionUploadSchema } from "./validation";
+
+describe("documentos y revisiones", () => {
+  it("el código del documento va en mayúsculas", () => {
+    expect(documentSchema.parse({ code: " a-301 ", title: "Planta baja", discipline: "architecture" }).code).toBe("A-301");
+    expect(documentSchema.safeParse({ code: "", title: "Planta", discipline: "architecture" }).success).toBe(false);
+    expect(documentSchema.safeParse({ code: "A-1", title: "Planta", discipline: "otra" }).success).toBe(false);
+  });
+  it("solo acepta PDF o imágenes de hasta 50 MB", () => {
+    const base = { code: "c02", notes: "", fileName: "planta.pdf", fileSize: 1000, mimeType: "application/pdf" };
+    expect(revisionUploadSchema.parse(base)).toMatchObject({ code: "C02", notes: null });
+    expect(revisionUploadSchema.safeParse({ ...base, mimeType: "application/zip" }).success).toBe(false);
+    expect(revisionUploadSchema.safeParse({ ...base, fileSize: 50 * 1024 * 1024 + 1 }).success).toBe(false);
+    expect(revisionUploadSchema.safeParse({ ...base, fileSize: 0 }).success).toBe(false);
+  });
+});

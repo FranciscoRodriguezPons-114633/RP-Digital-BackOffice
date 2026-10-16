@@ -48,3 +48,13 @@ describe("sumAmounts", () => {
     expect(sumAmounts([])).toBe(0);
   });
 });
+
+import { formatBytes } from "./format";
+
+describe("formatBytes", () => {
+  it("muestra B, KB o MB con coma", () => {
+    expect(formatBytes(512)).toBe("512 B");
+    expect(formatBytes(1536)).toBe("1,5 KB");
+    expect(formatBytes(1234567)).toBe("1,2 MB");
+  });
+});
