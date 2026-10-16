@@ -108,3 +108,42 @@ describe("timeEntrySchema", () => {
     expect(timeEntrySchema.safeParse({ ...base, hours: "2", work_date: "15/10/2026" }).success).toBe(false);
   });
 });
+
+import { changeOrderCode, changeOrderSchema, indexValueSchema, parseDocumentCodes, stageIndexSchema } from "./validation";
+
+describe("índices", () => {
+  it("convierte el mes al primer día", () => {
+    expect(indexValueSchema.parse({ name: "ICC Córdoba", period: "2026-07", value: "112,34" })).toEqual({
+      name: "ICC Córdoba",
+      period: "2026-07-01",
+      value: 112.34,
+    });
+  });
+  it("rechaza valor cero y mes inválido", () => {
+    expect(indexValueSchema.safeParse({ name: "ICC", period: "2026-07", value: "0" }).success).toBe(false);
+    expect(indexValueSchema.safeParse({ name: "ICC", period: "2026-13", value: "1" }).success).toBe(false);
+  });
+  it("una etapa con índice exige el mes base; sin índice queda todo vacío", () => {
+    expect(stageIndexSchema.safeParse({ index_name: "ICC", index_base_period: "" }).success).toBe(false);
+    expect(stageIndexSchema.parse({ index_name: "", index_base_period: "2026-01" })).toEqual({
+      index_name: null,
+      index_base_period: null,
+    });
+    expect(stageIndexSchema.parse({ index_name: "ICC", index_base_period: "2026-01" }).index_base_period).toBe("2026-01-01");
+  });
+});
+
+describe("órdenes de cambio", () => {
+  const base = { stage_id: "a007cc6b-0c7e-4a43-9a43-1b1b1b1b1b1b", title: "Carpinterías de PVC" };
+  it("separa y normaliza los códigos de documentos", () => {
+    expect(parseDocumentCodes("a-301, A-302  a-301;e-201")).toEqual(["A-301", "A-302", "E-201"]);
+  });
+  it("exige monto y acepta horas vacías", () => {
+    expect(changeOrderSchema.safeParse({ ...base, amount: "" }).success).toBe(false);
+    expect(changeOrderSchema.parse({ ...base, amount: "1.800", hours: "" })).toMatchObject({ amount: 1800, hours: null });
+  });
+  it("numera OC-001", () => {
+    expect(changeOrderCode(1)).toBe("OC-001");
+    expect(changeOrderCode(42)).toBe("OC-042");
+  });
+});

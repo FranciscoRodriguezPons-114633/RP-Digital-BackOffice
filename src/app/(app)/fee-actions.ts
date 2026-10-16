@@ -8,12 +8,34 @@ import {
   CURRENCIES,
   fieldErrors,
   idSchema,
+  stageIndexSchema,
   stageSchema,
   timeEntrySchema,
   type FormState,
 } from "@/lib/validation";
 
 // Igual que en actions.ts: cada acción verifica la sesión; los permisos los aplica la base.
+
+function parseStage(formData: FormData) {
+  const stage = stageSchema.safeParse(stageInput(formData));
+  const index = stageIndexSchema.safeParse({
+    index_name: formData.get("index_name") ?? undefined,
+    index_base_period: formData.get("index_base_period") ?? undefined,
+  });
+  if (!stage.success || !index.success) {
+    return {
+      ok: false as const,
+      state: {
+        ok: false,
+        errors: {
+          ...(stage.success ? {} : fieldErrors(stage.error).errors),
+          ...(index.success ? {} : fieldErrors(index.error).errors),
+        },
+      } satisfies FormState,
+    };
+  }
+  return { ok: true as const, data: { ...stage.data, ...index.data } };
+}
 
 function stageInput(formData: FormData) {
   return {
@@ -40,8 +62,8 @@ export async function createStage(projectId: string, _prev: FormState, formData:
   const org = await getCurrentOrg();
   if (!org || !idSchema.safeParse(projectId).success) return { ok: false, message: "Proyecto inválido." };
 
-  const parsed = stageSchema.safeParse(stageInput(formData));
-  if (!parsed.success) return fieldErrors(parsed.error);
+  const parsed = parseStage(formData);
+  if (!parsed.ok) return parsed.state;
 
   const supabase = await createClient();
   const { count } = await supabase
@@ -71,11 +93,14 @@ export async function updateStage(
   await requireUser();
   if (!idSchema.safeParse(stageId).success) return { ok: false, message: "Etapa inválida." };
 
-  const parsed = stageSchema.safeParse(stageInput(formData));
-  if (!parsed.success) return fieldErrors(parsed.error);
+  const parsed = parseStage(formData);
+  if (!parsed.ok) return parsed.state;
 
   const supabase = await createClient();
   const { data, error } = await supabase.from("fee_stages").update(parsed.data).eq("id", stageId).select("id");
+  if (error?.code === "22023") {
+    return { ok: false, message: "Esta etapa tiene órdenes de cambio: no se puede cambiar la moneda." };
+  }
   if (error) return { ok: false, message: dbErrorMessage(error) };
   if (!data?.length) return { ok: false, message: "Solo el dueño del estudio puede cambiar honorarios." };
 
@@ -90,7 +115,7 @@ export async function deleteStage(projectId: string, stageId: string): Promise<F
   const supabase = await createClient();
   const { error } = await supabase.from("fee_stages").delete().eq("id", stageId);
   if (error?.code === "23503") {
-    return { ok: false, message: "Esta etapa tiene horas cargadas: no se puede borrar." };
+    return { ok: false, message: "Esta etapa tiene horas cargadas u órdenes de cambio: no se puede borrar." };
   }
   if (error) return { ok: false, message: dbErrorMessage(error) };
 

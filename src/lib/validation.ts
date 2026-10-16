@@ -103,6 +103,7 @@ export function parseDecimal(input: unknown): number | null {
 const decimal = (label: string, { max }: { max?: number } = {}) =>
   z
     .unknown()
+    .optional()
     .transform((v) => parseDecimal(v))
     .refine((v) => v === null || !Number.isNaN(v), { error: `${label}: escribí solo números` })
     .refine((v) => v === null || v >= 0, { error: `${label}: no puede ser negativo` })
@@ -157,3 +158,103 @@ export const timeEntrySchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
 });
+
+// ---------------------------------------------------------------------------
+// Índices y órdenes de cambio
+// ---------------------------------------------------------------------------
+
+// <input type="month"> manda "2026-07"; la base guarda el primer día del mes.
+export const monthSchema = z
+  .string({ error: "Elegí el mes" })
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, { error: "Elegí el mes" })
+  .transform((m) => `${m}-01`);
+
+export const INDEX_SUGGESTIONS = ["ICC Córdoba", "ICC INDEC", "CAC"] as const;
+
+const indexName = z
+  .string()
+  .trim()
+  .min(2, { error: "El nombre del índice necesita al menos 2 caracteres" })
+  .max(60, { error: "Hasta 60 caracteres" });
+
+export const indexValueSchema = z.object({
+  name: indexName,
+  period: monthSchema,
+  value: decimal("Valor").refine((v) => v !== null && v > 0, { error: "Indicá un valor mayor que cero" }),
+});
+
+export const stageIndexSchema = z
+  .object({
+    index_name: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v ? v : null)),
+    index_base_period: z
+      .string()
+      .optional()
+      .transform((v) => (v ? v : null)),
+  })
+  .superRefine((s, ctx) => {
+    if (s.index_name && !s.index_base_period) {
+      ctx.addIssue({ code: "custom", path: ["index_base_period"], message: "Elegí el mes base del índice" });
+    }
+    if (s.index_base_period && !/^\d{4}-(0[1-9]|1[0-2])$/.test(s.index_base_period)) {
+      ctx.addIssue({ code: "custom", path: ["index_base_period"], message: "Elegí el mes base del índice" });
+    }
+  })
+  .transform((s) =>
+    s.index_name && s.index_base_period
+      ? { index_name: s.index_name, index_base_period: `${s.index_base_period}-01` }
+      : { index_name: null, index_base_period: null },
+  );
+
+// "A-301, A-302 a-303" → ["A-301", "A-302", "A-303"]
+export function parseDocumentCodes(input: unknown): string[] {
+  const codes = String(input ?? "")
+    .split(/[\s,;]+/)
+    .map((c) => c.trim().toUpperCase())
+    .filter(Boolean);
+  return [...new Set(codes)];
+}
+
+export const CHANGE_ORDER_STATUS_LABEL = {
+  draft: "Borrador",
+  sent: "Enviada",
+  approved: "Aprobada",
+  rejected: "Rechazada",
+  billable: "Para facturar",
+  void: "Anulada",
+} as const;
+export type ChangeOrderStatus = keyof typeof CHANGE_ORDER_STATUS_LABEL;
+
+export const changeOrderSchema = z.object({
+  stage_id: z.uuid({ error: "Elegí la etapa" }),
+  title: z
+    .string()
+    .trim()
+    .min(3, { error: "El título necesita al menos 3 caracteres" })
+    .max(160, { error: "Hasta 160 caracteres" }),
+  description: z
+    .string()
+    .trim()
+    .max(4000, { error: "Hasta 4000 caracteres" })
+    .optional()
+    .transform((v) => (v ? v : null)),
+  hours: decimal("Horas", { max: 9999 }),
+  amount: decimal("Monto").refine((v) => v !== null, { error: "Indicá el monto del adicional" }),
+  affected_documents: z
+    .unknown()
+    .optional()
+    .transform(parseDocumentCodes)
+    .refine((codes) => codes.length <= 30, { error: "Hasta 30 documentos" })
+    .refine((codes) => codes.every((c) => c.length <= 40), { error: "Cada código, hasta 40 caracteres" }),
+});
+
+export const voidSchema = z.object({
+  reason: z.string().trim().min(3, { error: "Indicá el motivo" }).max(500, { error: "Hasta 500 caracteres" }),
+});
+
+export function changeOrderCode(n: number) {
+  return `OC-${String(n).padStart(3, "0")}`;
+}

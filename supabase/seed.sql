@@ -34,6 +34,7 @@ declare
   v_ana constant uuid := 'a0000000-0000-4000-8000-000000000001';
   v_org uuid;
   v_alba uuid;
+  v_norte uuid;
 begin
   v_org := public.create_organization('Estudio Demo');
 
@@ -42,7 +43,20 @@ begin
   returning id into v_alba;
 
   insert into public.projects (org_id, name, code, client_name, created_by)
-  values (v_org, 'Casa Norte', 'CN-02', 'Familia Pérez', v_ana);
+  values (v_org, 'Casa Norte', 'CN-02', 'Familia Pérez', v_ana)
+  returning id into v_norte;
+
+  -- Índice de ejemplo para probar el ajuste. Son valores inventados, no los publicados.
+  insert into public.price_indices (org_id, name, period, value, created_by)
+  select v_org, 'ICC Córdoba', make_date(2026, m, 1), v, v_ana
+  from (values (1, 100.0), (2, 102.1), (3, 104.3), (4, 106.5), (5, 108.2),
+               (6, 110.0), (7, 112.34), (8, 114.1), (9, 115.9)) as t (m, v);
+
+  -- Casa Norte en pesos, ajustada por el índice desde abril.
+  perform public.apply_fee_template(v_norte, 'ARS');
+  update public.fee_stages set amount = t.amount, index_name = 'ICC Córdoba', index_base_period = '2026-04-01'
+  from (values (1, 1800000), (2, 2700000), (3, 6300000), (4, 9000000)) as t (pos, amount)
+  where project_id = v_norte and position = t.pos;
 
   -- Honorarios de Edificio Alba con la plantilla y montos de ejemplo.
   perform public.apply_fee_template(v_alba, 'USD');
@@ -73,6 +87,17 @@ begin
     (3, 1, 3.0, 'Arranque de documentación')
   ) as h (pos, days_ago, hours, note) on h.pos = s.position
   where s.project_id = v_alba;
+
+  -- Dos órdenes de cambio en borrador en Edificio Alba.
+  perform public.create_change_order(
+    (select id from public.fee_stages where project_id = v_alba and position = 3),
+    'Carpinterías de PVC en fachada norte',
+    'Cambio de aluminio a PVC en los pisos 2 a 6. Incluye rehacer detalles y planilla de aberturas.',
+    40, 1800, array['A-301', 'A-302']);
+  perform public.create_change_order(
+    (select id from public.fee_stages where project_id = v_alba and position = 2),
+    'Revestimiento del hall de acceso',
+    null, 8, 600, array['A-501']);
 
   -- El cliente ya está registrado, así que queda vinculado al proyecto en el acto.
   perform public.invite_guest(v_alba, 'cliente@estudio.test', 'client');

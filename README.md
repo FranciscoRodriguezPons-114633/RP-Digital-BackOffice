@@ -5,7 +5,10 @@ Backoffice para estudios de arquitectura: honorarios y adicionales cobrables, y 
 Estado:
 
 - **Sprint 0** (fundaciones): multiempresa, ingreso por enlace mágico, proyectos, invitados externos, auditoría y cola de correos.
-- **Sprint 1** (honorarios y horas): etapas con honorario fijo, por hora o mixto, en USD o ARS; plantilla de 4 etapas (croquis preliminar, anteproyecto, documentación de proyecto, dirección de obra); carga de horas desde el teléfono en `/horas`; aviso por correo al dueño cuando una etapa llega al 80% y al 100% de las horas previstas, una sola vez por umbral. El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md).
+- **Sprint 1** (honorarios y horas): etapas con honorario fijo, por hora o mixto, en USD o ARS; plantilla de 4 etapas (croquis preliminar, anteproyecto, documentación de proyecto, dirección de obra); carga de horas desde el teléfono en `/horas`; aviso por correo al dueño cuando una etapa llega al 80% y al 100% de las horas previstas, una sola vez por umbral.
+- **Sprint 2** (índices y órdenes de cambio): carga mensual de índices en `/indices` con historial; etapas ajustadas por índice (monto × valor actual ÷ valor del mes base, a 2 decimales); órdenes de cambio con horas, monto y documentos afectados, numeradas por proyecto (OC-001, OC-002…), que se pueden editar mientras no estén aprobadas y anular con motivo. Las aprobadas suman a su etapa. El envío al cliente por link llega en el Sprint 3.
+
+El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md).
 
 ## Stack
 
@@ -76,6 +79,8 @@ docs/                       propuesta, plan, operación, guía de entrevistas
 - **La app no usa la service role key**. Solo la Edge Function la usa, para procesar la cola.
 - **Honorarios en la base:** la vista `fee_stage_summary` calcula horas usadas, honorario y porcentaje con las mismas reglas de acceso que las tablas. Fija = monto; por hora = horas × tarifa; mixta = monto + horas que pasan de lo previsto × tarifa. Los totales se muestran por moneda, sin convertir.
 - **Quién toca qué:** el dueño crea y edita etapas; los miembros las ven y cargan sus propias horas; los invitados no ven honorarios ni horas.
+- **Ajuste por índice en la base:** `fee_stage_summary` toma el último valor cargado del índice de cada etapa y el del mes base. Si falta el del mes base, la etapa queda sin ajustar y la pantalla avisa qué valor falta.
+- **Órdenes de cambio por funciones:** `create_change_order` numera con un bloqueo sobre el proyecto (sin números repetidos aunque dos personas creen a la vez); `update_change_order` y `void_change_order` validan el estado. Cada orden guarda una huella SHA-256 de su contenido (`content_hash`), que cambia con cualquier edición: es la base para que un link de aprobación deje de valer si la orden cambió.
 - **Formularios que no borran lo escrito:** `useActionForm` (en `src/components/form.tsx`) evita que React vacíe el formulario cuando la acción devuelve un error.
 - **Un estudio por persona** en el MVP (si pertenece a varios, se usa el más antiguo). Se puede agregar un selector más adelante.
 

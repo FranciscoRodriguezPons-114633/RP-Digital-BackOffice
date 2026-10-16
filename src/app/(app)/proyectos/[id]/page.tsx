@@ -8,6 +8,8 @@ import { removeGuest } from "../../actions";
 import { GuestInviteForm } from "../../forms";
 import { SubmitButton } from "@/components/form";
 import { FeesSection } from "./fees-section";
+import { ChangeOrdersSection } from "./change-orders-section";
+import { changeOrderCode } from "@/lib/validation";
 
 type Guest = {
   id: string;
@@ -38,6 +40,11 @@ function eventText(e: EventRow) {
     const pct = e.type.endsWith("80") ? "80%" : "100%";
     return `«${String(e.data?.stage_name ?? "Una etapa")}» llegó al ${pct} de las horas previstas`;
   }
+  if (e.type.startsWith("change_order.")) {
+    const code = changeOrderCode(Number(e.data?.number ?? 0));
+    const verb = { "change_order.created": "creó", "change_order.updated": "editó", "change_order.voided": "anuló" }[e.type] ?? e.type;
+    return `${e.actor_email ?? "Alguien"} ${verb} ${code} «${String(e.data?.title ?? "")}»`;
+  }
   const who = e.type === "guest.accepted" ? "" : `${e.actor_email ?? "Alguien"} `;
   const email = typeof e.data?.email === "string" ? ` ${e.data.email}` : "";
   return `${who}${EVENT_LABEL[e.type] ?? e.type}${email}`;
@@ -49,19 +56,26 @@ const dateFmt = new Intl.DateTimeFormat("es-AR", {
   timeZone: "America/Argentina/Cordoba",
 });
 
-export default function ProjectPage({ params }: PageProps<"/proyectos/[id]">) {
+export default function ProjectPage({ params, searchParams }: PageProps<"/proyectos/[id]">) {
   return (
     <div className="flex flex-col gap-8">
       <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
       <Suspense fallback={<p className="text-sm text-muted">Cargando proyecto…</p>}>
-        <Project params={params} />
+        <Project params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function Project({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function Project({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const ocStage = typeof query.oc_etapa === "string" ? query.oc_etapa : undefined;
   if (!idSchema.safeParse(id).success) notFound();
 
   await requireUser();
@@ -92,6 +106,7 @@ async function Project({ params }: { params: Promise<{ id: string }> }) {
       {isMember ? (
         <>
           <FeesSection projectId={project.id} isOwner={org?.role === "owner"} />
+          <ChangeOrdersSection projectId={project.id} isOwner={org?.role === "owner"} defaultStageId={ocStage} />
           <Guests projectId={project.id} />
           <Activity projectId={project.id} />
         </>

@@ -13,11 +13,21 @@ export type StageValues = {
   amount: string | number | null;
   hourly_rate: string | number | null;
   budget_hours: string | number | null;
+  index_name: string | null;
+  index_base_period: string | null;
 };
 
 const toInput = (v: string | number | null) => (v === null || v === undefined ? "" : String(v).replace(".", ","));
 
-export function StageForm({ projectId, stage }: { projectId: string; stage?: StageValues }) {
+export function StageForm({
+  projectId,
+  stage,
+  indexNames,
+}: {
+  projectId: string;
+  stage?: StageValues;
+  indexNames: string[];
+}) {
   const action = stage ? updateStage.bind(null, projectId, stage.id) : createStage.bind(null, projectId);
   const { state, pending, formProps } = useActionForm(action, { resetOnSuccess: !stage });
 
@@ -55,14 +65,30 @@ export function StageForm({ projectId, stage }: { projectId: string; stage?: Sta
         Horas previstas
         <input name="budget_hours" inputMode="decimal" defaultValue={toInput(stage?.budget_hours ?? null)} placeholder="90" className="input" />
       </label>
+      <label className="field sm:col-span-3">
+        Ajustar por índice
+        <select name="index_name" defaultValue={stage?.index_name ?? ""} className="input">
+          <option value="">Sin ajuste</option>
+          {[...new Set([...(stage?.index_name ? [stage.index_name] : []), ...indexNames])].map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+      </label>
+      <label className="field sm:col-span-3">
+        Mes base del índice
+        <input name="index_base_period" type="month" defaultValue={stage?.index_base_period?.slice(0, 7) ?? ""} className="input" />
+      </label>
       <div className="flex flex-col gap-1 sm:col-span-6">
         <FieldError errors={state.errors?.name} />
+        <FieldError errors={state.errors?.index_base_period} />
         <FieldError errors={state.errors?.amount} />
         <FieldError errors={state.errors?.hourly_rate} />
         <FieldError errors={state.errors?.budget_hours} />
         <p className="text-xs text-muted">
           Monto fijo usa el monto. Por hora usa la tarifa por las horas cargadas. Fijo + horas extra suma
-          la tarifa por cada hora que pase de las previstas.
+          la tarifa por cada hora que pase de las previstas. Con índice, el honorario se actualiza por el
+          último valor cargado dividido el del mes base.
+          {indexNames.length === 0 && " Los índices se cargan en la sección Índices."}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-6">

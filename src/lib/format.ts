@@ -1,19 +1,27 @@
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
-export function formatMoney(amount: number | string | null | undefined, currency: string) {
-  if (amount === null || amount === undefined || amount === "") return "—";
-  let f = moneyFormatters.get(currency);
+function moneyFormatter(currency: string, decimals: 0 | 2) {
+  const key = `${currency}:${decimals}`;
+  let f = moneyFormatters.get(key);
   if (!f) {
     f = new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency,
       currencyDisplay: "code",
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     });
-    moneyFormatters.set(currency, f);
+    moneyFormatters.set(key, f);
   }
-  return f.format(Number(amount));
+  return f;
+}
+
+// Sin centavos si el monto es redondo ("USD 16.800"); con dos decimales si no ("USD 5.563,20").
+export function formatMoney(amount: number | string | null | undefined, currency: string) {
+  if (amount === null || amount === undefined || amount === "") return "—";
+  const n = Number(amount);
+  const hasCents = Math.round(n * 100) % 100 !== 0;
+  return moneyFormatter(currency, hasCents ? 2 : 0).format(n);
 }
 
 const hoursFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
@@ -44,4 +52,26 @@ export function formatDay(isoDate: string) {
 export function recentWindow(days: number, now = new Date()) {
   const since = new Date(now.getTime() - (days - 1) * 86400000);
   return { today: todayInCordoba(now), since: todayInCordoba(since) };
+}
+
+const periodFormatter = new Intl.DateTimeFormat("es-AR", { month: "short", year: "numeric", timeZone: "UTC" });
+
+// "2026-07-01" → "jul 2026"
+export function formatPeriod(isoDate: string | null | undefined) {
+  if (!isoDate) return "—";
+  return periodFormatter
+    .format(new Date(`${isoDate.slice(0, 10)}T00:00:00Z`))
+    .replace(".", "")
+    .replace(" de ", " ")
+    .replace(/^sept\b/, "sep");
+}
+
+const factorFormatter = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+export function formatFactor(current: number | string, base: number | string) {
+  return `× ${factorFormatter.format(Number(current) / Number(base))}`;
+}
+
+const indexFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 4 });
+export function formatIndexValue(v: number | string) {
+  return indexFormatter.format(Number(v));
 }
