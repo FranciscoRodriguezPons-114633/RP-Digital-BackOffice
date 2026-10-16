@@ -9,11 +9,15 @@ import type { FormState } from "@/lib/validation";
 // error de validación. Acá el envío pasa por onSubmit (sin vaciado automático) y el
 // formulario se limpia solo si la acción respondió ok y resetOnSuccess es true.
 // Sin JavaScript sigue funcionando por el atributo action.
-export function useActionForm(
-  action: (state: FormState, formData: FormData) => Promise<FormState>,
+export function useActionForm<S extends FormState = FormState>(
+  action: (state: S, formData: FormData) => Promise<S>,
   { resetOnSuccess = true }: { resetOnSuccess?: boolean } = {},
 ) {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
+  const [awaitedState, formAction, pending] = useActionState<S, FormData>(
+    action as (state: Awaited<S>, formData: FormData) => Promise<S>,
+    {} as Awaited<S>,
+  );
+  const state = awaitedState as S;
   const ref = useRef<HTMLFormElement>(null);
 
   useEffect(() => {

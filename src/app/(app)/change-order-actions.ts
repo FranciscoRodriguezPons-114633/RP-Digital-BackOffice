@@ -5,12 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
 import { formatIndexValue, formatPeriod } from "@/lib/format";
+import { appOrigin } from "@/lib/origin";
 import {
+  LINK_VALID_DAYS,
   changeOrderCode,
   changeOrderSchema,
   fieldErrors,
   idSchema,
   indexValueSchema,
+  sendChangeOrderSchema,
   voidSchema,
   type FormState,
 } from "@/lib/validation";
@@ -92,10 +95,20 @@ function changeOrderInput(formData: FormData) {
 
 export async function createChangeOrder(projectId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
+  if (!idSchema.safeParse(projectId).success) return { ok: false, message: "Proyecto inválido." };
   const parsed = changeOrderSchema.safeParse(changeOrderInput(formData));
   if (!parsed.success) return fieldErrors(parsed.error);
 
   const supabase = await createClient();
+  // La orden va al proyecto de la etapa: se confirma que sea este, para no crearla en otro.
+  const { data: stage } = await supabase
+    .from("fee_stages")
+    .select("id")
+    .eq("id", parsed.data.stage_id)
+    .eq("project_id", projectId)
+    .maybeSingle();
+  if (!stage) return { ok: false, errors: { stage_id: ["Elegí una etapa de este proyecto"] } };
+
   const { data, error } = await supabase
     .rpc("create_change_order", {
       p_stage_id: parsed.data.stage_id,
@@ -138,6 +151,42 @@ export async function updateChangeOrder(
 
   revalidatePath(`/proyectos/${projectId}`);
   return { ok: true, message: "Cambios guardados." };
+}
+
+// ---------- Envío al cliente ----------
+
+export type SendState = FormState & { link?: string; expiresAt?: string };
+
+export async function sendChangeOrder(
+  projectId: string,
+  orderId: string,
+  _prev: SendState,
+  formData: FormData,
+): Promise<SendState> {
+  await requireUser();
+  if (!idSchema.safeParse(orderId).success) return { ok: false, message: "Orden inválida." };
+  const parsed = sendChangeOrderSchema.safeParse({ recipient_email: formData.get("recipient_email") });
+  if (!parsed.success) return fieldErrors(parsed.error);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("send_change_order", {
+      p_id: orderId,
+      p_recipient_email: parsed.data.recipient_email,
+      p_valid_days: LINK_VALID_DAYS,
+    })
+    .single<{ token: string; expires_at: string }>();
+  if (error?.code === "22023") return { ok: false, message: "Esta orden ya no se puede enviar." };
+  if (error) return { ok: false, message: dbErrorMessage(error) };
+
+  revalidatePath(`/proyectos/${projectId}`);
+  revalidatePath("/recuperado");
+  return {
+    ok: true,
+    message: `Enviada a ${parsed.data.recipient_email}. También podés mandarle el link por WhatsApp.`,
+    link: `${await appOrigin()}/aprobar/${data.token}`,
+    expiresAt: data.expires_at,
+  };
 }
 
 export async function voidChangeOrder(

@@ -57,6 +57,59 @@ describe("renderEmail", () => {
     expect(email.text).toContain("https://app.rp.test/proyectos/p-1");
   });
 
+  it("orden enviada al cliente: link de aprobación, monto y vencimiento", () => {
+    const email = renderEmail(
+      {
+        id: 6,
+        kind: "change_order_sent",
+        to_email: "cliente@gmail.com",
+        payload: {
+          token: "abc_DEF-123",
+          org_name: "Estudio A",
+          project_name: "Edificio Alba",
+          number: 3,
+          title: "Carpinterías de PVC",
+          amount: 1800.5,
+          currency: "USD",
+          expires_at: "2026-10-29T15:00:00Z",
+        },
+      },
+      APP,
+    );
+    expect(email.subject).toBe("Estudio A te envió la orden de cambio OC-003 para aprobar");
+    expect(email.text).toContain("https://app.rp.test/aprobar/abc_DEF-123");
+    expect(email.text).toContain("USD 1.800,50");
+    expect(email.text).toContain("29 de octubre de 2026");
+    expect(email.html).toContain("No hace falta crear una cuenta");
+    expect(email.html).not.toContain("sin contraseñas");
+  });
+
+  it("decisión del cliente: quién, qué orden y comentario escapado", () => {
+    const email = renderEmail(
+      {
+        id: 7,
+        kind: "change_order_decided",
+        to_email: "ana@a.com",
+        payload: {
+          decision: "rejected",
+          project_name: "Edificio Alba",
+          project_id: "p-1",
+          number: 12,
+          title: "Pérgola",
+          amount: 600,
+          currency: "ARS",
+          signer_name: "Juan Pérez",
+          comment: "<b>Muy caro</b>",
+        },
+      },
+      APP,
+    );
+    expect(email.subject).toBe("Edificio Alba: Juan Pérez rechazó OC-012");
+    expect(email.text).toContain("https://app.rp.test/proyectos/p-1#ordenes");
+    expect(email.text).toContain("ARS 600");
+    expect(email.html).toContain("&lt;b&gt;Muy caro&lt;/b&gt;");
+  });
+
   it("falla con un tipo desconocido (el outbox lo reintenta y termina en failed)", () => {
     expect(() => renderEmail({ id: 4, kind: "otro", to_email: "a@a.com", payload: {} }, APP)).toThrow();
   });

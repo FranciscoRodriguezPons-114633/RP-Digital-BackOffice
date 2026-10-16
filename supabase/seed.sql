@@ -35,6 +35,7 @@ declare
   v_org uuid;
   v_alba uuid;
   v_norte uuid;
+  v_token text;
 begin
   v_org := public.create_organization('Estudio Demo');
 
@@ -88,7 +89,7 @@ begin
   ) as h (pos, days_ago, hours, note) on h.pos = s.position
   where s.project_id = v_alba;
 
-  -- Dos órdenes de cambio en borrador en Edificio Alba.
+  -- Órdenes de cambio en Edificio Alba: OC-001 esperando al cliente, OC-002 aprobada, OC-003 en borrador.
   perform public.create_change_order(
     (select id from public.fee_stages where project_id = v_alba and position = 3),
     'Carpinterías de PVC en fachada norte',
@@ -98,6 +99,27 @@ begin
     (select id from public.fee_stages where project_id = v_alba and position = 2),
     'Revestimiento del hall de acceso',
     null, 8, 600, array['A-501']);
+  perform public.create_change_order(
+    (select id from public.fee_stages where project_id = v_alba and position = 1),
+    'Cambio de solado en terrazas',
+    null, 10, 750, array['A-401', 'A-402']);
+
+  -- OC-001 enviada con un link fijo, para probar la página del cliente en local:
+  -- http://localhost:3000/aprobar/link-de-prueba-local-para-aprobar-la-oc-001
+  perform public.send_change_order(
+    (select id from public.change_orders where project_id = v_alba and number = 1), 'cliente@estudio.test');
+  update public.approval_links
+  set token_hash = encode(extensions.digest('link-de-prueba-local-para-aprobar-la-oc-001', 'sha256'), 'hex')
+  where change_order_id = (select id from public.change_orders where project_id = v_alba and number = 1);
+  update public.outbox set payload = jsonb_set(payload, '{token}', '"link-de-prueba-local-para-aprobar-la-oc-001"')
+  where kind = 'change_order_sent';
+
+  -- OC-002 enviada y aprobada por el cliente desde el link (sin sesión).
+  select token into v_token from public.send_change_order(
+    (select id from public.change_orders where project_id = v_alba and number = 2), 'cliente@estudio.test');
+  perform set_config('request.jwt.claims', '{"role":"anon"}', false);
+  perform public.decide_change_order(v_token, 'approved', 'Laura Gómez', 'Dale, avancen.', null, 'seed');
+  perform set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000001"}', false);
 
   -- El cliente ya está registrado, así que queda vinculado al proyecto en el acto.
   perform public.invite_guest(v_alba, 'cliente@estudio.test', 'client');

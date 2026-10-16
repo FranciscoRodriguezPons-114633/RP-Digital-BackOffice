@@ -113,7 +113,7 @@ select isnt((select content_hash from public.change_orders where id = (select id
   'Editar cambia la huella del contenido');
 select is((select count(*)::int from public.events where type = 'change_order.updated'), 1, 'La edición deja un evento');
 select throws_ok($$ select public.update_change_order((select id from oc), (select v from ids where k = 'n1'),
-  'x x x', null, null, 1, '{}') $$, '22023', null, 'No se puede mover la orden a una etapa de otro proyecto');
+  'x x x', null, null, 1, '{}') $$, '23514', null, 'No se puede mover la orden a una etapa de otro proyecto');
 select throws_ok($$ select public.void_change_order((select id from oc), 'Lo pidió el cliente') $$,
   '42501', null, 'Un miembro no puede anular');
 
@@ -149,7 +149,7 @@ select is((select count(*)::int from public.change_orders) + (select count(*)::i
   'Otro estudio no ve órdenes ni índices');
 select set_config('request.jwt.claims', '{"sub":"44444444-4444-4444-4444-444444444444"}', true);
 select is((select count(*)::int from public.change_orders) + (select count(*)::int from public.price_indices), 0,
-  'El cliente todavía no ve órdenes (se las va a enviar el estudio en el sprint 3)');
+  'El cliente no ve órdenes que no le enviaron');
 
 select * from finish();
 rollback;

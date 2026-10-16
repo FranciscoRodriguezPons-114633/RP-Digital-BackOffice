@@ -29,7 +29,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   );
 }
 
-// Los invitados externos no tienen estudio: no ven "Horas", "Índices" ni "Equipo".
+// Los invitados externos no tienen estudio: no ven "Horas", "Índices", "Recuperado" ni "Equipo".
 async function TeamLink() {
   const org = await getCurrentOrg();
   if (!org) return null;
@@ -37,6 +37,7 @@ async function TeamLink() {
     <>
       <Link href="/horas" className="nav-link">Horas</Link>
       <Link href="/indices" className="nav-link">Índices</Link>
+      <Link href="/recuperado" className="nav-link">Recuperado</Link>
       <Link href="/equipo" className="nav-link">Equipo</Link>
     </>
   );

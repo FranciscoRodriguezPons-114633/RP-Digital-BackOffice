@@ -38,3 +38,13 @@ describe("índices", () => {
     expect(formatFactor(112.34, 100)).toBe("× 1,1234");
   });
 });
+
+import { sumAmounts } from "./format";
+
+describe("sumAmounts", () => {
+  it("suma al centavo, sin errores de coma flotante", () => {
+    expect(sumAmounts(["0.10", "0.20"])).toBe(0.3);
+    expect(sumAmounts(["1800.55", "199.45", null])).toBe(2000);
+    expect(sumAmounts([])).toBe(0);
+  });
+});

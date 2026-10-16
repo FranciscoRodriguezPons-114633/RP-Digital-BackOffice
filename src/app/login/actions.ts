@@ -1,16 +1,8 @@
 "use server";
 
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { appOrigin } from "@/lib/origin";
 import { loginSchema, safeNext, fieldErrors, type FormState } from "@/lib/validation";
-
-async function appOrigin() {
-  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
-}
 
 export async function sendMagicLink(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse({

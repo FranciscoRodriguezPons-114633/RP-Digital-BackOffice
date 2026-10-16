@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/form";
 import { FeesSection } from "./fees-section";
 import { ChangeOrdersSection } from "./change-orders-section";
 import { changeOrderCode } from "@/lib/validation";
+import { formatMoney } from "@/lib/format";
 
 type Guest = {
   id: string;
@@ -42,8 +43,16 @@ function eventText(e: EventRow) {
   }
   if (e.type.startsWith("change_order.")) {
     const code = changeOrderCode(Number(e.data?.number ?? 0));
+    const title = String(e.data?.title ?? "");
+    if (e.type === "change_order.approved" || e.type === "change_order.rejected") {
+      const verb = e.type === "change_order.approved" ? "aprobó" : "rechazó";
+      return `${String(e.data?.signer_name ?? "El cliente")} (${e.actor_email ?? "sin correo"}) ${verb} ${code} «${title}»`;
+    }
+    if (e.type === "change_order.sent") {
+      return `${e.actor_email ?? "Alguien"} envió ${code} «${title}» a ${String(e.data?.recipient_email ?? "el cliente")}`;
+    }
     const verb = { "change_order.created": "creó", "change_order.updated": "editó", "change_order.voided": "anuló" }[e.type] ?? e.type;
-    return `${e.actor_email ?? "Alguien"} ${verb} ${code} «${String(e.data?.title ?? "")}»`;
+    return `${e.actor_email ?? "Alguien"} ${verb} ${code} «${title}»`;
   }
   const who = e.type === "guest.accepted" ? "" : `${e.actor_email ?? "Alguien"} `;
   const email = typeof e.data?.email === "string" ? ` ${e.data.email}` : "";
@@ -111,15 +120,57 @@ async function Project({
           <Activity projectId={project.id} />
         </>
       ) : (
-        <section className="card">
-          <h2 className="font-medium">Tu acceso</h2>
-          <p className="mt-2 text-sm text-muted">
-            {orgName ?? "El estudio"} te sumó a este proyecto. Acá vas a ver los honorarios, adicionales
-            para aprobar y los planos vigentes a medida que el estudio los cargue.
-          </p>
-        </section>
+        <>
+          <section className="card">
+            <h2 className="font-medium">Tu acceso</h2>
+            <p className="mt-2 text-sm text-muted">
+              {orgName ?? "El estudio"} te sumó a este proyecto. Acá vas a ver los adicionales que te envíen para
+              aprobar y los planos vigentes a medida que el estudio los cargue.
+            </p>
+          </section>
+          <GuestChangeOrders projectId={project.id} />
+        </>
       )}
     </>
+  );
+}
+
+// El invitado solo ve las órdenes que le enviaron a su correo (lo filtra la base).
+const GUEST_STATUS: Record<string, string> = {
+  sent: "Esperando tu respuesta: revisá el correo con el link para aprobarla",
+  approved: "La aprobaste",
+  billable: "La aprobaste",
+  rejected: "La rechazaste",
+  void: "Anulada por el estudio",
+  draft: "El estudio la está revisando; te va a llegar la versión nueva",
+};
+
+async function GuestChangeOrders({ projectId }: { projectId: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("change_orders")
+    .select("id, number, title, amount, currency, status")
+    .eq("project_id", projectId)
+    .order("number", { ascending: false });
+  const orders = (data ?? []) as { id: string; number: number; title: string; amount: string; currency: string; status: string }[];
+  if (orders.length === 0) return null;
+
+  return (
+    <section className="card flex flex-col gap-4">
+      <h2 className="font-medium">Adicionales que te enviaron</h2>
+      <ul className="flex flex-col divide-y divide-line">
+        {orders.map((o) => (
+          <li key={o.id} className="flex flex-col gap-1 py-3 first:pt-0">
+            <div className="flex items-baseline gap-3">
+              <span className="font-mono text-sm text-muted">{changeOrderCode(o.number)}</span>
+              <span className="min-w-0 flex-1 font-medium">{o.title}</span>
+              <span className="font-mono whitespace-nowrap">{formatMoney(o.amount, o.currency)}</span>
+            </div>
+            <p className={`text-xs ${o.status === "sent" ? "text-warn" : "text-muted"}`}>{GUEST_STATUS[o.status] ?? o.status}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

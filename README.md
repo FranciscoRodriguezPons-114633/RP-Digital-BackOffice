@@ -6,7 +6,8 @@ Estado:
 
 - **Sprint 0** (fundaciones): multiempresa, ingreso por enlace mágico, proyectos, invitados externos, auditoría y cola de correos.
 - **Sprint 1** (honorarios y horas): etapas con honorario fijo, por hora o mixto, en USD o ARS; plantilla de 4 etapas (croquis preliminar, anteproyecto, documentación de proyecto, dirección de obra); carga de horas desde el teléfono en `/horas`; aviso por correo al dueño cuando una etapa llega al 80% y al 100% de las horas previstas, una sola vez por umbral.
-- **Sprint 2** (índices y órdenes de cambio): carga mensual de índices en `/indices` con historial; etapas ajustadas por índice (monto × valor actual ÷ valor del mes base, a 2 decimales); órdenes de cambio con horas, monto y documentos afectados, numeradas por proyecto (OC-001, OC-002…), que se pueden editar mientras no estén aprobadas y anular con motivo. Las aprobadas suman a su etapa. El envío al cliente por link llega en el Sprint 3.
+- **Sprint 2** (índices y órdenes de cambio): carga mensual de índices en `/indices` con historial; etapas ajustadas por índice (monto × valor actual ÷ valor del mes base, a 2 decimales); órdenes de cambio con horas, monto y documentos afectados, numeradas por proyecto (OC-001, OC-002…), que se pueden editar mientras no estén aprobadas y anular con motivo. Las aprobadas suman a su etapa.
+- **Sprint 3** (aprobación por link y panel): el estudio envía la orden al cliente por correo y, además, ve el link una vez para copiarlo o mandarlo por WhatsApp. El cliente la aprueba o rechaza desde `/aprobar/…`, sin cuenta y desde el teléfono; el link vence a los 14 días, sirve una sola vez y deja de valer si la orden se edita, se reenvía o se anula. Cada decisión guarda nombre, correo, fecha, IP, navegador y la huella del contenido aprobado, y avisa por correo al estudio. El panel `/recuperado` muestra lo aprobado por proyecto y por mes, lo que espera respuesta y los borradores sin enviar. El cliente invitado ve en el proyecto las órdenes que le enviaron.
 
 El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md).
 
@@ -31,6 +32,8 @@ npm run dev                   # http://localhost:3000
 Los correos del enlace mágico en local llegan a Mailpit: <http://127.0.0.1:54324>.
 
 **Ingreso rápido en desarrollo:** con `npm run dev` y Supabase local, la pantalla de ingreso muestra botones para entrar como Ana (dueña), Beto (miembro) o el cliente invitado, sin correo. Los usuarios y un estudio de ejemplo salen de `supabase/seed.sql`, que se carga con `npx supabase db reset`. En producción esos botones no existen y la nube no recibe el seed.
+
+El seed deja la orden OC-001 de Edificio Alba esperando al cliente, con un link fijo para probar la página de aprobación: <http://localhost:3000/aprobar/link-de-prueba-local-para-aprobar-la-oc-001>.
 
 Para probar el envío de invitaciones en local:
 
@@ -82,6 +85,9 @@ docs/                       propuesta, plan, operación, guía de entrevistas
 - **Ajuste por índice en la base:** `fee_stage_summary` toma el último valor cargado del índice de cada etapa y el del mes base. Si falta el del mes base, la etapa queda sin ajustar y la pantalla avisa qué valor falta.
 - **Órdenes de cambio por funciones:** `create_change_order` numera con un bloqueo sobre el proyecto (sin números repetidos aunque dos personas creen a la vez); `update_change_order` y `void_change_order` validan el estado. Cada orden guarda una huella SHA-256 de su contenido (`content_hash`), que cambia con cualquier edición: es la base para que un link de aprobación deje de valer si la orden cambió.
 - **Formularios que no borran lo escrito:** `useActionForm` (en `src/components/form.tsx`) evita que React vacíe el formulario cuando la acción devuelve un error.
+- **Links de aprobación:** el token (32 bytes al azar) se devuelve una sola vez y en la base queda solo su SHA-256, en `approval_links`. El correo lo lleva en el outbox hasta que sale; `complete_outbox` lo borra al enviarlo o darlo por perdido. `decide_change_order` valida en la misma transacción que el link no esté usado, vencido ni reemplazado y que la huella de la orden sea la del envío.
+- **Editar después de enviar:** la orden vuelve a borrador y el link se anula. Guardar sin cambios no toca nada. Las aprobadas no se editan; se anulan.
+- **Quién decide:** el firmante escribe su nombre; el correo es siempre el del destinatario del link, no uno que se pueda tipear. El evento queda a nombre de ese correo.
 - **Un estudio por persona** en el MVP (si pertenece a varios, se usa el más antiguo). Se puede agregar un selector más adelante.
 
 Puesta en marcha de staging/producción: [`docs/operacion.md`](docs/operacion.md).

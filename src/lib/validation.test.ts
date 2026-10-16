@@ -147,3 +147,34 @@ describe("órdenes de cambio", () => {
     expect(changeOrderCode(42)).toBe("OC-042");
   });
 });
+
+import { decisionSchema, isApprovalToken, sendChangeOrderSchema } from "./validation";
+
+describe("aprobación por link", () => {
+  it("el destinatario se normaliza como cualquier correo", () => {
+    expect(sendChangeOrderSchema.parse({ recipient_email: " Cliente@Gmail.com " })).toEqual({
+      recipient_email: "cliente@gmail.com",
+    });
+    expect(sendChangeOrderSchema.safeParse({ recipient_email: "no-es-correo" }).success).toBe(false);
+  });
+  it("la decisión exige aprobar o rechazar y el nombre de quien decide", () => {
+    expect(decisionSchema.parse({ decision: "approved", signer_name: " Juan Pérez ", comment: "" })).toEqual({
+      decision: "approved",
+      signer_name: "Juan Pérez",
+      comment: null,
+    });
+    expect(decisionSchema.safeParse({ decision: "maybe", signer_name: "Juan" }).success).toBe(false);
+    expect(decisionSchema.safeParse({ decision: "rejected", signer_name: " " }).success).toBe(false);
+  });
+  it("solo acepta tokens de 43 caracteres base64url", () => {
+    expect(isApprovalToken("a".repeat(43))).toBe(true);
+    expect(isApprovalToken("Ab-_".repeat(10) + "xyz")).toBe(true);
+    expect(isApprovalToken("a".repeat(42))).toBe(false);
+    expect(isApprovalToken("a".repeat(42) + "/")).toBe(false);
+  });
+  it("el monto de una orden tiene tope", () => {
+    const base = { stage_id: "a007cc6b-0c7e-4a43-9a43-1b1b1b1b1b1b", title: "Carpinterías" };
+    expect(changeOrderSchema.safeParse({ ...base, amount: "1.800.000.000.000" }).success).toBe(false);
+    expect(changeOrderSchema.safeParse({ ...base, amount: "180.000.000" }).success).toBe(true);
+  });
+});

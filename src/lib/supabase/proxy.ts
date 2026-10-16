@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/env";
 
-// Rutas que se pueden ver sin sesión.
-const PUBLIC_PATHS = ["/login", "/auth"];
+// Rutas que se pueden ver sin sesión. /aprobar: el cliente aprueba órdenes con un link, sin cuenta.
+const PUBLIC_PATHS = ["/login", "/auth", "/aprobar"];
 
 export function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

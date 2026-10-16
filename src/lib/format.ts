@@ -75,3 +75,10 @@ const indexFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 4
 export function formatIndexValue(v: number | string) {
   return indexFormatter.format(Number(v));
 }
+
+// Suma montos de la base ("1800.55") en centavos enteros, para que los totales
+// coincidan al centavo con la suma de las órdenes (sin errores de coma flotante).
+export function sumAmounts(values: (number | string | null | undefined)[]) {
+  const cents = values.reduce<number>((acc, v) => acc + Math.round(Number(v ?? 0) * 100), 0);
+  return cents / 100;
+}

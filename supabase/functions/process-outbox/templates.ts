@@ -24,7 +24,9 @@ export function escapeHtml(value: unknown): string {
     .replaceAll("'", "&#39;");
 }
 
-function layout(title: string, body: string, cta: { label: string; url: string }) {
+const LOGIN_NOTE = "Ingresás con este mismo correo; te mandamos un enlace, sin contraseñas.";
+
+function layout(title: string, body: string, cta: { label: string; url: string }, note = LOGIN_NOTE) {
   return `<!doctype html><html lang="es"><body style="margin:0;background:#f6f5f2;font-family:Arial,sans-serif;color:#1c1b19">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="100%" style="max-width:520px;background:#fff;border:1px solid #e4e1da;border-radius:8px">
@@ -32,9 +34,31 @@ function layout(title: string, body: string, cta: { label: string; url: string }
 <h1 style="font-size:18px;margin:0 0 12px">${title}</h1>
 ${body}
 <p style="margin:24px 0"><a href="${escapeHtml(cta.url)}" style="background:#1f4e46;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;display:inline-block">${cta.label}</a></p>
-<p style="font-size:12px;color:#6b6860;margin:0">Ingresás con este mismo correo; te mandamos un enlace, sin contraseñas.</p>
+<p style="font-size:12px;color:#6b6860;margin:0">${note}</p>
 </td></tr></table></td></tr></table></body></html>`;
 }
+
+// "USD 1.800" o "USD 1.800,55", como en la app.
+export function formatMoney(amount: unknown, currency: unknown) {
+  const n = Number(amount);
+  const cur = currency === "USD" ? "USD" : "ARS";
+  const decimals = Math.round(n * 100) % 100 !== 0 ? 2 : 0;
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: cur,
+    currencyDisplay: "code",
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
+    .format(n)
+    .replace(/\s/g, " ");
+}
+
+function changeOrderCode(n: unknown) {
+  return `OC-${String(Number(n) || 0).padStart(3, "0")}`;
+}
+
+const dateFmt = new Intl.DateTimeFormat("es-AR", { dateStyle: "long", timeZone: "America/Argentina/Cordoba" });
 
 export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
   const base = appUrl.replace(/\/$/, "");
@@ -92,6 +116,53 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
           { label: "Ver el proyecto", url },
         ),
         text: `${subject}.\nVan ${used} h de ${budget} h previstas. ${extra}\n${url}`,
+      };
+    }
+    case "change_order_sent": {
+      const org = String(p.org_name ?? "El estudio");
+      const project = String(p.project_name ?? "tu proyecto");
+      const code = changeOrderCode(p.number);
+      const title = String(p.title ?? "");
+      const amount = formatMoney(p.amount, p.currency);
+      const expires = p.expires_at ? dateFmt.format(new Date(String(p.expires_at))) : "";
+      const url = `${base}/aprobar/${encodeURIComponent(String(p.token ?? ""))}`;
+      const subject = `${org} te envió la orden de cambio ${code} para aprobar`;
+      const note = "No hace falta crear una cuenta. El link es personal: no lo reenvíes.";
+      return {
+        subject,
+        html: layout(
+          `${escapeHtml(title)}`,
+          `<p style="margin:0 0 8px;line-height:1.5"><strong>${escapeHtml(org)}</strong> te pide que apruebes un adicional en <strong>${escapeHtml(project)}</strong> (${code}).</p>
+<p style="margin:0 0 8px;font-size:22px;font-weight:bold;font-family:monospace">${escapeHtml(amount)}</p>
+<p style="margin:0;line-height:1.5;color:#6b6860">Revisá el detalle y aprobalo o rechazalo desde el teléfono${expires ? `. El link vence el ${escapeHtml(expires)}` : ""}.</p>`,
+          { label: "Revisar y aprobar", url },
+          note,
+        ),
+        text: `${subject}.\n${title} · ${project}: ${amount}.\nRevisala y aprobala o rechazala acá: ${url}\n${expires ? `El link vence el ${expires}. ` : ""}${note}`,
+      };
+    }
+    case "change_order_decided": {
+      const approved = p.decision === "approved";
+      const project = String(p.project_name ?? "un proyecto");
+      const code = changeOrderCode(p.number);
+      const title = String(p.title ?? "");
+      const signer = String(p.signer_name ?? "El cliente");
+      const amount = formatMoney(p.amount, p.currency);
+      const verb = approved ? "aprobó" : "rechazó";
+      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}#ordenes`;
+      const subject = `${project}: ${signer} ${verb} ${code}`;
+      const comment = p.comment ? String(p.comment) : "";
+      const extra = approved ? `Se suma ${amount} a los honorarios de la etapa.` : "La orden no suma a los honorarios.";
+      return {
+        subject,
+        html: layout(
+          `${escapeHtml(signer)} ${verb} ${code}`,
+          `<p style="margin:0 0 8px;line-height:1.5">«${escapeHtml(title)}» en <strong>${escapeHtml(project)}</strong>, por <strong>${escapeHtml(amount)}</strong>. ${escapeHtml(extra)}</p>${
+            comment ? `<p style="margin:0;line-height:1.5;color:#6b6860">Comentario: «${escapeHtml(comment)}»</p>` : ""
+          }`,
+          { label: "Ver la orden", url },
+        ),
+        text: `${subject}.\n«${title}» en ${project}, por ${amount}. ${extra}${comment ? `\nComentario: «${comment}»` : ""}\n${url}`,
       };
     }
     default:

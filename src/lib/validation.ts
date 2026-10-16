@@ -177,10 +177,16 @@ const indexName = z
   .min(2, { error: "El nombre del índice necesita al menos 2 caracteres" })
   .max(60, { error: "Hasta 60 caracteres" });
 
+// Topes de las columnas numeric(14, 2) y numeric(14, 4): más que eso, la base lo rechaza.
+const MAX_AMOUNT = 999_999_999_999.99;
+const MAX_INDEX_VALUE = 9_999_999_999;
+
 export const indexValueSchema = z.object({
   name: indexName,
   period: monthSchema,
-  value: decimal("Valor").refine((v) => v !== null && v > 0, { error: "Indicá un valor mayor que cero" }),
+  value: decimal("Valor", { max: MAX_INDEX_VALUE }).refine((v) => v !== null && v > 0, {
+    error: "Indicá un valor mayor que cero",
+  }),
 });
 
 export const stageIndexSchema = z
@@ -196,16 +202,13 @@ export const stageIndexSchema = z
       .transform((v) => (v ? v : null)),
   })
   .superRefine((s, ctx) => {
-    if (s.index_name && !s.index_base_period) {
-      ctx.addIssue({ code: "custom", path: ["index_base_period"], message: "Elegí el mes base del índice" });
-    }
-    if (s.index_base_period && !/^\d{4}-(0[1-9]|1[0-2])$/.test(s.index_base_period)) {
+    if (s.index_name && (!s.index_base_period || !monthSchema.safeParse(s.index_base_period).success)) {
       ctx.addIssue({ code: "custom", path: ["index_base_period"], message: "Elegí el mes base del índice" });
     }
   })
   .transform((s) =>
     s.index_name && s.index_base_period
-      ? { index_name: s.index_name, index_base_period: `${s.index_base_period}-01` }
+      ? { index_name: s.index_name, index_base_period: monthSchema.parse(s.index_base_period) }
       : { index_name: null, index_base_period: null },
   );
 
@@ -242,7 +245,7 @@ export const changeOrderSchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
   hours: decimal("Horas", { max: 9999 }),
-  amount: decimal("Monto").refine((v) => v !== null, { error: "Indicá el monto del adicional" }),
+  amount: decimal("Monto", { max: MAX_AMOUNT }).refine((v) => v !== null, { error: "Indicá el monto del adicional" }),
   affected_documents: z
     .unknown()
     .optional()
@@ -258,3 +261,39 @@ export const voidSchema = z.object({
 export function changeOrderCode(n: number) {
   return `OC-${String(n).padStart(3, "0")}`;
 }
+
+// ---------------------------------------------------------------------------
+// Aprobación por link
+// ---------------------------------------------------------------------------
+
+export const LINK_VALID_DAYS = 14;
+
+export const sendChangeOrderSchema = z.object({
+  recipient_email: emailSchema,
+});
+
+export const DECISIONS = ["approved", "rejected"] as const;
+export type Decision = (typeof DECISIONS)[number];
+
+export const decisionSchema = z.object({
+  decision: z.enum(DECISIONS, { error: "Elegí aprobar o rechazar" }),
+  signer_name: z
+    .string({ error: "Escribí tu nombre y apellido" })
+    .trim()
+    .min(2, { error: "Escribí tu nombre y apellido" })
+    .max(120, { error: "Hasta 120 caracteres" }),
+  comment: z
+    .string()
+    .trim()
+    .max(1000, { error: "Hasta 1000 caracteres" })
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
+// Los tokens son 32 bytes en base64url (43 caracteres). Cualquier otra cosa ni se consulta.
+export function isApprovalToken(token: string) {
+  return /^[A-Za-z0-9_-]{43}$/.test(token);
+}
+
+// Estado del link que devuelve get_change_order_for_approval.
+export type ApprovalLinkState = "valid" | "invalid" | "expired" | "used" | "changed" | "revoked" | "void";
