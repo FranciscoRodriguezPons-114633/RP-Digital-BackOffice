@@ -45,4 +45,6 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check supabase/functions/process-outbox/index.ts
+      # Con su propio deno.json: si no, Deno ve el package.json de la raíz y busca las
+      # dependencias en node_modules, que en este job no existe.
+      - run: deno check --config supabase/functions/process-outbox/deno.json supabase/functions/process-outbox/index.ts
