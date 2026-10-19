@@ -11,6 +11,7 @@
   --line: #e4e1da;
   --line-strong: #cfcbc1;
   --hover: #f0eee9;
+  --sunken: #efede8;
   --accent: #1f4e46;
   --accent-hover: #173c36;
   --accent-soft: #e3eeeb;
@@ -36,6 +37,7 @@
     --line: #2f2e2a;
     --line-strong: #45433d;
     --hover: #26251f;
+    --sunken: #181816;
     --accent: #7cc4b4;
     --accent-hover: #96d3c5;
     --accent-soft: #1b2f2b;
@@ -61,6 +63,7 @@
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-hover: var(--hover);
+  --color-sunken: var(--sunken);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
@@ -167,9 +170,6 @@ body {
   }
   .chip:has(input:focus-visible) {
     @apply ring-3 ring-focus;
-  }
-  .nav-link {
-    @apply rounded-sm text-muted outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus;
   }
 
   /* Esqueletos de carga. Ver components/skeleton.tsx. */
