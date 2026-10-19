@@ -25,6 +25,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+      <Suspense fallback={null}>
+        <TrialBanner />
+      </Suspense>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
     </div>
   );
@@ -64,9 +67,38 @@ async function UserMenu() {
         {org ? `${org.name} · ` : ""}
         {user.email}
       </span>
+      {org && <Link href="/plan" className="nav-link">Plan</Link>}
       <form action="/auth/salir" method="post">
         <button className="btn btn-ghost" type="submit">Salir</button>
       </form>
     </div>
   );
+}
+
+// Aviso de prueba por terminar o terminada (no bloquea: el estudio sigue trabajando).
+async function TrialBanner() {
+  const org = await getCurrentOrg();
+  if (!org) return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .rpc("org_plan_status", { p_org_id: org.id })
+    .single<{ plan: string; trial_ends_at: string }>();
+  if (!data || data.plan !== "trial") return null;
+  const days = trialDaysLeft(data.trial_ends_at);
+  if (days > 7) return null;
+  return (
+    <div className="border-b border-warn/40 bg-surface">
+      <div className="mx-auto max-w-5xl px-4 py-2 text-sm text-warn">
+        {days > 0 ? `Te quedan ${days} ${days === 1 ? "día" : "días"} de prueba.` : "Terminó tu prueba."}{" "}
+        <Link href="/plan" className="underline">
+          {org.role === "owner" ? "Pasá a un plan" : "Avisale al dueño del estudio"}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// Server Component: se renderiza una vez por pedido, después de leer cookies.
+function trialDaysLeft(iso: string) {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
 }

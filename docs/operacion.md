@@ -81,7 +81,18 @@ select cron.schedule('deadline-alerts', '0 11 * * *', $$ select public.process_d
 
 La migración crea el bucket privado `documents` (PDF e imágenes, hasta 50 MB) y sus políticas; no hay que crearlo a mano. Revisar en **Storage → Settings** que el límite global de subida sea de al menos 50 MB (en el plan gratuito es 50 MB).
 
-## 5. Controles
+## 5. Cobros (pase a pago)
+
+Quien administra la plataforma confirma los pagos en `/admin/cobros`. Se da de alta una sola vez, después de que esa persona ingresó a la app por primera vez:
+
+```sql
+insert into public.platform_admins (user_id)
+select id from auth.users where email = 'tu-correo@dominio.com';
+```
+
+Le llega un correo por cada pedido de pase a pago con los datos de facturación; al confirmar el pago, el estudio queda en su plan y recibe un aviso.
+
+## 6. Controles
 
 ```sql
 -- Correos trabados o fallidos
@@ -95,6 +106,6 @@ update public.outbox set status = 'pending', attempts = 0, next_try_at = now() w
 select * from cron.job_run_details order by start_time desc limit 20;
 ```
 
-## 6. Vercel
+## 7. Vercel
 
 Variables de entorno: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `APP_URL`. La app no usa la service role key: todo lo sensible lo resuelve la base con RLS y funciones.

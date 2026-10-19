@@ -130,5 +130,8 @@ $$;
 
 select set_config('request.jwt.claims', '', false);
 
+-- En local, Ana además administra la plataforma (panel /admin/cobros).
+insert into public.platform_admins (user_id) values ('a0000000-0000-4000-8000-000000000001');
+
 -- Los correos de estas invitaciones no hacen falta en local.
 update public.outbox set status = 'sent', sent_at = now() where to_email like '%@estudio.test';

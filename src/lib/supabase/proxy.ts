@@ -3,10 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/env";
 
 // Rutas que se pueden ver sin sesión. /aprobar: el cliente aprueba órdenes con un link, sin cuenta.
-const PUBLIC_PATHS = ["/login", "/auth", "/aprobar"];
+// "/" es la página de producto; con sesión, se va directo a los proyectos.
+const PUBLIC_PATHS = ["/login", "/auth", "/aprobar", "/terminos", "/privacidad"];
 
 export function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  return pathname === "/" || PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 // Refresca la sesión en cada pedido y manda a /login a quien no la tenga.
@@ -34,6 +35,12 @@ export async function updateSession(request: NextRequest) {
   // No poner código entre createServerClient y getClaims: puede cerrar sesiones al azar.
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
+
+  if (user && request.nextUrl.pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/proyectos";
+    return NextResponse.redirect(url);
+  }
 
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();

@@ -268,6 +268,38 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
         text: `${subject}. Fecha: ${due}.\n${url}`,
       };
     }
+    case "billing_requested": {
+      const org = String(p.org_name ?? "Un estudio");
+      const plan = p.plan === "pro" ? "Estudio Pro" : "Estudio";
+      const cycle = p.billing_cycle === "yearly" ? "anual" : "mensual";
+      const url = `${base}/admin/cobros`;
+      const subject = `${org} pidió pasar al plan ${plan} (${cycle})`;
+      const who = `${String(p.billing_name ?? "")} · ${String(p.billing_email ?? "")}`;
+      return {
+        subject,
+        html: layout(
+          escapeHtml(subject),
+          `<p style="margin:0;line-height:1.5">Facturar a ${escapeHtml(who)}. Mandale los datos de la transferencia y, cuando llegue el pago, confirmalo en el panel de cobros.</p>`,
+          { label: "Ver cobros", url },
+        ),
+        text: `${subject}.\nFacturar a ${who}.\n${url}`,
+      };
+    }
+    case "billing_decided": {
+      const approved = Boolean(p.approved);
+      const plan = p.plan === "pro" ? "Estudio Pro" : "Estudio";
+      const until = p.paid_until ? dateFmt.format(new Date(`${String(p.paid_until)}T12:00:00Z`)) : "";
+      const url = `${base}/plan`;
+      const subject = approved ? `Tu estudio ya está en el plan ${plan}` : "Revisamos tu pedido de pase a pago";
+      const body = approved
+        ? `Recibimos el pago. El plan ${plan} queda activo hasta el ${until}. ¡Gracias!`
+        : `No pudimos confirmar el pago${p.note ? `: ${String(p.note)}` : ""}. Escribinos y lo resolvemos.`;
+      return {
+        subject,
+        html: layout(escapeHtml(subject), `<p style="margin:0;line-height:1.5">${escapeHtml(body)}</p>`, { label: "Ver mi plan", url }),
+        text: `${subject}.\n${body}\n${url}`,
+      };
+    }
     default:
       throw new Error(`Tipo de correo desconocido: ${msg.kind}`);
   }

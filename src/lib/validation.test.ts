@@ -225,3 +225,18 @@ describe("carga masiva de planos", () => {
     expect(nextRevisionCode("Rev")).toBeNull();
   });
 });
+
+import { billingRequestSchema, isValidCuit } from "./validation";
+
+describe("pase a pago", () => {
+  it("valida el dígito verificador del CUIT", () => {
+    expect(isValidCuit("30-71234567-9")).toBe(false);
+    expect(isValidCuit("20-12345678-6")).toBe(true);
+    expect(isValidCuit("123")).toBe(false);
+  });
+  it("pide plan, razón social, CUIT y correo de facturación", () => {
+    const base = { plan: "estudio", billing_cycle: "monthly", billing_name: "Estudio A SRL", billing_email: "Pagos@A.com" };
+    expect(billingRequestSchema.parse({ ...base, tax_id: "20-12345678-6" }).billing_email).toBe("pagos@a.com");
+    expect(billingRequestSchema.safeParse({ ...base, tax_id: "20-12345678-0" }).success).toBe(false);
+  });
+});

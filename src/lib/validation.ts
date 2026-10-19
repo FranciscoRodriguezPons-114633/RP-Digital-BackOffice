@@ -518,3 +518,30 @@ export function nextRevisionCode(lastCode: string | null | undefined) {
   const m = lastCode.match(/^(.*?)(\d+)$/);
   return m ? `${m[1]}${String(Number(m[2]) + 1).padStart(m[2].length, "0")}` : null;
 }
+
+// ---------------------------------------------------------------------------
+// Planes y cobro
+// ---------------------------------------------------------------------------
+
+// CUIT: 11 dígitos con dígito verificador.
+export function isValidCuit(input: string) {
+  const digits = input.replace(/\D/g, "");
+  if (digits.length !== 11) return false;
+  const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const sum = weights.reduce((acc, w, i) => acc + w * Number(digits[i]), 0);
+  const check = 11 - (sum % 11);
+  const expected = check === 11 ? 0 : check === 10 ? 9 : check;
+  return expected === Number(digits[10]);
+}
+
+export const billingRequestSchema = z.object({
+  plan: z.enum(["estudio", "pro"], { error: "Elegí un plan" }),
+  billing_cycle: z.enum(["monthly", "yearly"], { error: "Elegí mensual o anual" }),
+  billing_name: z
+    .string({ error: "Indicá la razón social" })
+    .trim()
+    .min(2, { error: "Indicá la razón social" })
+    .max(160, { error: "Hasta 160 caracteres" }),
+  tax_id: z.string({ error: "Indicá el CUIT" }).trim().refine(isValidCuit, { error: "Ese CUIT no es válido" }),
+  billing_email: emailSchema,
+});

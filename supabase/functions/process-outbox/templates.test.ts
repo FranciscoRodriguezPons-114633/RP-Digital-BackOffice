@@ -188,6 +188,21 @@ describe("renderEmail", () => {
     expect(email.text).toContain("https://app.rp.test/proyectos/p-1");
   });
 
+  it("pase a pago: aviso a la plataforma y confirmación al estudio", () => {
+    const pedido = renderEmail(
+      { id: 13, kind: "billing_requested", to_email: "admin@p.com", payload: { org_name: "Estudio A", plan: "pro", billing_cycle: "yearly", billing_name: "Estudio A SRL", billing_email: "pagos@a.com" } },
+      APP,
+    );
+    expect(pedido.subject).toBe("Estudio A pidió pasar al plan Estudio Pro (anual)");
+    expect(pedido.text).toContain("https://app.rp.test/admin/cobros");
+    const ok = renderEmail(
+      { id: 14, kind: "billing_decided", to_email: "pagos@a.com", payload: { approved: true, plan: "estudio", paid_until: "2026-11-20" } },
+      APP,
+    );
+    expect(ok.subject).toBe("Tu estudio ya está en el plan Estudio");
+    expect(ok.text).toContain("hasta el 20 de noviembre de 2026");
+  });
+
   it("falla con un tipo desconocido (el outbox lo reintenta y termina en failed)", () => {
     expect(() => renderEmail({ id: 4, kind: "otro", to_email: "a@a.com", payload: {} }, APP)).toThrow();
   });
