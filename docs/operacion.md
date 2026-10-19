@@ -69,6 +69,14 @@ Las invitaciones no se mandan desde la app: la base las deja en la tabla `outbox
    );
    ```
 
+### Avisos de vencimientos
+
+Una vez por día, a las 8 de Córdoba (11 UTC), `process_deadline_alerts()` encola los avisos de vencimientos; después los manda el mismo outbox:
+
+```sql
+select cron.schedule('deadline-alerts', '0 11 * * *', $$ select public.process_deadline_alerts() $$);
+```
+
 ## 4. Archivos (Storage)
 
 La migración crea el bucket privado `documents` (PDF e imágenes, hasta 50 MB) y sus políticas; no hay que crearlo a mano. Revisar en **Storage → Settings** que el límite global de subida sea de al menos 50 MB (en el plan gratuito es 50 MB).

@@ -250,6 +250,24 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
         text: `${subject}.\nHay ${count} para corregir.${extra}\n${url}`,
       };
     }
+    case "deadline_alert": {
+      const title = String(p.title ?? "Un vencimiento");
+      const days = Number(p.days_left ?? 0);
+      const when = days === 0 ? "vence hoy" : days === 1 ? "vence mañana" : `vence en ${days} días`;
+      const due = p.due_date ? dateFmt.format(new Date(`${String(p.due_date)}T12:00:00Z`)) : "";
+      const project = p.project_name ? ` (${String(p.project_name)})` : "";
+      const url = p.project_id ? `${base}/proyectos/${encodeURIComponent(String(p.project_id))}` : `${base}/vencimientos`;
+      const subject = `«${title}» ${when}${project}`;
+      return {
+        subject,
+        html: layout(
+          `«${escapeHtml(title)}» ${when}`,
+          `<p style="margin:0;line-height:1.5">La fecha es el <strong>${escapeHtml(due)}</strong>${escapeHtml(project)}. Cuando esté resuelto, marcalo como hecho y no te avisamos más.</p>`,
+          { label: "Ver vencimientos", url },
+        ),
+        text: `${subject}. Fecha: ${due}.\n${url}`,
+      };
+    }
     default:
       throw new Error(`Tipo de correo desconocido: ${msg.kind}`);
   }

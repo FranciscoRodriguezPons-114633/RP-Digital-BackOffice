@@ -459,3 +459,38 @@ export const commentSchema = z.object({
     .object({ x: z.coerce.number().min(0).max(1), y: z.coerce.number().min(0).max(1) })
     .nullable(),
 });
+
+// ---------------------------------------------------------------------------
+// Vencimientos
+// ---------------------------------------------------------------------------
+
+// "30, 15, 5" → [30, 15, 5]
+export function parseNotifyDays(input: unknown): number[] {
+  return [...new Set(String(input ?? "").split(/[\s,;]+/).filter(Boolean).map(Number))].sort((a, b) => b - a);
+}
+
+export const deadlineSchema = z.object({
+  project_id: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : null))
+    .pipe(z.uuid().nullable()),
+  title: z
+    .string({ error: "Indicá qué vence" })
+    .trim()
+    .min(2, { error: "Al menos 2 caracteres" })
+    .max(160, { error: "Hasta 160 caracteres" }),
+  due_date: z.iso.date({ error: "Elegí la fecha" }),
+  notify_days: z
+    .unknown()
+    .optional()
+    .transform(parseNotifyDays)
+    .refine((d) => d.length >= 1 && d.length <= 6, { error: "Entre 1 y 6 avisos" })
+    .refine((d) => d.every((n) => Number.isInteger(n) && n >= 1 && n <= 365), { error: "Días entre 1 y 365" }),
+  notes: z
+    .string()
+    .trim()
+    .max(1000, { error: "Hasta 1000 caracteres" })
+    .optional()
+    .transform((v) => (v ? v : null)),
+});

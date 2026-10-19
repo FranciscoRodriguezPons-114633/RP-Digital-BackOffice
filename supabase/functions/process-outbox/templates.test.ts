@@ -178,6 +178,16 @@ describe("renderEmail", () => {
     expect(email.text).toContain("Hay 3 comentarios para corregir. Van 2 de 3 rondas contratadas.");
   });
 
+  it("aviso de vencimiento: cuánto falta y la fecha", () => {
+    const email = renderEmail(
+      { id: 12, kind: "deadline_alert", to_email: "ana@a.com", payload: { title: "Presentación municipal", days_left: 5, due_date: "2026-11-20", project_name: "Edificio Alba", project_id: "p-1" } },
+      APP,
+    );
+    expect(email.subject).toBe("«Presentación municipal» vence en 5 días (Edificio Alba)");
+    expect(email.text).toContain("20 de noviembre de 2026");
+    expect(email.text).toContain("https://app.rp.test/proyectos/p-1");
+  });
+
   it("falla con un tipo desconocido (el outbox lo reintenta y termina en failed)", () => {
     expect(() => renderEmail({ id: 4, kind: "otro", to_email: "a@a.com", payload: {} }, APP)).toThrow();
   });

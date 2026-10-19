@@ -10,6 +10,9 @@ import { SubmitButton } from "@/components/form";
 import { FeesSection } from "./fees-section";
 import { ChangeOrdersSection } from "./change-orders-section";
 import { DocumentsSection } from "./documents-section";
+import { Disclosure } from "@/components/disclosure";
+import { DeadlineForm } from "../../deadline-forms";
+import { DEADLINE_SELECT, DeadlineList, type DeadlineRow } from "../../vencimientos/deadline-list";
 import { loadComments } from "./comments";
 import { ItemLine, SHIPMENT_SELECT, ShipmentsSection, type ShipmentRow } from "./shipments-section";
 import { PIECE_SELECT, PieceRow, PiecesSection, type PieceRowData } from "./pieces-section";
@@ -77,6 +80,11 @@ function eventText(e: EventRow) {
   }
   if (e.type === "comment.resolved") {
     return `${e.actor_email ?? "Alguien"} resolvió el comentario «${String(e.data?.body ?? "")}»`;
+  }
+  if (e.type.startsWith("deadline.")) {
+    const what = { "deadline.created": "agregó el vencimiento", "deadline.done": "marcó como hecho", "deadline.reopened": "reabrió" }[e.type];
+    if (e.type === "deadline.alert") return `Aviso: «${String(e.data?.title ?? "")}» vence en ${String(e.data?.days_left ?? "")} días`;
+    return `${e.actor_email ?? "Alguien"} ${what ?? e.type} «${String(e.data?.title ?? "")}»`;
   }
   if (e.type === "shipment.sent") {
     const items = Array.isArray(e.data?.items) ? e.data.items.length : 0;
@@ -161,6 +169,7 @@ async function Project({
 
       {isMember ? (
         <>
+          <ProjectDeadlines projectId={project.id} />
           <FeesSection projectId={project.id} isOwner={org?.role === "owner"} />
           <ChangeOrdersSection projectId={project.id} isOwner={org?.role === "owner"} defaultStageId={ocStage} />
           <DocumentsSection projectId={project.id} />
@@ -281,6 +290,43 @@ async function GuestPieces({ projectId }: { projectId: string }) {
           <PieceRow key={p.id} piece={p} canReview={false} currentCode={null} comments={comments.get(p.id) ?? []} />
         ))}
       </ul>
+    </section>
+  );
+}
+
+function requestTime() {
+  return new Date();
+}
+
+// Vencimientos pendientes del proyecto, arriba de todo: son lo que no se puede pasar.
+async function ProjectDeadlines({ projectId }: { projectId: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("deadlines")
+    .select(DEADLINE_SELECT)
+    .eq("project_id", projectId)
+    .is("done_at", null)
+    .order("due_date");
+  const deadlines = (data ?? []) as unknown as DeadlineRow[];
+  return (
+    <section className="card flex flex-col gap-4">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h2 className="font-medium">Vencimientos</h2>
+        <Link href="/vencimientos" className="ml-auto text-sm text-muted hover:underline">
+          Ver todos
+        </Link>
+      </div>
+      {deadlines.length > 0 && <DeadlineList deadlines={deadlines} showProject={false} now={requestTime()} />}
+      <Disclosure
+        defaultOpen={false}
+        className="rounded-md border border-dashed border-line"
+        summary="Nuevo vencimiento"
+        summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
+      >
+        <div className="border-t border-line p-4">
+          <DeadlineForm projectId={projectId} />
+        </div>
+      </Disclosure>
     </section>
   );
 }

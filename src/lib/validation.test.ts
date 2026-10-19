@@ -195,3 +195,17 @@ describe("documentos y revisiones", () => {
     expect(revisionUploadSchema.safeParse({ ...base, fileSize: 0 }).success).toBe(false);
   });
 });
+
+import { deadlineSchema, parseNotifyDays } from "./validation";
+
+describe("vencimientos", () => {
+  it("los días de aviso se ordenan y no se repiten", () => {
+    expect(parseNotifyDays("5, 30 15;15")).toEqual([30, 15, 5]);
+  });
+  it("exige fecha y días entre 1 y 365", () => {
+    const base = { title: "Presentación municipal", due_date: "2026-11-20", project_id: "" };
+    expect(deadlineSchema.parse({ ...base, notify_days: "30, 15, 5" })).toMatchObject({ project_id: null, notify_days: [30, 15, 5] });
+    expect(deadlineSchema.safeParse({ ...base, notify_days: "0" }).success).toBe(false);
+    expect(deadlineSchema.safeParse({ ...base, due_date: "20/11/2026", notify_days: "5" }).success).toBe(false);
+  });
+});
