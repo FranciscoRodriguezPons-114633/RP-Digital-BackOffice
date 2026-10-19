@@ -409,3 +409,32 @@ export const pieceSchema = z.object({
 });
 
 export const pieceDecisionSchema = z.enum(["revalidated", "obsolete"]);
+
+// ---------------------------------------------------------------------------
+// Registro de envíos
+// ---------------------------------------------------------------------------
+
+export const SHIPMENT_CHANNELS = ["email", "whatsapp", "other"] as const;
+export const SHIPMENT_CHANNEL_LABEL: Record<(typeof SHIPMENT_CHANNELS)[number], string> = {
+  email: "Por correo (le avisamos)",
+  whatsapp: "Ya se lo mandé por WhatsApp",
+  other: "Otro medio (en mano, reunión)",
+};
+
+export const shipmentSchema = z
+  .object({
+    recipient_email: emailSchema,
+    channel: z.enum(SHIPMENT_CHANNELS, { error: "Elegí cómo se lo mandás" }),
+    note: z
+      .string()
+      .trim()
+      .max(500, { error: "Hasta 500 caracteres" })
+      .optional()
+      .transform((v) => (v ? v : null)),
+    revision_ids: z.array(z.uuid()),
+    dependency_ids: z.array(z.uuid()),
+  })
+  .refine((s) => s.revision_ids.length + s.dependency_ids.length > 0, {
+    path: ["files"],
+    error: "Elegí al menos un archivo",
+  });

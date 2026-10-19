@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/form";
 import { FeesSection } from "./fees-section";
 import { ChangeOrdersSection } from "./change-orders-section";
 import { DocumentsSection } from "./documents-section";
+import { ItemLine, SHIPMENT_SELECT, ShipmentsSection, type ShipmentRow } from "./shipments-section";
 import { PIECE_SELECT, PieceRow, PiecesSection, type PieceRowData } from "./pieces-section";
 import { changeOrderCode } from "@/lib/validation";
 import { formatMoney } from "@/lib/format";
@@ -68,6 +69,10 @@ function eventText(e: EventRow) {
     const pieces = Number(e.data?.dependencies_to_review ?? 0);
     const toReview = pieces > 0 ? ` (${pieces === 1 ? "1 pieza quedó" : `${pieces} piezas quedaron`} a revisar)` : "";
     return `${e.actor_email ?? "Alguien"} publicó ${doc} ${String(e.data?.code ?? "")}${replaced}${toReview}`;
+  }
+  if (e.type === "shipment.sent") {
+    const items = Array.isArray(e.data?.items) ? e.data.items.length : 0;
+    return `${e.actor_email ?? "Alguien"} le envió ${items === 1 ? "1 archivo" : `${items} archivos`} a ${String(e.data?.recipient_email ?? "")}`;
   }
   if (e.type.startsWith("dependency.")) {
     const title = `«${String(e.data?.title ?? "")}»`;
@@ -148,6 +153,7 @@ async function Project({
           <ChangeOrdersSection projectId={project.id} isOwner={org?.role === "owner"} defaultStageId={ocStage} />
           <DocumentsSection projectId={project.id} />
           <PiecesSection projectId={project.id} />
+          <ShipmentsSection projectId={project.id} />
           <Guests projectId={project.id} />
           <Activity projectId={project.id} />
         </>
@@ -160,6 +166,7 @@ async function Project({
               aprobar y los planos vigentes a medida que el estudio los cargue.
             </p>
           </section>
+          <GuestShipments projectId={project.id} />
           <GuestChangeOrders projectId={project.id} />
           <GuestPieces projectId={project.id} />
         </>
@@ -203,6 +210,36 @@ async function GuestChangeOrders({ projectId }: { projectId: string }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// Lo que el estudio le compartió al invitado, avisando si ya no es lo vigente.
+async function GuestShipments({ projectId }: { projectId: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("shipments")
+    .select(SHIPMENT_SELECT)
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
+  const shipments = (data ?? []) as unknown as ShipmentRow[];
+  if (shipments.length === 0) return null;
+  return (
+    <section className="card flex flex-col gap-4">
+      <h2 className="font-medium">Archivos que te compartieron</h2>
+      {shipments.map((s) => (
+        <div key={s.id} className="flex flex-col gap-1">
+          <p className="text-xs text-muted">
+            {dateFmt.format(new Date(s.created_at))}
+            {s.note && ` · «${s.note}»`}
+          </p>
+          <ul className="flex flex-col divide-y divide-line text-sm">
+            {s.shipment_items.map((i) => (
+              <ItemLine key={i.id} item={i} />
+            ))}
+          </ul>
+        </div>
+      ))}
     </section>
   );
 }

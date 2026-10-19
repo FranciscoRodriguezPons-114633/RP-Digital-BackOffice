@@ -21,5 +21,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/archivos/[i
     .createSignedUrl(rev.storage_path, 60, { download: rev.file_name });
   if (error || !data) return new NextResponse("No encontrado", { status: 404 });
 
+  // Si se lo enviaron a quien lo abre, queda anotado (para el registro de envíos).
+  await supabase.rpc("record_file_open", { p_file_id: id });
   return NextResponse.redirect(data.signedUrl);
 }

@@ -192,6 +192,26 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
         text: `${subject}.\n${body}\n${url}`,
       };
     }
+    case "shipment_sent": {
+      const org = String(p.org_name ?? "El estudio");
+      const project = String(p.project_name ?? "tu proyecto");
+      const labels = Array.isArray(p.labels) ? p.labels.map(String) : [];
+      const note = p.note ? String(p.note) : "";
+      const url = `${base}/login?next=${encodeURIComponent(`/proyectos/${String(p.project_id ?? "")}`)}`;
+      const subject = `${org} te compartió ${labels.length === 1 ? "un archivo" : `${labels.length} archivos`} de ${project}`;
+      const list = labels.map((l) => `<li>${escapeHtml(l)}</li>`).join("");
+      return {
+        subject,
+        html: layout(
+          `Archivos de ${escapeHtml(project)}`,
+          `<p style="margin:0 0 8px;line-height:1.5"><strong>${escapeHtml(org)}</strong> te compartió:</p><ul style="margin:0 0 8px;padding-left:20px;line-height:1.6">${list}</ul>${
+            note ? `<p style="margin:0;line-height:1.5;color:#6b6860">«${escapeHtml(note)}»</p>` : ""
+          }`,
+          { label: "Ver los archivos", url },
+        ),
+        text: `${subject}:\n${labels.map((l) => `- ${l}`).join("\n")}${note ? `\n«${note}»` : ""}\nEntrá acá: ${url}`,
+      };
+    }
     default:
       throw new Error(`Tipo de correo desconocido: ${msg.kind}`);
   }
