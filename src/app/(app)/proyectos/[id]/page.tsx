@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/form";
 import { FeesSection } from "./fees-section";
 import { ChangeOrdersSection } from "./change-orders-section";
 import { DocumentsSection } from "./documents-section";
+import { loadComments } from "./comments";
 import { ItemLine, SHIPMENT_SELECT, ShipmentsSection, type ShipmentRow } from "./shipments-section";
 import { PIECE_SELECT, PieceRow, PiecesSection, type PieceRowData } from "./pieces-section";
 import { changeOrderCode } from "@/lib/validation";
@@ -69,6 +70,13 @@ function eventText(e: EventRow) {
     const pieces = Number(e.data?.dependencies_to_review ?? 0);
     const toReview = pieces > 0 ? ` (${pieces === 1 ? "1 pieza quedó" : `${pieces} piezas quedaron`} a revisar)` : "";
     return `${e.actor_email ?? "Alguien"} publicó ${doc} ${String(e.data?.code ?? "")}${replaced}${toReview}`;
+  }
+  if (e.type === "comment.created") {
+    const page = e.data?.page ? ` (pág. ${String(e.data.page)})` : "";
+    return `${e.actor_email ?? "Alguien"} comentó ${String(e.data?.file ?? "un archivo")}${page}: «${String(e.data?.body ?? "")}»`;
+  }
+  if (e.type === "comment.resolved") {
+    return `${e.actor_email ?? "Alguien"} resolvió el comentario «${String(e.data?.body ?? "")}»`;
   }
   if (e.type === "shipment.sent") {
     const items = Array.isArray(e.data?.items) ? e.data.items.length : 0;
@@ -224,6 +232,7 @@ async function GuestShipments({ projectId }: { projectId: string }) {
     .order("created_at", { ascending: false });
   const shipments = (data ?? []) as unknown as ShipmentRow[];
   if (shipments.length === 0) return null;
+  const comments = await loadComments(projectId, false);
   return (
     <section className="card flex flex-col gap-4">
       <h2 className="font-medium">Archivos que te compartieron</h2>
@@ -235,7 +244,12 @@ async function GuestShipments({ projectId }: { projectId: string }) {
           </p>
           <ul className="flex flex-col divide-y divide-line text-sm">
             {s.shipment_items.map((i) => (
-              <ItemLine key={i.id} item={i} />
+              <ItemLine
+                key={i.id}
+                item={i}
+                projectId={projectId}
+                comments={comments.get((i.revision_id ?? i.dependency_id)!) ?? []}
+              />
             ))}
           </ul>
         </div>
@@ -254,12 +268,13 @@ async function GuestPieces({ projectId }: { projectId: string }) {
     .order("created_at", { ascending: false });
   const pieces = (data ?? []) as unknown as PieceRowData[];
   if (pieces.length === 0) return null;
+  const comments = await loadComments(projectId, false);
   return (
     <section className="card flex flex-col gap-4">
       <h2 className="font-medium">Piezas a tu cargo</h2>
       <ul className="flex flex-col divide-y divide-line">
         {pieces.map((p) => (
-          <PieceRow key={p.id} piece={p} canReview={false} currentCode={null} />
+          <PieceRow key={p.id} piece={p} canReview={false} currentCode={null} comments={comments.get(p.id) ?? []} />
         ))}
       </ul>
     </section>

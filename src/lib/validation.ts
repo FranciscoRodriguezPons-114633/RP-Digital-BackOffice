@@ -438,3 +438,20 @@ export const shipmentSchema = z
     path: ["files"],
     error: "Elegí al menos un archivo",
   });
+
+// ---------------------------------------------------------------------------
+// Comentarios
+// ---------------------------------------------------------------------------
+
+export const commentSchema = z.object({
+  body: z
+    .string({ error: "Escribí el comentario" })
+    .trim()
+    .min(1, { error: "Escribí el comentario" })
+    .max(2000, { error: "Hasta 2000 caracteres" }),
+  page: z
+    .unknown()
+    .optional()
+    .transform((v) => (v === undefined || v === null || v === "" ? null : Number(v)))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 1 && v <= 10000), { error: "Página inválida" }),
+});

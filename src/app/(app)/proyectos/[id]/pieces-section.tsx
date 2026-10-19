@@ -4,6 +4,8 @@ import { Disclosure } from "@/components/disclosure";
 import { formatBytes } from "@/lib/format";
 import { PIECE_KIND_LABEL, PIECE_STATUS_LABEL, type PieceKind, type PieceStatus } from "@/lib/validation";
 import { PieceFileForm, PieceForm, ReviewPieceButtons, type SourceChoice } from "../../piece-forms";
+import { CommentThread, type CommentView } from "../../comment-thread";
+import { loadComments } from "./comments";
 
 export type PieceRowData = {
   id: string;
@@ -15,6 +17,7 @@ export type PieceRowData = {
   rounds_contracted: number | null;
   file_name: string | null;
   file_size: number | null;
+  mime_type: string | null;
   sha256: string | null;
   uploaded_at: string | null;
   status_changed_at: string | null;
@@ -23,7 +26,7 @@ export type PieceRowData = {
 };
 
 export const PIECE_SELECT =
-  "id, project_id, kind, title, status, responsible_email, rounds_contracted, file_name, file_size, sha256, uploaded_at, status_changed_at, " +
+  "id, project_id, kind, title, status, responsible_email, rounds_contracted, file_name, file_size, mime_type, sha256, uploaded_at, status_changed_at, " +
   "revisions!dependencies_source_revision_id_fkey(code, document_id, documents(code, title))";
 
 const STATUS_STYLE: Record<PieceStatus, string> = {
@@ -48,11 +51,13 @@ export function PieceRow({
   currentCode,
   canReview,
   showProject = false,
+  comments,
 }: {
   piece: PieceRowData;
   currentCode: string | null;
   canReview: boolean;
   showProject?: boolean;
+  comments?: CommentView[];
 }) {
   const source = piece.revisions;
   const doc = source?.documents;
@@ -103,6 +108,14 @@ export function PieceRow({
           {canReview && <ReviewPieceButtons projectId={piece.project_id} pieceId={piece.id} newCode={currentCode} />}
         </div>
       )}
+      {comments && piece.uploaded_at && (
+        <CommentThread
+          projectId={piece.project_id}
+          target={{ revisionId: null, dependencyId: piece.id }}
+          comments={comments}
+          isPdf={piece.mime_type === "application/pdf"}
+        />
+      )}
       {!piece.uploaded_at && piece.status !== "obsolete" && (
         <details className="rounded-md border border-line">
           <summary className="cursor-pointer px-4 py-2 text-sm">Subir el archivo de la pieza</summary>
@@ -119,10 +132,11 @@ const STATUS_ORDER: Record<PieceStatus, number> = { to_review: 0, current: 1, re
 
 export async function PiecesSection({ projectId }: { projectId: string }) {
   const supabase = await createClient();
-  const [{ data }, current, { data: guestData }] = await Promise.all([
+  const [{ data }, current, { data: guestData }, comments] = await Promise.all([
     supabase.from("dependencies").select(PIECE_SELECT).eq("project_id", projectId).order("created_at", { ascending: false }),
     currentRevisionByDocument([projectId]),
     supabase.from("project_guests").select("email, kind").eq("project_id", projectId),
+    loadComments(projectId, true),
   ]);
   const pieces = ((data ?? []) as unknown as PieceRowData[]).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
   const sources: SourceChoice[] = [...current.values()]
@@ -161,6 +175,7 @@ export async function PiecesSection({ projectId }: { projectId: string }) {
               key={p.id}
               piece={p}
               canReview
+              comments={comments.get(p.id) ?? []}
               currentCode={p.revisions ? (current.get(p.revisions.document_id)?.code ?? null) : null}
             />
           ))}

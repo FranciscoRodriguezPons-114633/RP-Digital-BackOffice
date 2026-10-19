@@ -154,6 +154,21 @@ describe("renderEmail", () => {
     expect(email.text).toContain("https://app.rp.test/login?next=%2Fproyectos%2Fp-1");
   });
 
+  it("comentario de un invitado: quién, sobre qué archivo y página", () => {
+    const email = renderEmail(
+      {
+        id: 10,
+        kind: "comment_added",
+        to_email: "ana@a.com",
+        payload: { project_name: "Edificio Alba", project_id: "p-1", file: "A-101 C03", page: 2, author_email: "cliente@gmail.com", body: "¿Se puede correr la puerta?" },
+      },
+      APP,
+    );
+    expect(email.subject).toBe("Edificio Alba: cliente@gmail.com comentó A-101 C03");
+    expect(email.text).toContain("(pág. 2)");
+    expect(email.text).toContain("«¿Se puede correr la puerta?»");
+  });
+
   it("falla con un tipo desconocido (el outbox lo reintenta y termina en failed)", () => {
     expect(() => renderEmail({ id: 4, kind: "otro", to_email: "a@a.com", payload: {} }, APP)).toThrow();
   });

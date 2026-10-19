@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
 import { PIECE_KIND_LABEL, SHIPMENT_CHANNEL_LABEL, type PieceKind } from "@/lib/validation";
 import { ShipmentForm, type ShippableFile } from "../../shipment-forms";
+import { CommentThread, type CommentView } from "../../comment-thread";
 
 export type ShipmentItem = {
   id: string;
@@ -47,7 +48,15 @@ export function itemCurrency(item: ShipmentItem) {
   return { text: "Borrador compartido", warn: false };
 }
 
-export function ItemLine({ item }: { item: ShipmentItem }) {
+export function ItemLine({
+  item,
+  projectId,
+  comments,
+}: {
+  item: ShipmentItem;
+  projectId?: string;
+  comments?: CommentView[];
+}) {
   const currency = itemCurrency(item);
   const fileId = item.revision_id ?? item.dependency_id;
   return (
@@ -68,6 +77,14 @@ export function ItemLine({ item }: { item: ShipmentItem }) {
             : "Sin abrir"}
         </span>
       </div>
+      {projectId && comments && (
+        <CommentThread
+          projectId={projectId}
+          target={{ revisionId: item.revision_id, dependencyId: item.dependency_id }}
+          comments={comments}
+          isPdf={item.file_name.toLowerCase().endsWith(".pdf")}
+        />
+      )}
     </li>
   );
 }

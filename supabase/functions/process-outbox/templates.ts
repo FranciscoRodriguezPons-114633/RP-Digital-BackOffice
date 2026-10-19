@@ -212,6 +212,24 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
         text: `${subject}:\n${labels.map((l) => `- ${l}`).join("\n")}${note ? `\n«${note}»` : ""}\nEntrá acá: ${url}`,
       };
     }
+    case "comment_added": {
+      const project = String(p.project_name ?? "un proyecto");
+      const file = String(p.file ?? "un archivo");
+      const author = String(p.author_email ?? "Un invitado");
+      const page = p.page ? ` (pág. ${String(p.page)})` : "";
+      const body = String(p.body ?? "");
+      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}`;
+      const subject = `${project}: ${author} comentó ${file}`;
+      return {
+        subject,
+        html: layout(
+          `${escapeHtml(author)} comentó ${escapeHtml(file)}${escapeHtml(page)}`,
+          `<p style="margin:0;line-height:1.5;white-space:pre-line">«${escapeHtml(body)}»</p>`,
+          { label: "Ver y responder", url },
+        ),
+        text: `${subject}${page}:\n«${body}»\n${url}`,
+      };
+    }
     default:
       throw new Error(`Tipo de correo desconocido: ${msg.kind}`);
   }

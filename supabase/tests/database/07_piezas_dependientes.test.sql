@@ -74,11 +74,13 @@ select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-1111111
 insert into ids values ('r2', pg_temp.publish((select v from ids where k = 'd1'), 'C02'));
 select is((select array_agg(status order by title) from public.dependencies), array['to_review', 'to_review'],
   'Publicada la C02, las dos piezas de la C01 quedan a revisar');
-select is((select count(*)::int from public.events where type = 'dependency.to_review'), 2, 'Un evento por pieza');
+select is((select count(*)::int from public.events where type = 'dependency.to_review'
+           and org_id = (select v from ids where k = 'org_a')), 2, 'Un evento por pieza');
 select is((select (data ->> 'dependencies_to_review')::int from public.events where type = 'revision.published'
            order by id desc limit 1), 2, 'El evento de publicación cuenta las piezas afectadas');
 reset role;
-select is((select array_agg(to_email order by to_email) from public.outbox where kind = 'dependency_to_review'),
+select is((select array_agg(to_email order by to_email) from public.outbox where kind = 'dependency_to_review'
+           and org_id = (select v from ids where k = 'org_a')),
   array['ana@estudio-a.com', 'rita@render.com'],
   'Aviso a Rita por su render y a la dueña por la pieza sin responsable');
 set local role authenticated;
