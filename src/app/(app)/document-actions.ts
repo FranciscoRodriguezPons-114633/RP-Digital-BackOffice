@@ -1,10 +1,10 @@
 "use server";
 
-import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
+import { hashStoredFile, signUpload } from "@/lib/storage";
 import { documentSchema, fieldErrors, idSchema, revisionUploadSchema, type FormState } from "@/lib/validation";
 
 // Igual que en actions.ts: cada acción verifica la sesión; los permisos los aplica la base.
@@ -36,7 +36,7 @@ export async function createDocument(projectId: string, _prev: FormState, formDa
 // Subida en tres pasos, porque los planos pasan el límite de tamaño de una Server Action:
 // 1) se crea la revisión y un link firmado, 2) el navegador sube el archivo directo a Storage,
 // 3) se confirma: el servidor lee el archivo y guarda su SHA-256.
-export type PrepareResult = FormState & { revisionId?: string; path?: string; token?: string };
+export type PrepareResult = FormState & { id?: string; path?: string; token?: string };
 
 export async function prepareRevisionUpload(
   documentId: string,
@@ -61,14 +61,12 @@ export async function prepareRevisionUpload(
   if (error?.code === "23505") return { ok: false, errors: { code: [`La revisión ${parsed.data.code} ya existe`] } };
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  const { data: signed, error: signError } = await supabase.storage
-    .from("documents")
-    .createSignedUploadUrl(data.storage_path);
-  if (signError || !signed) {
+  const token = await signUpload(supabase, data.storage_path);
+  if (!token) {
     await supabase.rpc("discard_revision", { p_id: data.id });
     return { ok: false, message: "No pudimos preparar la subida. Probá de nuevo." };
   }
-  return { ok: true, revisionId: data.id, path: data.storage_path, token: signed.token };
+  return { ok: true, id: data.id, path: data.storage_path, token };
 }
 
 export async function finishRevisionUpload(projectId: string, revisionId: string): Promise<FormState> {
@@ -83,10 +81,8 @@ export async function finishRevisionUpload(projectId: string, revisionId: string
     .maybeSingle();
   if (!rev) return { ok: false, message: "No encontramos la revisión." };
 
-  // La huella se calcula acá, con el archivo que quedó guardado, no con lo que dice el navegador.
-  const { data: file, error: downloadError } = await supabase.storage.from("documents").download(rev.storage_path);
-  if (downloadError || !file) return { ok: false, message: "El archivo no llegó a subirse. Probá de nuevo." };
-  const sha256 = createHash("sha256").update(Buffer.from(await file.arrayBuffer())).digest("hex");
+  const sha256 = await hashStoredFile(supabase, rev.storage_path);
+  if (!sha256) return { ok: false, message: "El archivo no llegó a subirse. Probá de nuevo." };
 
   const { error } = await supabase.rpc("complete_revision_upload", { p_id: revisionId, p_sha256: sha256 });
   if (error) return { ok: false, message: dbErrorMessage(error) };

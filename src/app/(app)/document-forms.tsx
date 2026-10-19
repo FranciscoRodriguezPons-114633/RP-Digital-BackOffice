@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { FieldError, FormMessage, SubmitButton, useActionForm } from "@/components/form";
-import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { UPLOAD_STEP_LABEL, useDirectUpload, type UploadStep } from "@/components/direct-upload";
 import { formatBytes } from "@/lib/format";
 import {
   DISCIPLINE_LABEL,
@@ -47,9 +47,6 @@ export function DocumentForm({ projectId }: { projectId: string }) {
   );
 }
 
-const STEP_LABEL = { preparing: "Preparando…", uploading: "Subiendo archivo…", hashing: "Calculando huella…" } as const;
-type Step = keyof typeof STEP_LABEL;
-
 // Sube una revisión: crea el registro, sube el archivo directo a Storage con un link firmado
 // y después el servidor calcula su SHA-256.
 export function RevisionUploadForm({
@@ -62,56 +59,22 @@ export function RevisionUploadForm({
   suggestedCode: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, setState] = useState<FormState>({});
-  const [step, setStep] = useState<Step | null>(null);
+  const { state, step, upload } = useDirectUpload();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const file = data.get("file");
-    if (!(file instanceof File) || file.size === 0) {
-      setState({ ok: false, errors: { fileName: ["Elegí el archivo"] } });
-      return;
-    }
-    if (file.size > MAX_REVISION_BYTES) {
-      setState({ ok: false, errors: { fileSize: ["El archivo pasa los 50 MB"] } });
-      return;
-    }
-
-    setState({});
-    setStep("preparing");
-    try {
-      const prep = await prepareRevisionUpload(documentId, {
-        code: String(data.get("code") ?? ""),
-        notes: String(data.get("notes") ?? ""),
-        fileName: file.name,
-        fileSize: file.size,
-        mimeType: file.type,
-      });
-      if (!prep.ok || !prep.path || !prep.token || !prep.revisionId) {
-        setState(prep);
-        return;
-      }
-
-      setStep("uploading");
-      const { error } = await createBrowserSupabase()
-        .storage.from("documents")
-        .uploadToSignedUrl(prep.path, prep.token, file, { contentType: file.type });
-      if (error) {
-        setState({ ok: false, message: "No se pudo subir el archivo. Descartá la subida incompleta y probá de nuevo." });
-        return;
-      }
-
-      setStep("hashing");
-      const done = await finishRevisionUpload(projectId, prep.revisionId);
-      setState(done);
-      if (done.ok) formRef.current?.reset();
-    } catch {
-      setState({ ok: false, message: "Algo salió mal. Probá de nuevo en un momento." });
-    } finally {
-      setStep(null);
-    }
+    const data = new FormData(event.currentTarget);
+    const ok = await upload(
+      data.get("file"),
+      (meta) =>
+        prepareRevisionUpload(documentId, {
+          ...meta,
+          code: String(data.get("code") ?? ""),
+          notes: String(data.get("notes") ?? ""),
+        }),
+      (id) => finishRevisionUpload(projectId, id),
+    );
+    if (ok) formRef.current?.reset();
   }
 
   return (
@@ -121,27 +84,49 @@ export function RevisionUploadForm({
         Revisión
         <input name="code" required maxLength={20} defaultValue={suggestedCode} className="input" />
       </label>
-      <label className="field sm:col-span-4">
-        Archivo (PDF o imagen, hasta {formatBytes(MAX_REVISION_BYTES)})
-        <input name="file" type="file" required accept={REVISION_MIME_TYPES.join(",")} className="input w-full min-w-0" />
-      </label>
+      <FileField className="sm:col-span-4" />
       <label className="field sm:col-span-6">
         Qué cambió (opcional)
         <input name="notes" maxLength={1000} placeholder="Se corrigió la escalera y la planilla de aberturas" className="input" />
       </label>
-      <div className="flex flex-col gap-1 sm:col-span-6">
-        <FieldError errors={state.errors?.code} />
-        <FieldError errors={state.errors?.fileName} />
-        <FieldError errors={state.errors?.fileSize} />
-        <FieldError errors={state.errors?.mimeType} />
-      </div>
-      <div className="flex flex-wrap items-center gap-3 sm:col-span-6">
-        <SubmitButton pending={step !== null} pendingLabel={step ? STEP_LABEL[step] : undefined}>
-          Subir revisión
+      <UploadFooter state={state} step={step} label="Subir revisión" className="sm:col-span-6" />
+    </form>
+  );
+}
+
+export function FileField({ className = "" }: { className?: string }) {
+  return (
+    <label className={`field ${className}`}>
+      Archivo (PDF o imagen, hasta {formatBytes(MAX_REVISION_BYTES)})
+      <input name="file" type="file" required accept={REVISION_MIME_TYPES.join(",")} className="input w-full min-w-0" />
+    </label>
+  );
+}
+
+export function UploadFooter({
+  state,
+  step,
+  label,
+  className = "",
+}: {
+  state: FormState;
+  step: UploadStep | null;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-col gap-2 ${className}`}>
+      <FieldError errors={state.errors?.code} />
+      <FieldError errors={state.errors?.fileName} />
+      <FieldError errors={state.errors?.fileSize} />
+      <FieldError errors={state.errors?.mimeType} />
+      <div className="flex flex-wrap items-center gap-3">
+        <SubmitButton pending={step !== null} pendingLabel={step ? UPLOAD_STEP_LABEL[step] : undefined}>
+          {label}
         </SubmitButton>
         <FormMessage state={state} />
       </div>
-    </form>
+    </div>
   );
 }
 

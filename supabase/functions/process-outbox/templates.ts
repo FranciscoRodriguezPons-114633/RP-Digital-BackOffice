@@ -24,6 +24,13 @@ export function escapeHtml(value: unknown): string {
     .replaceAll("'", "&#39;");
 }
 
+const PIECE_KIND: Record<string, string> = {
+  render: "render",
+  sales_plan: "plano de venta",
+  brochure: "brochure",
+  other: "pieza",
+};
+
 const LOGIN_NOTE = "Ingresás con este mismo correo; te mandamos un enlace, sin contraseñas.";
 
 function layout(title: string, body: string, cta: { label: string; url: string }, note = LOGIN_NOTE) {
@@ -163,6 +170,26 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
           { label: "Ver la orden", url },
         ),
         text: `${subject}.\n«${title}» en ${project}, por ${amount}. ${extra}${comment ? `\nComentario: «${comment}»` : ""}\n${url}`,
+      };
+    }
+    case "dependency_to_review": {
+      const project = String(p.project_name ?? "un proyecto");
+      const piece = String(p.title ?? "una pieza");
+      const kind = PIECE_KIND[String(p.kind)] ?? "pieza";
+      const doc = String(p.document_code ?? "");
+      const from = String(p.from_revision_code ?? "");
+      const to = String(p.to_revision_code ?? "");
+      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}#piezas`;
+      const subject = `${project}: «${piece}» quedó a revisar`;
+      const body = `Se publicó ${doc} ${to}, que reemplaza a la ${from} sobre la que se hizo este ${kind}. Revisá si sigue sirviendo o si hay que rehacerlo.`;
+      return {
+        subject,
+        html: layout(
+          `«${escapeHtml(piece)}» quedó a revisar`,
+          `<p style="margin:0;line-height:1.5">En <strong>${escapeHtml(project)}</strong>: ${escapeHtml(body)}</p>`,
+          { label: "Ver la pieza", url },
+        ),
+        text: `${subject}.\n${body}\n${url}`,
       };
     }
     default:

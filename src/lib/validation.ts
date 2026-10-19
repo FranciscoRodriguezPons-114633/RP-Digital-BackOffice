@@ -329,6 +329,18 @@ export const documentSchema = z.object({
 export const REVISION_MIME_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"] as const;
 export const MAX_REVISION_BYTES = 50 * 1024 * 1024;
 
+// Datos del archivo que el navegador declara antes de subirlo (Storage vuelve a limitar tamaño y tipo).
+const fileMetaFields = {
+  fileName: z.string().min(1, { error: "Elegí el archivo" }).max(200, { error: "El nombre del archivo es muy largo" }),
+  fileSize: z
+    .number()
+    .int()
+    .positive({ error: "El archivo está vacío" })
+    .max(MAX_REVISION_BYTES, { error: "El archivo pasa los 50 MB" }),
+  mimeType: z.enum(REVISION_MIME_TYPES, { error: "Solo PDF o imágenes (PNG, JPG, WebP)" }),
+};
+export const fileMetaSchema = z.object(fileMetaFields);
+
 export const revisionUploadSchema = z.object({
   code: z
     .string({ error: "Indicá la revisión" })
@@ -342,13 +354,7 @@ export const revisionUploadSchema = z.object({
     .max(1000, { error: "Hasta 1000 caracteres" })
     .optional()
     .transform((v) => (v ? v : null)),
-  fileName: z.string().min(1, { error: "Elegí el archivo" }).max(200, { error: "El nombre del archivo es muy largo" }),
-  fileSize: z
-    .number()
-    .int()
-    .positive({ error: "El archivo está vacío" })
-    .max(MAX_REVISION_BYTES, { error: "El archivo pasa los 50 MB" }),
-  mimeType: z.enum(REVISION_MIME_TYPES, { error: "Solo PDF o imágenes (PNG, JPG, WebP)" }),
+  ...fileMetaFields,
 });
 
 export type RevisionStatus = "draft" | "shared" | "published" | "superseded";
@@ -358,3 +364,48 @@ export const REVISION_STATUS_LABEL: Record<RevisionStatus, string> = {
   published: "Vigente",
   superseded: "Reemplazada",
 };
+
+// ---------------------------------------------------------------------------
+// Piezas dependientes
+// ---------------------------------------------------------------------------
+
+export const PIECE_KINDS = ["render", "sales_plan", "brochure", "other"] as const;
+export type PieceKind = (typeof PIECE_KINDS)[number];
+export const PIECE_KIND_LABEL: Record<PieceKind, string> = {
+  render: "Render",
+  sales_plan: "Plano de venta",
+  brochure: "Brochure",
+  other: "Otra pieza",
+};
+
+export type PieceStatus = "current" | "to_review" | "obsolete" | "revalidated";
+export const PIECE_STATUS_LABEL: Record<PieceStatus, string> = {
+  current: "Vigente",
+  to_review: "A revisar",
+  obsolete: "Obsoleta",
+  revalidated: "Revalidada",
+};
+
+export const pieceSchema = z.object({
+  source_revision_id: z.uuid({ error: "Elegí la revisión de origen" }),
+  kind: z.enum(PIECE_KINDS, { error: "Elegí el tipo de pieza" }),
+  title: z
+    .string({ error: "Indicá el nombre de la pieza" })
+    .trim()
+    .min(2, { error: "El nombre necesita al menos 2 caracteres" })
+    .max(160, { error: "Hasta 160 caracteres" }),
+  responsible_email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .optional()
+    .transform((v) => (v ? v : null))
+    .pipe(z.email({ error: "Ese correo no parece válido" }).nullable()),
+  rounds_contracted: z
+    .unknown()
+    .optional()
+    .transform((v) => (v === undefined || v === null || v === "" ? null : Number(v)))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 50), { error: "Entre 0 y 50 rondas" }),
+});
+
+export const pieceDecisionSchema = z.enum(["revalidated", "obsolete"]);

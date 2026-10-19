@@ -110,6 +110,29 @@ describe("renderEmail", () => {
     expect(email.html).toContain("&lt;b&gt;Muy caro&lt;/b&gt;");
   });
 
+  it("pieza a revisar: qué revisión cambió y enlace a las piezas del proyecto", () => {
+    const email = renderEmail(
+      {
+        id: 8,
+        kind: "dependency_to_review",
+        to_email: "rita@render.com",
+        payload: {
+          project_name: "Edificio Alba",
+          project_id: "p-1",
+          title: "Render fachada norte",
+          kind: "render",
+          document_code: "A-201",
+          from_revision_code: "C01",
+          to_revision_code: "C02",
+        },
+      },
+      APP,
+    );
+    expect(email.subject).toBe("Edificio Alba: «Render fachada norte» quedó a revisar");
+    expect(email.text).toContain("Se publicó A-201 C02, que reemplaza a la C01 sobre la que se hizo este render.");
+    expect(email.text).toContain("https://app.rp.test/proyectos/p-1#piezas");
+  });
+
   it("falla con un tipo desconocido (el outbox lo reintenta y termina en failed)", () => {
     expect(() => renderEmail({ id: 4, kind: "otro", to_email: "a@a.com", payload: {} }, APP)).toThrow();
   });

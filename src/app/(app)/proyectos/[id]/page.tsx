@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/form";
 import { FeesSection } from "./fees-section";
 import { ChangeOrdersSection } from "./change-orders-section";
 import { DocumentsSection } from "./documents-section";
+import { PIECE_SELECT, PieceRow, PiecesSection, type PieceRowData } from "./pieces-section";
 import { changeOrderCode } from "@/lib/validation";
 import { formatMoney } from "@/lib/format";
 
@@ -64,7 +65,24 @@ function eventText(e: EventRow) {
   if (e.type === "revision.published") {
     const doc = String(e.data?.document_code ?? "");
     const replaced = e.data?.superseded_code ? `, que reemplaza a ${String(e.data.superseded_code)}` : "";
-    return `${e.actor_email ?? "Alguien"} publicó ${doc} ${String(e.data?.code ?? "")}${replaced}`;
+    const pieces = Number(e.data?.dependencies_to_review ?? 0);
+    const toReview = pieces > 0 ? ` (${pieces === 1 ? "1 pieza quedó" : `${pieces} piezas quedaron`} a revisar)` : "";
+    return `${e.actor_email ?? "Alguien"} publicó ${doc} ${String(e.data?.code ?? "")}${replaced}${toReview}`;
+  }
+  if (e.type.startsWith("dependency.")) {
+    const title = `«${String(e.data?.title ?? "")}»`;
+    switch (e.type) {
+      case "dependency.created":
+        return `${e.actor_email ?? "Alguien"} creó la pieza ${title} sobre ${String(e.data?.document_code ?? "")} ${String(e.data?.revision_code ?? "")}`;
+      case "dependency.uploaded":
+        return `${e.actor_email ?? "Alguien"} subió el archivo de ${title}`;
+      case "dependency.to_review":
+        return `${title} quedó a revisar: ${String(e.data?.document_code ?? "")} ${String(e.data?.from_revision_code ?? "")} se reemplazó por la ${String(e.data?.to_revision_code ?? "")}`;
+      case "dependency.revalidated":
+        return `${e.actor_email ?? "Alguien"} revalidó ${title} con la ${String(e.data?.to_revision_code ?? "")}`;
+      case "dependency.obsolete":
+        return `${e.actor_email ?? "Alguien"} marcó ${title} como obsoleta`;
+    }
   }
   const who = e.type === "guest.accepted" ? "" : `${e.actor_email ?? "Alguien"} `;
   const email = typeof e.data?.email === "string" ? ` ${e.data.email}` : "";
@@ -129,6 +147,7 @@ async function Project({
           <FeesSection projectId={project.id} isOwner={org?.role === "owner"} />
           <ChangeOrdersSection projectId={project.id} isOwner={org?.role === "owner"} defaultStageId={ocStage} />
           <DocumentsSection projectId={project.id} />
+          <PiecesSection projectId={project.id} />
           <Guests projectId={project.id} />
           <Activity projectId={project.id} />
         </>
@@ -142,6 +161,7 @@ async function Project({
             </p>
           </section>
           <GuestChangeOrders projectId={project.id} />
+          <GuestPieces projectId={project.id} />
         </>
       )}
     </>
@@ -181,6 +201,28 @@ async function GuestChangeOrders({ projectId }: { projectId: string }) {
             </div>
             <p className={`text-xs ${o.status === "sent" ? "text-warn" : "text-muted"}`}>{GUEST_STATUS[o.status] ?? o.status}</p>
           </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// El renderista (u otro invitado) ve las piezas a su cargo y sube ahí su entrega.
+async function GuestPieces({ projectId }: { projectId: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("dependencies")
+    .select(PIECE_SELECT)
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
+  const pieces = (data ?? []) as unknown as PieceRowData[];
+  if (pieces.length === 0) return null;
+  return (
+    <section className="card flex flex-col gap-4">
+      <h2 className="font-medium">Piezas a tu cargo</h2>
+      <ul className="flex flex-col divide-y divide-line">
+        {pieces.map((p) => (
+          <PieceRow key={p.id} piece={p} canReview={false} currentCode={null} />
         ))}
       </ul>
     </section>
