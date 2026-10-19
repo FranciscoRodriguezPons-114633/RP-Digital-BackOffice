@@ -109,12 +109,12 @@ export function ReviewPieceButtons({ projectId, pieceId, newCode }: { projectId:
           type="button"
           disabled={pending}
           onClick={() => decide("revalidated")}
-          className="btn btn-primary px-3 py-1 text-xs"
+          className="btn btn-primary btn-sm"
           title={newCode ? `Sigue sirviendo con la ${newCode}` : "Sigue sirviendo"}
         >
           Sigue sirviendo
         </button>
-        <button type="button" disabled={pending} onClick={() => decide("obsolete")} className="btn btn-ghost border border-line px-3 py-1 text-xs">
+        <button type="button" disabled={pending} onClick={() => decide("obsolete")} className="btn btn-secondary btn-sm">
           Obsoleta
         </button>
       </span>
@@ -133,7 +133,7 @@ export function CloseRoundButton({ projectId, pieceId, round }: { projectId: str
   }
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
-      <button type="button" disabled={pending} onClick={close} className="btn btn-ghost border border-line px-3 py-1 text-xs">
+      <button type="button" disabled={pending} onClick={close} className="btn btn-secondary btn-sm">
         {pending ? "Cerrando…" : `Cerrar ronda ${round} y pedir cambios`}
       </button>
       {state.message && <span className={state.ok ? "text-ok" : "text-danger"}>{state.message}</span>}

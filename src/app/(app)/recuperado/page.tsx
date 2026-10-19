@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import { PageSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -48,7 +49,7 @@ export default function RecoveredPage() {
           aprobado ya suma a los honorarios de cada etapa. Los montos van por moneda, sin convertir.
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+      <Suspense fallback={<PageSkeleton title={false} cards={2} list={false} />}>
         <Recovered />
       </Suspense>
     </div>

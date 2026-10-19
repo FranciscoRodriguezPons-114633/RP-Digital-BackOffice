@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import { CardSkeleton } from "@/components/skeleton";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { formatHours, formatMoney } from "@/lib/format";
@@ -43,7 +44,7 @@ export default function ApprovalPage({ params }: PageProps<"/aprobar/[token]">) 
   return (
     <main className="flex flex-1 justify-center px-4 py-8 sm:py-12">
       <div className="flex w-full max-w-lg flex-col gap-4">
-        <Suspense fallback={<p className="text-sm text-muted">Cargando la orden…</p>}>
+        <Suspense fallback={<CardSkeleton label="Cargando la orden…" lines={5} />}>
           <Approval params={params} />
         </Suspense>
         <p className="text-center text-xs text-muted">RP Backoffice</p>

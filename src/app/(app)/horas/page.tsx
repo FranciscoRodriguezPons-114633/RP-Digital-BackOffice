@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CardSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -26,7 +27,7 @@ export default function HoursPage({ searchParams }: PageProps<"/horas">) {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-8">
       <h1 className="text-2xl font-semibold">Cargar horas</h1>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+      <Suspense fallback={<CardSkeleton lines={4} />}>
         <Hours searchParams={searchParams} />
       </Suspense>
     </div>

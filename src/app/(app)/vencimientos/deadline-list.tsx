@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SubmitButton } from "@/components/form";
+import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatDay, todayInCordoba } from "@/lib/format";
 import { setDeadlineDone } from "../deadline-actions";
 
@@ -42,12 +43,12 @@ export function DeadlineList({
     <ul className="flex flex-col divide-y divide-line">
       {deadlines.map((d) => {
         const days = daysUntil(d.due_date, today);
-        const tone = d.done_at ? "text-muted" : days < 0 ? "text-danger" : days <= 5 ? "text-warn" : "text-muted";
+        const tone: PillTone = d.done_at ? "ok" : days < 0 ? "danger" : days <= 5 ? "warn" : days <= 30 ? "info" : "neutral";
         return (
           <li key={d.id} className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 first:pt-0 ${d.done_at ? "opacity-60" : ""}`}>
             <span className="font-mono text-sm whitespace-nowrap">{formatDay(d.due_date)}</span>
             <span className={`min-w-0 flex-1 font-medium ${d.done_at ? "line-through" : ""}`}>{d.title}</span>
-            <span className={`text-xs ${tone}`}>{d.done_at ? "Hecho" : whenLabel(days)}</span>
+            <StatusPill tone={tone} className="self-center">{d.done_at ? "Hecho" : whenLabel(days)}</StatusPill>
             <form action={setDeadlineDone.bind(null, d.project_id, d.id, !d.done_at)}>
               <SubmitButton variant="ghost" pendingLabel="…">{d.done_at ? "Reabrir" : "Marcar hecho"}</SubmitButton>
             </form>

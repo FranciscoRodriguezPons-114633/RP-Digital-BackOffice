@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
 import { SubmitButton } from "@/components/form";
+import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatBytes } from "@/lib/format";
 import { DISCIPLINE_LABEL, REVISION_STATUS_LABEL, nextRevisionCode, type Discipline, type RevisionStatus } from "@/lib/validation";
 import { discardRevision } from "../../document-actions";
@@ -30,11 +31,11 @@ type DocumentRow = {
   revisions: RevisionRow[];
 };
 
-const STATUS_STYLE: Record<RevisionStatus, string> = {
-  draft: "border-line text-muted",
-  shared: "border-warn text-warn",
-  published: "border-accent text-accent",
-  superseded: "border-line text-muted line-through",
+const STATUS_TONE: Record<RevisionStatus, PillTone> = {
+  draft: "neutral",
+  shared: "warn",
+  published: "accent",
+  superseded: "neutral",
 };
 
 const dateFmt = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeZone: "America/Argentina/Cordoba" });
@@ -117,17 +118,15 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                               <span className="font-mono font-medium">{r.code}</span>
                               {r.uploaded_at ? (
-                                <span className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_STYLE[r.status]}`}>
+                                <StatusPill tone={STATUS_TONE[r.status]} struck={r.status === "superseded"}>
                                   {REVISION_STATUS_LABEL[r.status]}
-                                </span>
+                                </StatusPill>
                               ) : (
-                                <span className="rounded-full border border-warn px-2 py-0.5 text-xs text-warn">
-                                  Subida incompleta
-                                </span>
+                                <StatusPill tone="warn">Subida incompleta</StatusPill>
                               )}
                               <span className="ml-auto flex items-center gap-2">
                                 {r.uploaded_at && (
-                                  <a href={`/archivos/${r.id}`} className="btn btn-ghost border border-line px-3 py-1 text-xs">
+                                  <a href={`/archivos/${r.id}`} className="btn btn-secondary btn-sm">
                                     Descargar
                                   </a>
                                 )}

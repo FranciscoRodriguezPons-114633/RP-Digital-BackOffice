@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CardSkeleton } from "@/components/skeleton";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -23,7 +24,7 @@ export default function IndicesPage() {
           un valor quedó mal, cargalo de nuevo para el mismo mes y se corrige.
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando índices…</p>}>
+      <Suspense fallback={<CardSkeleton label="Cargando índices…" lines={4} />}>
         <Indices />
       </Suspense>
     </div>

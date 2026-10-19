@@ -1,46 +1,78 @@
 @import "tailwindcss";
 
+/* Tokens de la propuesta de UI (fase 1): papel, tinta y verde pino.
+   Cada estado tiene un color de texto y un fondo suave (-soft) para las pastillas. */
 :root {
   --background: #f6f5f2;
   --foreground: #1c1b19;
+  --subtle: #4a4842;
   --surface: #ffffff;
   --muted: #6b6860;
   --line: #e4e1da;
+  --line-strong: #cfcbc1;
   --hover: #f0eee9;
   --accent: #1f4e46;
+  --accent-hover: #173c36;
+  --accent-soft: #e3eeeb;
   --accent-fg: #ffffff;
+  --focus: #a9cbc3;
   --ok: #1f6b3a;
-  --danger: #b42318;
-  --warn: #8a5a00;
+  --ok-soft: #e6f2ea;
+  --warn: #7a4f00;
+  --warn-soft: #fbf0d9;
+  --danger: #a61f14;
+  --danger-soft: #fce9e7;
+  --info: #2b4c7e;
+  --info-soft: #e7edf6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #141412;
     --foreground: #ecebe7;
+    --subtle: #c9c6be;
     --surface: #1d1d1a;
     --muted: #a19e95;
     --line: #2f2e2a;
+    --line-strong: #45433d;
     --hover: #26251f;
     --accent: #7cc4b4;
+    --accent-hover: #96d3c5;
+    --accent-soft: #1b2f2b;
     --accent-fg: #0e1a17;
+    --focus: #3d6b61;
     --ok: #86d4a2;
-    --danger: #f4a397;
+    --ok-soft: #1a2b20;
     --warn: #f0c36a;
+    --warn-soft: #2e2615;
+    --danger: #f4a397;
+    --danger-soft: #33201d;
+    --info: #9dbbe8;
+    --info-soft: #1c2433;
   }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-subtle: var(--subtle);
   --color-surface: var(--surface);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-hover: var(--hover);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-focus: var(--focus);
   --color-ok: var(--ok);
-  --color-danger: var(--danger);
+  --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -53,32 +85,80 @@ body {
 
 @layer components {
   .card {
-    @apply rounded-lg border border-line bg-surface p-6;
+    @apply rounded-xl border border-line bg-surface p-6;
   }
   .field {
     @apply flex flex-col gap-1 text-sm font-medium;
   }
   .input {
-    @apply rounded-md border border-line bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent focus:ring-2 focus:ring-accent/20;
+    @apply min-h-10 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent focus:ring-3 focus:ring-focus;
   }
+
+  /* Botones: 40 px de alto, foco visible con teclado. Tamaños: btn-sm y btn-lg. */
   .btn {
-    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition disabled:opacity-60;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-transparent px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-sm {
+    @apply min-h-8 px-3 text-xs;
+  }
+  .btn-lg {
+    @apply min-h-12 px-5 text-base;
   }
   .btn-primary {
-    background: var(--accent);
-    color: var(--accent-fg);
+    @apply border-accent bg-accent text-[var(--accent-fg)] enabled:hover:border-accent-hover enabled:hover:bg-accent-hover;
+  }
+  a.btn-primary:hover {
+    @apply border-accent-hover bg-accent-hover;
+  }
+  .btn-secondary {
+    @apply border-line-strong bg-surface text-foreground hover:bg-hover;
   }
   .btn-ghost {
-    @apply text-muted hover:bg-hover;
+    @apply text-muted hover:bg-hover hover:text-foreground;
   }
   .btn-danger {
-    @apply bg-red-700 text-white;
+    @apply border-danger/30 bg-danger-soft text-danger hover:border-danger/60;
+  }
+
+  /* Pastillas de estado: siempre color + punto + texto. Ver components/status-pill.tsx. */
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap;
+  }
+  .pill::before {
+    content: "";
+    @apply size-1.5 shrink-0 rounded-full bg-current;
+  }
+  .pill-neutral {
+    @apply bg-hover text-subtle;
+  }
+  .pill-accent {
+    @apply bg-accent-soft text-accent;
+  }
+  .pill-ok {
+    @apply bg-ok-soft text-ok;
+  }
+  .pill-warn {
+    @apply bg-warn-soft text-warn;
+  }
+  .pill-danger {
+    @apply bg-danger-soft text-danger;
+  }
+  .pill-info {
+    @apply bg-info-soft text-info;
+  }
+  /* Lo que ya no vale (reemplazado, anulado): tachado, sin fondo ni punto. */
+  .pill-struck {
+    @apply border border-dashed border-line-strong bg-transparent text-muted line-through;
+  }
+  .pill-struck::before {
+    content: none;
   }
   .badge {
-    @apply rounded-full border border-line px-2 py-0.5 text-xs text-muted;
+    @apply rounded-full bg-hover px-2.5 py-0.5 text-xs font-medium text-subtle;
   }
+
   .chip {
-    @apply flex min-h-12 cursor-pointer items-center justify-center rounded-md border border-line bg-surface text-base font-medium select-none;
+    @apply flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-base font-medium select-none;
   }
   .chip:has(input:checked) {
     background: var(--accent);
@@ -86,9 +166,14 @@ body {
     color: var(--accent-fg);
   }
   .chip:has(input:focus-visible) {
-    @apply ring-2 ring-accent/40;
+    @apply ring-3 ring-focus;
   }
   .nav-link {
-    @apply text-muted hover:text-foreground;
+    @apply rounded-sm text-muted outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus;
+  }
+
+  /* Esqueletos de carga. Ver components/skeleton.tsx. */
+  .skeleton {
+    @apply block rounded-md bg-line motion-safe:animate-pulse;
   }
 }

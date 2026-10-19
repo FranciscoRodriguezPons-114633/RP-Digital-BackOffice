@@ -103,7 +103,7 @@ export function DeleteStageButton({ projectId, stageId }: { projectId: string; s
   const [state, formAction] = useActionState<FormState>(deleteStage.bind(null, projectId, stageId), {});
   return (
     <form action={formAction} className="flex flex-wrap items-center gap-3">
-      <SubmitButton variant="ghost" pendingLabel="Borrando…">Borrar etapa</SubmitButton>
+      <SubmitButton variant="danger" pendingLabel="Borrando…">Borrar etapa</SubmitButton>
       <FormMessage state={state} />
     </form>
   );

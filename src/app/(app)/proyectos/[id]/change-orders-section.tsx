@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
+import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatHours, formatMoney } from "@/lib/format";
 import { CHANGE_ORDER_STATUS_LABEL, changeOrderCode, type ChangeOrderStatus } from "@/lib/validation";
 import { ChangeOrderForm, SendChangeOrderForm, VoidChangeOrderForm, type StageChoice } from "../../co-forms";
@@ -36,13 +37,13 @@ type ApprovalRow = {
   created_at: string;
 };
 
-const STATUS_STYLE: Record<ChangeOrderStatus, string> = {
-  draft: "border-line text-muted",
-  sent: "border-warn text-warn",
-  approved: "border-accent text-accent",
-  rejected: "border-danger text-danger",
-  billable: "border-accent text-accent",
-  void: "border-line text-muted line-through",
+const STATUS_TONE: Record<ChangeOrderStatus, PillTone> = {
+  draft: "neutral",
+  sent: "warn",
+  approved: "ok",
+  rejected: "danger",
+  billable: "ok",
+  void: "neutral",
 };
 
 const dateFmt = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeZone: "America/Argentina/Cordoba" });
@@ -150,9 +151,9 @@ export async function ChangeOrdersSection({
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="order-1 font-mono text-sm text-muted">{code}</span>
                   <span className="order-4 w-full min-w-0 font-medium sm:order-2 sm:w-auto sm:flex-1">{o.title}</span>
-                  <span className={`order-2 rounded-full border px-2 py-0.5 text-xs sm:order-4 ${STATUS_STYLE[o.status]}`}>
+                  <StatusPill tone={STATUS_TONE[o.status]} struck={o.status === "void"} className="order-2 self-center sm:order-4">
                     {CHANGE_ORDER_STATUS_LABEL[o.status]}
-                  </span>
+                  </StatusPill>
                   <span className="order-3 ml-auto font-mono whitespace-nowrap sm:ml-0">{formatMoney(o.amount, o.currency)}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">

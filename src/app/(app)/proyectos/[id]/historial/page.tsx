@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -20,7 +21,7 @@ const dateFmt = new Intl.DateTimeFormat("es-AR", {
 export default function HistoryPage({ params, searchParams }: PageProps<"/proyectos/[id]/historial">) {
   return (
     <div className="flex flex-col gap-8">
-      <Suspense fallback={<p className="text-sm text-muted">Cargando historial…</p>}>
+      <Suspense fallback={<PageSkeleton label="Cargando historial…" list={false} />}>
         <History params={params} searchParams={searchParams} />
       </Suspense>
     </div>

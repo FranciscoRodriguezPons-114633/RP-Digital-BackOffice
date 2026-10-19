@@ -51,7 +51,7 @@ export default function Home() {
             Sin planillas sueltas ni «¿quién aprobó esto?».
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/login" className="btn btn-primary px-5 py-3 text-base">
+            <Link href="/login" className="btn btn-primary btn-lg">
               Probar {TRIAL_DAYS} días gratis
             </Link>
             <span className="text-sm text-muted">Sin tarjeta. Tus invitados entran gratis.</span>

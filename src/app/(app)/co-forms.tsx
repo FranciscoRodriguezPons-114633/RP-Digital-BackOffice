@@ -169,10 +169,10 @@ function ApprovalLinkBox({ link, code, expiresAt }: { link: string; code: string
       </p>
       <code className="font-mono text-xs break-all">{link}</code>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={copy} className="btn btn-ghost border border-line">
+        <button type="button" onClick={copy} className="btn btn-secondary">
           {copied ? "Copiado" : "Copiar link"}
         </button>
-        <a href={whatsapp} target="_blank" rel="noreferrer" className="btn btn-ghost border border-line">
+        <a href={whatsapp} target="_blank" rel="noreferrer" className="btn btn-secondary">
           Mandar por WhatsApp
         </a>
       </div>
@@ -190,7 +190,7 @@ export function VoidChangeOrderForm({ projectId, orderId }: { projectId: string;
         Motivo de la anulación
         <input name="reason" required minLength={3} maxLength={500} placeholder="El cliente desistió" className="input" />
       </label>
-      <SubmitButton pending={pending} variant="ghost" pendingLabel="Anulando…">Anular orden</SubmitButton>
+      <SubmitButton pending={pending} variant="danger" pendingLabel="Anulando…">Anular orden</SubmitButton>
       <div className="w-full">
         <FieldError errors={state.errors?.reason} />
         <FormMessage state={state} />

@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import { Skeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { getCurrentOrg, getUser } from "@/lib/dal";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +20,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </Suspense>
           </nav>
           <div className="ml-auto">
-            <Suspense fallback={<span className="text-sm text-muted">…</span>}>
+            <Suspense fallback={<Skeleton className="h-4 w-40" />}>
               <UserMenu />
             </Suspense>
           </div>

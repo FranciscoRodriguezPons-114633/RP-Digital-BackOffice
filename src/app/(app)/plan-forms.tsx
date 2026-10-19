@@ -73,7 +73,7 @@ export function DecideBillingForm({ requestId, defaultPaidUntil }: { requestId: 
       <button type="submit" name="decision" value="approve" disabled={pending} className="btn btn-primary">
         Confirmar pago
       </button>
-      <button type="submit" name="decision" value="reject" disabled={pending} className="btn btn-ghost border border-line">
+      <button type="submit" name="decision" value="reject" disabled={pending} className="btn btn-secondary">
         Rechazar
       </button>
       <div className="w-full">
