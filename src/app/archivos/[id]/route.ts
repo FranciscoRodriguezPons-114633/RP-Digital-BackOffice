@@ -5,7 +5,7 @@ import { idSchema } from "@/lib/validation";
 
 // Descarga de una revisión o pieza: si quien pide puede leerla (RLS), se lo manda a un link
 // firmado de Storage que vence al minuto. El bucket es privado.
-export async function GET(_request: NextRequest, ctx: RouteContext<"/archivos/[id]">) {
+export async function GET(request: NextRequest, ctx: RouteContext<"/archivos/[id]">) {
   const { id } = await ctx.params;
   if (!idSchema.safeParse(id).success) return new NextResponse("No encontrado", { status: 404 });
 
@@ -18,7 +18,8 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/archivos/[i
 
   const { data, error } = await supabase.storage
     .from(FILES_BUCKET)
-    .createSignedUrl(rev.storage_path, 60, { download: rev.file_name });
+    // ?ver: para mostrarlo en pantalla (comentarios sobre la imagen); si no, se descarga.
+    .createSignedUrl(rev.storage_path, 300, request.nextUrl.searchParams.has("ver") ? undefined : { download: rev.file_name });
   if (error || !data) return new NextResponse("No encontrado", { status: 404 });
 
   // Si se lo enviaron a quien lo abre, queda anotado (para el registro de envíos).

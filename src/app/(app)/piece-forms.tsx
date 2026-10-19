@@ -6,6 +6,7 @@ import { useDirectUpload } from "@/components/direct-upload";
 import { PIECE_KIND_LABEL, PIECE_KINDS, type FormState } from "@/lib/validation";
 import { FileField, UploadFooter } from "./document-forms";
 import { createPiece, finishPieceUpload, preparePieceUpload, reviewPiece } from "./piece-actions";
+import { closeRound } from "./comment-actions";
 
 export type SourceChoice = { id: string; label: string };
 
@@ -119,5 +120,23 @@ export function ReviewPieceButtons({ projectId, pieceId, newCode }: { projectId:
       </span>
       {state.message && !state.ok && <span className="text-xs text-danger">{state.message}</span>}
     </span>
+  );
+}
+
+// Cierra la ronda de correcciones: el responsable recibe los comentarios abiertos y empieza la siguiente.
+export function CloseRoundButton({ projectId, pieceId, round }: { projectId: string; pieceId: string; round: number }) {
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<FormState>({});
+  function close() {
+    if (!window.confirm(`¿Cerrar la ronda ${round} y pedirle los cambios al responsable?`)) return;
+    startTransition(async () => setState(await closeRound(projectId, pieceId)));
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <button type="button" disabled={pending} onClick={close} className="btn btn-ghost border border-line px-3 py-1 text-xs">
+        {pending ? "Cerrando…" : `Cerrar ronda ${round} y pedir cambios`}
+      </button>
+      {state.message && <span className={state.ok ? "text-ok" : "text-danger"}>{state.message}</span>}
+    </div>
   );
 }

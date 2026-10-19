@@ -83,6 +83,7 @@ export function ItemLine({
           target={{ revisionId: item.revision_id, dependencyId: item.dependency_id }}
           comments={comments}
           isPdf={item.file_name.toLowerCase().endsWith(".pdf")}
+          imageUrl={/\.(png|jpe?g|webp)$/i.test(item.file_name) ? `/archivos/${fileId}?ver` : undefined}
         />
       )}
     </li>

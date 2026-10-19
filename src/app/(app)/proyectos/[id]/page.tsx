@@ -93,6 +93,10 @@ function eventText(e: EventRow) {
         return `${title} quedó a revisar: ${String(e.data?.document_code ?? "")} ${String(e.data?.from_revision_code ?? "")} se reemplazó por la ${String(e.data?.to_revision_code ?? "")}`;
       case "dependency.revalidated":
         return `${e.actor_email ?? "Alguien"} revalidó ${title} con la ${String(e.data?.to_revision_code ?? "")}`;
+      case "dependency.round_closed": {
+        const over = e.data?.over_contract ? " (se pasaron las rondas contratadas)" : "";
+        return `${e.actor_email ?? "Alguien"} cerró la ronda ${String(e.data?.round ?? "")} de ${title} con ${String(e.data?.comments ?? 0)} comentarios${over}`;
+      }
       case "dependency.obsolete":
         return `${e.actor_email ?? "Alguien"} marcó ${title} como obsoleta`;
     }

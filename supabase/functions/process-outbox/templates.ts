@@ -230,6 +230,26 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
         text: `${subject}${page}:\n«${body}»\n${url}`,
       };
     }
+    case "round_closed": {
+      const project = String(p.project_name ?? "un proyecto");
+      const piece = String(p.title ?? "la pieza");
+      const round = Number(p.round ?? 1);
+      const n = Number(p.comments ?? 0);
+      const contracted = p.rounds_contracted === null || p.rounds_contracted === undefined ? null : Number(p.rounds_contracted);
+      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}`;
+      const subject = `${project}: correcciones de la ronda ${round} de «${piece}»`;
+      const count = n === 1 ? "1 comentario" : `${n} comentarios`;
+      const extra = contracted !== null ? ` Van ${round} de ${contracted} rondas contratadas.` : "";
+      return {
+        subject,
+        html: layout(
+          `Ronda ${round} de «${escapeHtml(piece)}»`,
+          `<p style="margin:0;line-height:1.5">El estudio cerró la ronda con <strong>${count}</strong> para corregir en <strong>${escapeHtml(project)}</strong>.${escapeHtml(extra)}</p>`,
+          { label: "Ver los comentarios", url },
+        ),
+        text: `${subject}.\nHay ${count} para corregir.${extra}\n${url}`,
+      };
+    }
     default:
       throw new Error(`Tipo de correo desconocido: ${msg.kind}`);
   }

@@ -160,6 +160,7 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
                                 target={{ revisionId: r.id, dependencyId: null }}
                                 comments={comments.get(r.id) ?? []}
                                 isPdf={r.mime_type === "application/pdf"}
+                                imageUrl={r.mime_type.startsWith("image/") ? `/archivos/${r.id}?ver` : undefined}
                               />
                             )}
                           </li>

@@ -10,7 +10,7 @@ export const loadComments = cache(async (projectId: string, isMember: boolean) =
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
   const { data } = await supabase
     .from("comments")
-    .select("id, revision_id, dependency_id, author_id, author_email, body, page, status, created_at")
+    .select("id, revision_id, dependency_id, author_id, author_email, body, page, anchor, round, status, created_at")
     .eq("project_id", projectId)
     .order("created_at");
   const byFile = new Map<string, CommentView[]>();
@@ -25,6 +25,8 @@ export const loadComments = cache(async (projectId: string, isMember: boolean) =
       author_email: c.author_email,
       body: c.body,
       page: c.page,
+      anchor: c.anchor,
+      round: c.round,
       status: c.status,
       created_at: c.created_at,
       canResolve: isMember || c.author_id === user?.id,

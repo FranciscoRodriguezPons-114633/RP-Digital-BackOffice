@@ -454,4 +454,8 @@ export const commentSchema = z.object({
     .optional()
     .transform((v) => (v === undefined || v === null || v === "" ? null : Number(v)))
     .refine((v) => v === null || (Number.isInteger(v) && v >= 1 && v <= 10000), { error: "Página inválida" }),
+  // Punto marcado sobre la imagen, de 0 a 1 en cada eje.
+  anchor: z
+    .object({ x: z.coerce.number().min(0).max(1), y: z.coerce.number().min(0).max(1) })
+    .nullable(),
 });

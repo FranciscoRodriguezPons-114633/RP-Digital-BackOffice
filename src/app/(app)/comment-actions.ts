@@ -20,7 +20,13 @@ export async function addComment(
   if (!idSchema.safeParse(projectId).success || ids.length !== 1 || !idSchema.safeParse(ids[0]).success) {
     return { ok: false, message: "Archivo inválido." };
   }
-  const parsed = commentSchema.safeParse({ body: formData.get("body"), page: formData.get("page") ?? undefined });
+  const x = formData.get("anchor_x");
+  const y = formData.get("anchor_y");
+  const parsed = commentSchema.safeParse({
+    body: formData.get("body"),
+    page: formData.get("page") ?? undefined,
+    anchor: x && y ? { x, y } : null,
+  });
   if (!parsed.success) return fieldErrors(parsed.error);
 
   const supabase = await createClient();
@@ -29,6 +35,7 @@ export async function addComment(
     p_dependency_id: target.dependencyId,
     p_body: parsed.data.body,
     p_page: parsed.data.page,
+    p_anchor: parsed.data.anchor,
   });
   if (error) return { ok: false, message: dbErrorMessage(error) };
   revalidatePath(`/proyectos/${projectId}`);
@@ -41,4 +48,15 @@ export async function resolveComment(projectId: string, commentId: string): Prom
   const supabase = await createClient();
   await supabase.rpc("resolve_comment", { p_id: commentId });
   revalidatePath(`/proyectos/${projectId}`);
+}
+
+export async function closeRound(projectId: string, pieceId: string): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(pieceId).success) return { ok: false, message: "Pieza inválida." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("close_round", { p_dependency_id: pieceId });
+  if (error?.code === "22023") return { ok: false, message: "La ronda no tiene comentarios sin resolver." };
+  if (error) return { ok: false, message: dbErrorMessage(error) };
+  revalidatePath(`/proyectos/${projectId}`);
+  return { ok: true, message: `Ronda cerrada: le avisamos al responsable. Ahora corre la ronda ${String(data)}.` };
 }

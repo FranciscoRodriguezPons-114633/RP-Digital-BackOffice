@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
 import { formatBytes } from "@/lib/format";
 import { PIECE_KIND_LABEL, PIECE_STATUS_LABEL, type PieceKind, type PieceStatus } from "@/lib/validation";
-import { PieceFileForm, PieceForm, ReviewPieceButtons, type SourceChoice } from "../../piece-forms";
+import { CloseRoundButton, PieceFileForm, PieceForm, ReviewPieceButtons, type SourceChoice } from "../../piece-forms";
 import { CommentThread, type CommentView } from "../../comment-thread";
 import { loadComments } from "./comments";
 
@@ -15,6 +15,7 @@ export type PieceRowData = {
   status: PieceStatus;
   responsible_email: string | null;
   rounds_contracted: number | null;
+  current_round: number;
   file_name: string | null;
   file_size: number | null;
   mime_type: string | null;
@@ -26,7 +27,7 @@ export type PieceRowData = {
 };
 
 export const PIECE_SELECT =
-  "id, project_id, kind, title, status, responsible_email, rounds_contracted, file_name, file_size, mime_type, sha256, uploaded_at, status_changed_at, " +
+  "id, project_id, kind, title, status, responsible_email, rounds_contracted, current_round, file_name, file_size, mime_type, sha256, uploaded_at, status_changed_at, " +
   "revisions!dependencies_source_revision_id_fkey(code, document_id, documents(code, title))";
 
 const STATUS_STYLE: Record<PieceStatus, string> = {
@@ -85,7 +86,7 @@ export function PieceRow({
           </span>
         )}
         {piece.responsible_email && <span>A cargo de {piece.responsible_email}</span>}
-        {piece.rounds_contracted !== null && <span>{piece.rounds_contracted} rondas contratadas</span>}
+        <RoundInfo piece={piece} />
         {piece.uploaded_at ? (
           <a href={`/archivos/${piece.id}`} className="underline">
             {piece.file_name} ({formatBytes(piece.file_size)})
@@ -99,6 +100,9 @@ export function PieceRow({
           </span>
         )}
       </div>
+      {canReview && comments && piece.uploaded_at && piece.status !== "obsolete" && (
+        <CloseRoundButton projectId={piece.project_id} pieceId={piece.id} round={piece.current_round} />
+      )}
       {piece.status === "to_review" && (
         <div className="flex flex-wrap items-center gap-3 rounded-md border border-warn/40 bg-background p-3 text-sm">
           <p className="min-w-0 flex-1 text-xs">
@@ -114,6 +118,7 @@ export function PieceRow({
           target={{ revisionId: null, dependencyId: piece.id }}
           comments={comments}
           isPdf={piece.mime_type === "application/pdf"}
+          imageUrl={piece.mime_type?.startsWith("image/") ? `/archivos/${piece.id}?ver` : undefined}
         />
       )}
       {!piece.uploaded_at && piece.status !== "obsolete" && (
@@ -125,6 +130,18 @@ export function PieceRow({
         </details>
       )}
     </li>
+  );
+}
+
+// "Ronda 2 de 3"; pasada la cantidad contratada, avisa.
+function RoundInfo({ piece }: { piece: PieceRowData }) {
+  const over = piece.rounds_contracted !== null && piece.current_round > piece.rounds_contracted;
+  return (
+    <span className={over ? "font-medium text-warn" : ""}>
+      Ronda {piece.current_round}
+      {piece.rounds_contracted !== null && ` de ${piece.rounds_contracted} contratadas`}
+      {over && " · se pasaron las rondas contratadas"}
+    </span>
   );
 }
 

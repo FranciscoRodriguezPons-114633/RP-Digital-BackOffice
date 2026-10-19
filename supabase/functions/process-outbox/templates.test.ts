@@ -169,6 +169,15 @@ describe("renderEmail", () => {
     expect(email.text).toContain("«¿Se puede correr la puerta?»");
   });
 
+  it("ronda cerrada: cuántos comentarios y rondas contratadas", () => {
+    const email = renderEmail(
+      { id: 11, kind: "round_closed", to_email: "rita@render.com", payload: { project_name: "Edificio Alba", project_id: "p-1", title: "Render hall", round: 2, comments: 3, rounds_contracted: 3 } },
+      APP,
+    );
+    expect(email.subject).toBe("Edificio Alba: correcciones de la ronda 2 de «Render hall»");
+    expect(email.text).toContain("Hay 3 comentarios para corregir. Van 2 de 3 rondas contratadas.");
+  });
+
   it("falla con un tipo desconocido (el outbox lo reintenta y termina en failed)", () => {
     expect(() => renderEmail({ id: 4, kind: "otro", to_email: "a@a.com", payload: {} }, APP)).toThrow();
   });
