@@ -27,6 +27,8 @@ export async function createOrganization(_prev: FormState, formData: FormData): 
   const { error } = await supabase.rpc("create_organization", { p_name: parsed.data.name });
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
+  // La barra lateral (layout) se armó sin estudio: sin esto queda con solo «Proyectos» hasta recargar.
+  revalidatePath("/", "layout");
   redirect("/proyectos");
 }
 

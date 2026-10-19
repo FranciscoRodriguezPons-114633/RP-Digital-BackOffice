@@ -139,12 +139,16 @@ export async function ChangeOrdersSection({
           {orders.map((o) => {
             const code = changeOrderCode(o.number);
             const editable = o.status === "draft" || o.status === "sent";
+            // Rechazada: se corrige (vuelve a borrador) y se reenvía con el mismo número.
+            const correctable = o.status === "rejected";
             const link = lastLink.get(o.id);
             const approval = lastApproval.get(o.id);
             const expired = o.status === "sent" && link !== undefined && isPast(link.expires_at);
             const summary = editable
               ? `${o.status === "sent" ? "Reenviar" : "Enviar"} o editar ${code}`
-              : `Anular ${code}`;
+              : correctable
+                ? `Corregir${isOwner ? " o anular" : ""} ${code}`
+                : `Anular ${code}`;
             return (
               <li key={o.id} className="flex flex-col gap-2 py-4 first:pt-0">
                 {/* En el teléfono el título va en su propia línea, debajo de número, estado y monto. */}
@@ -178,8 +182,14 @@ export async function ChangeOrdersSection({
                     {approval.comment && <>: «{approval.comment}»</>}
                   </p>
                 )}
+                {(o.status === "draft" || o.status === "sent") && approval?.decision === "rejected" && (
+                  <p className="text-xs text-muted">
+                    La versión anterior la rechazó {approval.signer_name} el {dateFmt.format(new Date(approval.created_at))}
+                    {approval.comment && <>: «{approval.comment}»</>}
+                  </p>
+                )}
                 {o.status === "void" && o.void_reason && <p className="text-xs text-muted">Motivo: {o.void_reason}</p>}
-                {(editable || (isOwner && o.status !== "void")) && (
+                {(editable || correctable || (isOwner && o.status !== "void")) && (
                   <details className="rounded-md border border-line">
                     <summary className="cursor-pointer px-4 py-2 text-sm">{summary}</summary>
                     <div className="flex flex-col gap-5 border-t border-line p-4">
@@ -193,13 +203,14 @@ export async function ChangeOrdersSection({
                           resend={o.status === "sent"}
                         />
                       )}
-                      {editable && (
-                        <div className="flex flex-col gap-3 border-t border-line pt-5">
-                          <h3 className="text-sm font-medium">Editar</h3>
+                      {(editable || correctable) && (
+                        <div className={`flex flex-col gap-3 ${editable ? "border-t border-line pt-5" : ""}`}>
+                          <h3 className="text-sm font-medium">{correctable ? "Corregir" : "Editar"}</h3>
                           <ChangeOrderForm
                             projectId={projectId}
                             stages={stages}
                             sent={o.status === "sent"}
+                            rejected={correctable}
                             order={{
                               id: o.id,
                               stage_id: o.stage_id,
@@ -213,7 +224,7 @@ export async function ChangeOrdersSection({
                         </div>
                       )}
                       {isOwner && (
-                        <div className={editable ? "border-t border-line pt-5" : ""}>
+                        <div className={editable || correctable ? "border-t border-line pt-5" : ""}>
                           <VoidChangeOrderForm projectId={projectId} orderId={o.id} />
                         </div>
                       )}
