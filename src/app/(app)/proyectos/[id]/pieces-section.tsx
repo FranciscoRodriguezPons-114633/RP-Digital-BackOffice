@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
+import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatBytes } from "@/lib/format";
 import { PIECE_KIND_LABEL, PIECE_STATUS_LABEL, type PieceKind, type PieceStatus } from "@/lib/validation";
 import { CloseRoundButton, PieceFileForm, PieceForm, ReviewPieceButtons, type SourceChoice } from "../../piece-forms";
@@ -30,11 +31,11 @@ export const PIECE_SELECT =
   "id, project_id, kind, title, status, responsible_email, rounds_contracted, current_round, file_name, file_size, mime_type, sha256, uploaded_at, status_changed_at, " +
   "revisions!dependencies_source_revision_id_fkey(code, document_id, documents(code, title))";
 
-const STATUS_STYLE: Record<PieceStatus, string> = {
-  current: "border-accent text-accent",
-  revalidated: "border-accent text-accent",
-  to_review: "border-warn text-warn",
-  obsolete: "border-line text-muted line-through",
+const STATUS_TONE: Record<PieceStatus, PillTone> = {
+  current: "accent",
+  revalidated: "accent",
+  to_review: "warn",
+  obsolete: "danger",
 };
 
 // Revisión vigente de cada documento, para decir "C01 → C02" en las piezas a revisar.
@@ -67,9 +68,9 @@ export function PieceRow({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-xs text-muted">{PIECE_KIND_LABEL[piece.kind]}</span>
         <span className="min-w-0 flex-1 font-medium">{piece.title}</span>
-        <span className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_STYLE[piece.status]}`}>
+        <StatusPill tone={STATUS_TONE[piece.status]} className="self-center">
           {PIECE_STATUS_LABEL[piece.status]}
-        </span>
+        </StatusPill>
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
         {showProject && piece.projects && (

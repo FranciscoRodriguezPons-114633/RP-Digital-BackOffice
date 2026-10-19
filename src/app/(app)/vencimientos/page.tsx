@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageSkeleton } from "@/components/skeleton";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -23,7 +24,7 @@ export default function DeadlinesPage() {
           que elijas antes de cada una.
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+      <Suspense fallback={<PageSkeleton title={false} cards={2} list={false} />}>
         <Deadlines />
       </Suspense>
     </div>

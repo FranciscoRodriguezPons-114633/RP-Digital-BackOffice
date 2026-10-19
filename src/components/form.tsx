@@ -42,7 +42,7 @@ export function SubmitButton({
 }: {
   children: ReactNode;
   pendingLabel?: string;
-  variant?: "primary" | "ghost" | "danger";
+  variant?: "primary" | "secondary" | "ghost" | "danger";
   pending?: boolean;
 }) {
   const status = useFormStatus();

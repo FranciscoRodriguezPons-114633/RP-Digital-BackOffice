@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -7,6 +8,7 @@ import { countGuestProjects, getCurrentOrg, requireUser } from "@/lib/dal";
 import { ProjectForm } from "../forms";
 import { createSampleProject } from "../actions";
 import { SubmitButton } from "@/components/form";
+import { StatusPill } from "@/components/status-pill";
 
 export const metadata: Metadata = { title: "Proyectos" };
 
@@ -24,7 +26,7 @@ export default function ProjectsPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-semibold">Proyectos</h1>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando proyectos…</p>}>
+      <Suspense fallback={<PageSkeleton label="Cargando proyectos…" title={false} />}>
         <Projects />
       </Suspense>
     </div>
@@ -80,7 +82,7 @@ async function Projects() {
           <p className="text-sm text-muted">Todavía no hay proyectos.</p>
         )
       ) : (
-        <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
+        <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
           {projects.map((p) => (
             <li key={p.id}>
               <Link href={`/proyectos/${p.id}`} className="flex items-center gap-4 px-4 py-3 hover:bg-hover">
@@ -89,7 +91,7 @@ async function Projects() {
                 <span className="ml-auto text-sm text-muted">
                   {org ? (p.client_name ?? "") : (p.organizations?.name ?? "")}
                 </span>
-                {p.status === "archived" && <span className="badge">Archivado</span>}
+                {p.status === "archived" && <StatusPill>Archivado</StatusPill>}
               </Link>
             </li>
           ))}

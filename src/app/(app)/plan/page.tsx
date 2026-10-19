@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CardSkeleton } from "@/components/skeleton";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -21,7 +22,7 @@ export default function PlanPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-semibold">Plan</h1>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+      <Suspense fallback={<CardSkeleton lines={2} />}>
         <Plan />
       </Suspense>
     </div>

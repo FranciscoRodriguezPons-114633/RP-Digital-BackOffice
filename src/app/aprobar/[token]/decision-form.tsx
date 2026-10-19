@@ -35,7 +35,7 @@ export function DecisionForm({ token, recipientEmail }: { token: string; recipie
           name="decision"
           value="rejected"
           disabled={pending}
-          className="btn btn-ghost border border-line sm:flex-1"
+          className="btn btn-secondary sm:flex-1"
         >
           Rechazar
         </button>

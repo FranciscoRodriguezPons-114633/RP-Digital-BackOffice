@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CardSkeleton } from "@/components/skeleton";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -16,7 +17,7 @@ export default function TeamPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-semibold">Equipo</h1>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando equipo…</p>}>
+      <Suspense fallback={<CardSkeleton label="Cargando equipo…" lines={4} />}>
         <Team />
       </Suspense>
     </div>

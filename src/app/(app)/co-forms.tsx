@@ -32,12 +32,14 @@ export function ChangeOrderForm({
   order,
   defaultStageId,
   sent = false,
+  rejected = false,
 }: {
   projectId: string;
   stages: StageChoice[];
   order?: ChangeOrderValues;
   defaultStageId?: string;
   sent?: boolean;
+  rejected?: boolean;
 }) {
   const action = order ? updateChangeOrder.bind(null, projectId, order.id) : createChangeOrder.bind(null, projectId);
   const { state, pending, formProps } = useActionForm(action, { resetOnSuccess: !order });
@@ -79,7 +81,9 @@ export function ChangeOrderForm({
         <FieldError errors={state.errors?.hours} />
         <FieldError errors={state.errors?.affected_documents} />
         <p className="text-xs text-muted">
-          {sent
+          {rejected
+            ? "El cliente la rechazó: al guardar vuelve a borrador, con el mismo número, para que se la reenvíes."
+            : sent
             ? "Ya se la enviaste al cliente: si cambiás algo, el link que tiene deja de valer y la orden vuelve a borrador."
             : "La moneda es la de la etapa. Queda como borrador hasta que la envíes al cliente."}
         </p>
@@ -169,10 +173,10 @@ function ApprovalLinkBox({ link, code, expiresAt }: { link: string; code: string
       </p>
       <code className="font-mono text-xs break-all">{link}</code>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={copy} className="btn btn-ghost border border-line">
+        <button type="button" onClick={copy} className="btn btn-secondary">
           {copied ? "Copiado" : "Copiar link"}
         </button>
-        <a href={whatsapp} target="_blank" rel="noreferrer" className="btn btn-ghost border border-line">
+        <a href={whatsapp} target="_blank" rel="noreferrer" className="btn btn-secondary">
           Mandar por WhatsApp
         </a>
       </div>
@@ -190,7 +194,7 @@ export function VoidChangeOrderForm({ projectId, orderId }: { projectId: string;
         Motivo de la anulación
         <input name="reason" required minLength={3} maxLength={500} placeholder="El cliente desistió" className="input" />
       </label>
-      <SubmitButton pending={pending} variant="ghost" pendingLabel="Anulando…">Anular orden</SubmitButton>
+      <SubmitButton pending={pending} variant="danger" pendingLabel="Anulando…">Anular orden</SubmitButton>
       <div className="w-full">
         <FieldError errors={state.errors?.reason} />
         <FormMessage state={state} />

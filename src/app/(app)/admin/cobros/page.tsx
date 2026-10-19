@@ -1,10 +1,12 @@
 import { Suspense } from "react";
+import { ListSkeleton } from "@/components/skeleton";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { PLAN_LABEL, type PaidPlan } from "@/lib/plans";
 import { DecideBillingForm } from "../../plan-forms";
+import { StatusPill } from "@/components/status-pill";
 
 export const metadata: Metadata = { title: "Cobros" };
 
@@ -22,7 +24,11 @@ type Request = {
 };
 
 const dateFmt = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeZone: "America/Argentina/Cordoba" });
-const STATUS = { pending: "Pendiente", approved: "Pagado", rejected: "Rechazado" };
+const STATUS = {
+  pending: { label: "Pendiente", tone: "warn" },
+  approved: { label: "Pagado", tone: "ok" },
+  rejected: { label: "Rechazado", tone: "danger" },
+} as const;
 
 // "Hasta" sugerido al confirmar: un mes o un año desde hoy, según el pedido.
 function suggestedPaidUntil(cycle: "monthly" | "yearly") {
@@ -42,7 +48,7 @@ export default function BillingAdminPage() {
           su plan.
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+      <Suspense fallback={<ListSkeleton rows={3} />}>
         <Requests />
       </Suspense>
     </div>
@@ -67,10 +73,10 @@ async function Requests() {
             <span className="text-sm text-muted">
               {PLAN_LABEL[r.plan]} · {r.billing_cycle === "yearly" ? "anual" : "mensual"}
             </span>
-            <span className={`ml-auto text-sm ${r.status === "pending" ? "text-warn" : "text-muted"}`}>
-              {STATUS[r.status]}
+            <StatusPill tone={STATUS[r.status].tone} className="ml-auto self-center">
+              {STATUS[r.status].label}
               {r.paid_until && ` hasta el ${dateFmt.format(new Date(`${r.paid_until}T12:00:00Z`))}`}
-            </span>
+            </StatusPill>
           </div>
           <div className="text-sm text-muted">
             {r.billing_name} · CUIT {r.tax_id} · {r.billing_email} · pedido el {dateFmt.format(new Date(r.created_at))}

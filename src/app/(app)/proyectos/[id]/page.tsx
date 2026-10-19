@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -7,6 +8,7 @@ import { GUEST_KIND_LABEL, idSchema, type GuestKind } from "@/lib/validation";
 import { removeGuest } from "../../actions";
 import { GuestInviteForm } from "../../forms";
 import { SubmitButton } from "@/components/form";
+import { StatusPill } from "@/components/status-pill";
 import { FeesSection } from "./fees-section";
 import { ChangeOrdersSection } from "./change-orders-section";
 import { DocumentsSection } from "./documents-section";
@@ -38,7 +40,7 @@ export default function ProjectPage({ params, searchParams }: PageProps<"/proyec
   return (
     <div className="flex flex-col gap-8">
       <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando proyecto…</p>}>
+      <Suspense fallback={<PageSkeleton label="Cargando proyecto…" cards={3} list={false} />}>
         <Project params={params} searchParams={searchParams} />
       </Suspense>
     </div>
@@ -83,11 +85,11 @@ async function Project({
         </div>
         {isMember && (
           <div className="flex flex-wrap gap-2">
-            <Link href={`/proyectos/${project.id}/historial`} className="btn btn-ghost border border-line">
+            <Link href={`/proyectos/${project.id}/historial`} className="btn btn-secondary">
               Historial
             </Link>
             {/* Descarga un archivo: enlace común, sin navegación del cliente. */}
-            <a href={`/proyectos/${project.id}/exportar`} className="btn btn-ghost border border-line">
+            <a href={`/proyectos/${project.id}/exportar`} className="btn btn-secondary">
               Exportar a Excel
             </a>
           </div>
@@ -282,7 +284,7 @@ async function Guests({ projectId }: { projectId: string }) {
             <li key={g.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
               <span className="font-medium break-all">{g.email}</span>
               <span className="badge">{GUEST_KIND_LABEL[g.kind]}</span>
-              <span className="text-muted">{g.accepted_at ? "Ingresó" : "Pendiente"}</span>
+              {g.accepted_at ? <StatusPill tone="ok">Ingresó</StatusPill> : <StatusPill>Pendiente</StatusPill>}
               <form action={removeGuest.bind(null, projectId, g.id)} className="ml-auto">
                 <SubmitButton variant="ghost" pendingLabel="Quitando…">Quitar</SubmitButton>
               </form>

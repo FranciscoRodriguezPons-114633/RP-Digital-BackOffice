@@ -7,7 +7,7 @@ export function DevLogin() {
     <form action={devSignIn} className="mt-6 flex flex-col gap-2 border-t border-line pt-5">
       <p className="text-xs font-medium tracking-wide text-muted uppercase">Solo en desarrollo</p>
       {DEV_USERS.map((u) => (
-        <button key={u.email} type="submit" name="email" value={u.email} className="btn btn-ghost justify-start border border-line">
+        <button key={u.email} type="submit" name="email" value={u.email} className="btn btn-secondary justify-start">
           Entrar como {u.label}
         </button>
       ))}

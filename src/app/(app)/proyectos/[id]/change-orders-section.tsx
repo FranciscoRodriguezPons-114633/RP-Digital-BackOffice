@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
+import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatHours, formatMoney } from "@/lib/format";
 import { CHANGE_ORDER_STATUS_LABEL, changeOrderCode, type ChangeOrderStatus } from "@/lib/validation";
 import { ChangeOrderForm, SendChangeOrderForm, VoidChangeOrderForm, type StageChoice } from "../../co-forms";
@@ -36,13 +37,13 @@ type ApprovalRow = {
   created_at: string;
 };
 
-const STATUS_STYLE: Record<ChangeOrderStatus, string> = {
-  draft: "border-line text-muted",
-  sent: "border-warn text-warn",
-  approved: "border-accent text-accent",
-  rejected: "border-danger text-danger",
-  billable: "border-accent text-accent",
-  void: "border-line text-muted line-through",
+const STATUS_TONE: Record<ChangeOrderStatus, PillTone> = {
+  draft: "neutral",
+  sent: "warn",
+  approved: "ok",
+  rejected: "danger",
+  billable: "ok",
+  void: "neutral",
 };
 
 const dateFmt = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeZone: "America/Argentina/Cordoba" });
@@ -138,21 +139,25 @@ export async function ChangeOrdersSection({
           {orders.map((o) => {
             const code = changeOrderCode(o.number);
             const editable = o.status === "draft" || o.status === "sent";
+            // Rechazada: se corrige (vuelve a borrador) y se reenvía con el mismo número.
+            const correctable = o.status === "rejected";
             const link = lastLink.get(o.id);
             const approval = lastApproval.get(o.id);
             const expired = o.status === "sent" && link !== undefined && isPast(link.expires_at);
             const summary = editable
               ? `${o.status === "sent" ? "Reenviar" : "Enviar"} o editar ${code}`
-              : `Anular ${code}`;
+              : correctable
+                ? `Corregir${isOwner ? " o anular" : ""} ${code}`
+                : `Anular ${code}`;
             return (
               <li key={o.id} className="flex flex-col gap-2 py-4 first:pt-0">
                 {/* En el teléfono el título va en su propia línea, debajo de número, estado y monto. */}
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="order-1 font-mono text-sm text-muted">{code}</span>
                   <span className="order-4 w-full min-w-0 font-medium sm:order-2 sm:w-auto sm:flex-1">{o.title}</span>
-                  <span className={`order-2 rounded-full border px-2 py-0.5 text-xs sm:order-4 ${STATUS_STYLE[o.status]}`}>
+                  <StatusPill tone={STATUS_TONE[o.status]} struck={o.status === "void"} className="order-2 self-center sm:order-4">
                     {CHANGE_ORDER_STATUS_LABEL[o.status]}
-                  </span>
+                  </StatusPill>
                   <span className="order-3 ml-auto font-mono whitespace-nowrap sm:ml-0">{formatMoney(o.amount, o.currency)}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
@@ -177,8 +182,14 @@ export async function ChangeOrdersSection({
                     {approval.comment && <>: «{approval.comment}»</>}
                   </p>
                 )}
+                {(o.status === "draft" || o.status === "sent") && approval?.decision === "rejected" && (
+                  <p className="text-xs text-muted">
+                    La versión anterior la rechazó {approval.signer_name} el {dateFmt.format(new Date(approval.created_at))}
+                    {approval.comment && <>: «{approval.comment}»</>}
+                  </p>
+                )}
                 {o.status === "void" && o.void_reason && <p className="text-xs text-muted">Motivo: {o.void_reason}</p>}
-                {(editable || (isOwner && o.status !== "void")) && (
+                {(editable || correctable || (isOwner && o.status !== "void")) && (
                   <details className="rounded-md border border-line">
                     <summary className="cursor-pointer px-4 py-2 text-sm">{summary}</summary>
                     <div className="flex flex-col gap-5 border-t border-line p-4">
@@ -192,13 +203,14 @@ export async function ChangeOrdersSection({
                           resend={o.status === "sent"}
                         />
                       )}
-                      {editable && (
-                        <div className="flex flex-col gap-3 border-t border-line pt-5">
-                          <h3 className="text-sm font-medium">Editar</h3>
+                      {(editable || correctable) && (
+                        <div className={`flex flex-col gap-3 ${editable ? "border-t border-line pt-5" : ""}`}>
+                          <h3 className="text-sm font-medium">{correctable ? "Corregir" : "Editar"}</h3>
                           <ChangeOrderForm
                             projectId={projectId}
                             stages={stages}
                             sent={o.status === "sent"}
+                            rejected={correctable}
                             order={{
                               id: o.id,
                               stage_id: o.stage_id,
@@ -212,7 +224,7 @@ export async function ChangeOrdersSection({
                         </div>
                       )}
                       {isOwner && (
-                        <div className={editable ? "border-t border-line pt-5" : ""}>
+                        <div className={editable || correctable ? "border-t border-line pt-5" : ""}>
                           <VoidChangeOrderForm projectId={projectId} orderId={o.id} />
                         </div>
                       )}

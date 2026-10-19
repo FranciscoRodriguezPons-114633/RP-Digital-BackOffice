@@ -22,7 +22,7 @@ export function OrganizationForm() {
 export function ProjectForm({ isOwner, projects = [] }: { isOwner: boolean; projects?: { id: string; name: string }[] }) {
   const { state, pending, formProps } = useActionForm(createProject);
   return (
-    <form {...formProps} className="grid gap-4 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end">
+    <form {...formProps} className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end">
       <label className="field">
         Nombre
         <input name="name" required minLength={2} maxLength={160} placeholder="Edificio Alba" className="input" />
@@ -37,10 +37,11 @@ export function ProjectForm({ isOwner, projects = [] }: { isOwner: boolean; proj
       </label>
       <SubmitButton pending={pending} pendingLabel="Creando…">Crear proyecto</SubmitButton>
       {isOwner && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:col-span-4">
-          <label className="flex items-center gap-2">
-            Arrancar con
-            <select name="setup" defaultValue="template" className="input py-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:col-span-4">
+          {/* En el teléfono el texto largo de la opción no debe ensanchar el formulario. */}
+          <label className="flex min-w-0 max-w-full items-center gap-2">
+            <span className="shrink-0">Arrancar con</span>
+            <select name="setup" defaultValue="template" className="input min-w-0 max-w-full py-1">
               <option value="template">las 4 etapas de honorarios (croquis, anteproyecto, documentación, dirección de obra)</option>
               {projects.map((p) => (
                 <option key={p.id} value={`copy:${p.id}`}>

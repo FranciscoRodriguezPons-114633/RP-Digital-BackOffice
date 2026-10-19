@@ -152,7 +152,7 @@ export function PublishRevisionButton({
   }
   return (
     <span className="inline-flex flex-col items-end gap-1">
-      <button type="button" onClick={publish} disabled={pending} className="btn btn-primary px-3 py-1 text-xs">
+      <button type="button" onClick={publish} disabled={pending} className="btn btn-primary btn-sm">
         {pending ? "Publicando…" : "Publicar"}
       </button>
       {state.message && !state.ok && <span className="text-xs text-danger">{state.message}</span>}

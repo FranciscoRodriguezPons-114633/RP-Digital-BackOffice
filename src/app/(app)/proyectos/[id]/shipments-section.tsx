@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
+import { StatusPill, type PillTone } from "@/components/status-pill";
 import { PIECE_KIND_LABEL, SHIPMENT_CHANNEL_LABEL, type PieceKind } from "@/lib/validation";
 import { ShipmentForm, type ShippableFile } from "../../shipment-forms";
 import { CommentThread, type CommentView } from "../../comment-thread";
@@ -39,13 +40,13 @@ const dateTimeFmt = new Intl.DateTimeFormat("es-AR", {
 });
 
 // ¿Lo que se mandó sigue siendo lo vigente?
-export function itemCurrency(item: ShipmentItem) {
+export function itemCurrency(item: ShipmentItem): { text: string; tone: PillTone } {
   const status = item.revisions?.status ?? item.dependencies?.status;
-  if (status === "superseded") return { text: "Ya no es la vigente", warn: true };
-  if (status === "to_review") return { text: "A revisar", warn: true };
-  if (status === "obsolete") return { text: "Obsoleta", warn: true };
-  if (status === "published" || status === "current" || status === "revalidated") return { text: "Vigente", warn: false };
-  return { text: "Borrador compartido", warn: false };
+  if (status === "superseded") return { text: "Ya no es la vigente", tone: "warn" };
+  if (status === "to_review") return { text: "A revisar", tone: "warn" };
+  if (status === "obsolete") return { text: "Obsoleta", tone: "danger" };
+  if (status === "published" || status === "current" || status === "revalidated") return { text: "Vigente", tone: "accent" };
+  return { text: "Borrador compartido", tone: "neutral" };
 }
 
 export function ItemLine({
@@ -65,7 +66,7 @@ export function ItemLine({
         <a href={`/archivos/${fileId}`} className="min-w-0 flex-1 underline">
           {item.label}
         </a>
-        <span className={`text-xs ${currency.warn ? "text-warn" : "text-muted"}`}>{currency.text}</span>
+        <StatusPill tone={currency.tone} className="self-center">{currency.text}</StatusPill>
       </div>
       <div className="flex flex-wrap gap-x-3 text-xs text-muted">
         <span className="font-mono" title={`SHA-256 ${item.sha256}`}>

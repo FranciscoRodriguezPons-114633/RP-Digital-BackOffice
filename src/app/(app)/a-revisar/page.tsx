@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CardSkeleton } from "@/components/skeleton";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -17,7 +18,7 @@ export default function ToReviewPage() {
           sirviendo con la revisión nueva o si quedó obsoleta.
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+      <Suspense fallback={<CardSkeleton lines={4} />}>
         <ToReview />
       </Suspense>
     </div>
