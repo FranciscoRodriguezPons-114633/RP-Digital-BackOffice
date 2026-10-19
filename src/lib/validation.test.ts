@@ -209,3 +209,19 @@ describe("vencimientos", () => {
     expect(deadlineSchema.safeParse({ ...base, due_date: "20/11/2026", notify_days: "5" }).success).toBe(false);
   });
 });
+
+import { nextRevisionCode, parsePlanFileName } from "./validation";
+
+describe("carga masiva de planos", () => {
+  it("saca código y título del nombre del archivo", () => {
+    expect(parsePlanFileName("A-101 Planta baja.pdf")).toEqual({ code: "A-101", title: "Planta baja" });
+    expect(parsePlanFileName("e201_Estructura_de_losas.PDF")).toEqual({ code: "E201", title: "Estructura de losas" });
+    expect(parsePlanFileName("A 302.jpg")).toEqual({ code: "A-302", title: "A-302" });
+    expect(parsePlanFileName("render final.png")).toEqual({ code: "RENDER FINAL", title: "render final" });
+  });
+  it("sugiere el código de la próxima revisión", () => {
+    expect(nextRevisionCode(null)).toBe("C01");
+    expect(nextRevisionCode("C09")).toBe("C10");
+    expect(nextRevisionCode("Rev")).toBeNull();
+  });
+});

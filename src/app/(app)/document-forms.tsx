@@ -11,7 +11,7 @@ import {
   REVISION_MIME_TYPES,
   type FormState,
 } from "@/lib/validation";
-import { createDocument, finishRevisionUpload, prepareRevisionUpload, publishRevision } from "./document-actions";
+import { createDocument, finishRevisionUpload, prepareBulkUpload, prepareRevisionUpload, publishRevision } from "./document-actions";
 
 export function DocumentForm({ projectId }: { projectId: string }) {
   const { state, pending, formProps } = useActionForm(createDocument.bind(null, projectId));
@@ -157,5 +157,83 @@ export function PublishRevisionButton({
       </button>
       {state.message && !state.ok && <span className="text-xs text-danger">{state.message}</span>}
     </span>
+  );
+}
+
+type BulkResult = { name: string; label?: string; ok: boolean; message: string };
+
+// Carga masiva: varios planos de una vez. El nombre del archivo dice a qué documento va
+// ("A-101 Planta baja.pdf"); si el documento no existe, se crea, y el archivo entra como
+// su próxima revisión. Opcionalmente quedan publicados como vigentes.
+export function BulkUploadForm({ projectId }: { projectId: string }) {
+  const { step, upload } = useDirectUpload();
+  const [results, setResults] = useState<BulkResult[]>([]);
+  const [current, setCurrent] = useState<string | null>(null);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const files = data.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+    const publish = data.get("publish") === "on";
+    setResults([]);
+    for (const file of files) {
+      setCurrent(file.name);
+      let label: string | undefined;
+      const ok = await upload(
+        file,
+        async (meta) => {
+          const prep = await prepareBulkUpload(projectId, meta);
+          label = prep.label;
+          return prep;
+        },
+        async (id) => {
+          const done = await finishRevisionUpload(projectId, id);
+          if (done.ok && publish) {
+            const published = await publishRevision(projectId, id);
+            if (!published.ok) return published;
+          }
+          return done;
+        },
+      );
+      setResults((r) => [
+        ...r,
+        { name: file.name, label, ok, message: ok ? (publish ? "subida y publicada" : "subida") : "no se pudo subir" },
+      ]);
+    }
+    setCurrent(null);
+    form.reset();
+  }
+
+  const busy = current !== null;
+  return (
+    <form onSubmit={onSubmit} className="grid grid-cols-1 gap-3">
+      <label className="field">
+        Planos (PDF o imágenes, hasta {formatBytes(MAX_REVISION_BYTES)} cada uno)
+        <input name="files" type="file" multiple required accept={REVISION_MIME_TYPES.join(",")} className="input w-full min-w-0" />
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="publish" defaultChecked className="size-4 accent-[var(--accent)]" />
+        Publicarlos como la revisión vigente
+      </label>
+      <p className="text-xs text-muted">
+        El nombre de cada archivo indica el documento: «A-101 Planta baja.pdf» va al A-101 (si no existe, se crea con
+        ese título) como su próxima revisión.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <SubmitButton pending={busy} pendingLabel={current ? `${step ? UPLOAD_STEP_LABEL[step] : "…"} ${current}` : undefined}>
+          Cargar planos
+        </SubmitButton>
+      </div>
+      {results.length > 0 && (
+        <ul className="flex flex-col gap-1 text-sm">
+          {results.map((r) => (
+            <li key={r.name} className={r.ok ? "text-ok" : "text-danger"}>
+              {r.label ?? r.name}: {r.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </form>
   );
 }

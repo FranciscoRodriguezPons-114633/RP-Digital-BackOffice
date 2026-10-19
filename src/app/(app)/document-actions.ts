@@ -5,7 +5,16 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
 import { hashStoredFile, signUpload } from "@/lib/storage";
-import { documentSchema, fieldErrors, idSchema, revisionUploadSchema, type FormState } from "@/lib/validation";
+import {
+  documentSchema,
+  fieldErrors,
+  fileMetaSchema,
+  idSchema,
+  nextRevisionCode,
+  parsePlanFileName,
+  revisionUploadSchema,
+  type FormState,
+} from "@/lib/validation";
 
 // Igual que en actions.ts: cada acción verifica la sesión; los permisos los aplica la base.
 
@@ -108,4 +117,42 @@ export async function discardRevision(projectId: string, revisionId: string): Pr
   const supabase = await createClient();
   await supabase.rpc("discard_revision", { p_id: revisionId });
   revalidatePath(`/proyectos/${projectId}`);
+}
+
+// Carga masiva: cada archivo ("A-101 Planta baja.pdf") va a su documento, que se crea si no
+// existe, como su próxima revisión (C01 si es nuevo).
+export async function prepareBulkUpload(
+  projectId: string,
+  input: { fileName: string; fileSize: number; mimeType: string },
+): Promise<PrepareResult & { label?: string }> {
+  await requireUser();
+  if (!idSchema.safeParse(projectId).success) return { ok: false, message: "Proyecto inválido." };
+  const meta = fileMetaSchema.safeParse(input);
+  if (!meta.success) return fieldErrors(meta.error);
+  const { code, title } = parsePlanFileName(meta.data.fileName);
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("documents")
+    .select("id, revisions(code, created_at)")
+    .eq("project_id", projectId)
+    .eq("code", code)
+    .order("created_at", { referencedTable: "revisions", ascending: false })
+    .maybeSingle();
+  let documentId = existing?.id as string | undefined;
+  if (!documentId) {
+    const { data, error } = await supabase.rpc("create_document", {
+      p_project_id: projectId,
+      p_code: code,
+      p_title: title,
+      p_discipline: "architecture",
+    });
+    if (error || typeof data !== "string") return { ok: false, message: dbErrorMessage(error) };
+    documentId = data;
+  }
+  const last = (existing?.revisions as { code: string }[] | undefined)?.[0]?.code;
+  const revisionCode = nextRevisionCode(last) ?? `C${String(Date.now()).slice(-4)}`;
+
+  const prep = await prepareRevisionUpload(documentId, { ...meta.data, code: revisionCode, notes: "" });
+  return { ...prep, label: `${code} ${revisionCode}` };
 }

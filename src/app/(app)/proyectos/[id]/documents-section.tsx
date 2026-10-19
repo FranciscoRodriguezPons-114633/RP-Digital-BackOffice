@@ -2,9 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
 import { SubmitButton } from "@/components/form";
 import { formatBytes } from "@/lib/format";
-import { DISCIPLINE_LABEL, REVISION_STATUS_LABEL, type Discipline, type RevisionStatus } from "@/lib/validation";
+import { DISCIPLINE_LABEL, REVISION_STATUS_LABEL, nextRevisionCode, type Discipline, type RevisionStatus } from "@/lib/validation";
 import { discardRevision } from "../../document-actions";
-import { DocumentForm, PublishRevisionButton, RevisionUploadForm } from "../../document-forms";
+import { BulkUploadForm, DocumentForm, PublishRevisionButton, RevisionUploadForm } from "../../document-forms";
 import { CommentThread } from "../../comment-thread";
 import { loadComments } from "./comments";
 
@@ -39,14 +39,6 @@ const STATUS_STYLE: Record<RevisionStatus, string> = {
 
 const dateFmt = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeZone: "America/Argentina/Cordoba" });
 
-// "C01" → "C02"; si no termina en número, no sugiere nada.
-function nextCode(codes: string[]) {
-  const last = codes[0];
-  const m = last?.match(/^(.*?)(\d+)$/);
-  if (!m) return last ? "" : "C01";
-  return `${m[1]}${String(Number(m[2]) + 1).padStart(m[2].length, "0")}`;
-}
-
 export async function DocumentsSection({ projectId }: { projectId: string }) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -78,6 +70,17 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
       >
         <div className="border-t border-line p-4">
           <DocumentForm projectId={projectId} />
+        </div>
+      </Disclosure>
+
+      <Disclosure
+        defaultOpen={false}
+        className="rounded-md border border-dashed border-line"
+        summary="Cargar varios planos de una vez"
+        summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
+      >
+        <div className="border-t border-line p-4">
+          <BulkUploadForm projectId={projectId} />
         </div>
       </Disclosure>
 
@@ -171,7 +174,7 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
                       <RevisionUploadForm
                         projectId={projectId}
                         documentId={d.id}
-                        suggestedCode={nextCode(d.revisions.map((r) => r.code))}
+                        suggestedCode={nextRevisionCode(d.revisions[0]?.code) ?? ""}
                       />
                     </div>
                   </div>

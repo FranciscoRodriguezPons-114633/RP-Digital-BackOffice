@@ -50,12 +50,26 @@ export async function createProject(_prev: FormState, formData: FormData): Promi
     .single();
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  if (org.role === "owner" && formData.get("template") === "on") {
+  // Cómo arranca: con la plantilla de 4 etapas, copiando otro proyecto o vacío.
+  const setup = String(formData.get("setup") ?? "template");
+  if (org.role === "owner" && setup === "template") {
     const currency = formData.get("currency") === "ARS" ? "ARS" : "USD";
     await supabase.rpc("apply_fee_template", { p_project_id: data.id, p_currency: currency });
+  } else if (org.role === "owner" && setup.startsWith("copy:") && idSchema.safeParse(setup.slice(5)).success) {
+    await supabase.rpc("copy_project_setup", { p_from: setup.slice(5), p_to: data.id });
   }
 
   redirect(`/proyectos/${data.id}`);
+}
+
+export async function createSampleProject(): Promise<void> {
+  await requireUser();
+  const org = await getCurrentOrg();
+  if (!org || org.role !== "owner") return;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_sample_project", { p_org_id: org.id });
+  if (error || typeof data !== "string") return;
+  redirect(`/proyectos/${data}`);
 }
 
 export async function inviteGuest(_prev: FormState, formData: FormData): Promise<FormState> {

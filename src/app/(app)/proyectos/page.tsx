@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { countGuestProjects, getCurrentOrg, requireUser } from "@/lib/dal";
 import { ProjectForm } from "../forms";
+import { createSampleProject } from "../actions";
+import { SubmitButton } from "@/components/form";
 
 export const metadata: Metadata = { title: "Proyectos" };
 
@@ -46,7 +48,10 @@ async function Projects() {
       {org && (
         <section className="card">
           <h2 className="mb-4 font-medium">Nuevo proyecto</h2>
-          <ProjectForm isOwner={org.role === "owner"} />
+          <ProjectForm
+            isOwner={org.role === "owner"}
+            projects={projects.filter((p) => p.status === "active").map((p) => ({ id: p.id, name: p.name }))}
+          />
         </section>
       )}
 
@@ -58,7 +63,22 @@ async function Projects() {
       )}
 
       {projects.length === 0 ? (
-        <p className="text-sm text-muted">Todavía no hay proyectos.</p>
+        org?.role === "owner" ? (
+          <section className="card flex flex-wrap items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-medium">¿Querés verlo con datos primero?</h2>
+              <p className="mt-1 text-sm text-muted">
+                Creamos un proyecto de ejemplo con etapas, planos, una orden de cambio y un vencimiento. Lo podés borrar
+                cuando quieras.
+              </p>
+            </div>
+            <form action={createSampleProject}>
+              <SubmitButton variant="ghost" pendingLabel="Creando…">Crear proyecto de ejemplo</SubmitButton>
+            </form>
+          </section>
+        ) : (
+          <p className="text-sm text-muted">Todavía no hay proyectos.</p>
+        )
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
           {projects.map((p) => (

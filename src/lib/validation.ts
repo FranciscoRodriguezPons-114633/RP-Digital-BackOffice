@@ -494,3 +494,27 @@ export const deadlineSchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
 });
+
+// ---------------------------------------------------------------------------
+// Puesta en marcha
+// ---------------------------------------------------------------------------
+
+// "A-101 Planta baja.pdf" → { code: "A-101", title: "Planta baja" }. Si el nombre no empieza
+// con un código, el código es el nombre entero (sin extensión).
+export function parsePlanFileName(fileName: string) {
+  const base = fileName.replace(/\.[A-Za-z0-9]{2,5}$/, "").replace(/[_]+/g, " ").trim();
+  const m = base.match(/^([A-Za-z]{1,4}[- ]?\d{1,4}[A-Za-z]?)(?:[\s-]+(.+))?$/);
+  if (m) {
+    const code = m[1].replace(" ", "-").toUpperCase();
+    return { code, title: (m[2] ?? "").trim() || code };
+  }
+  const code = base.slice(0, 40).toUpperCase() || "PLANO";
+  return { code, title: base.slice(0, 160) || code };
+}
+
+// "C01" → "C02"; sin revisiones, "C01"; si el último código no termina en número, null.
+export function nextRevisionCode(lastCode: string | null | undefined) {
+  if (!lastCode) return "C01";
+  const m = lastCode.match(/^(.*?)(\d+)$/);
+  return m ? `${m[1]}${String(Number(m[2]) + 1).padStart(m[2].length, "0")}` : null;
+}
