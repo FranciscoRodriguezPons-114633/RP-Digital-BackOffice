@@ -126,8 +126,9 @@ select is((select number from public.create_parametric_budget((select v from ids
 reset role;
 select is((select total from public.budget_totals where project_id = (select v from ids where k = 'p1') and number = 2),
   round((2450 + 180 * 0.4) * 1503 * 1.10 * 1.25, 2), 'Usa el factor y los coeficientes elegidos');
-select throws_ok($$ insert into public.budgets (org_id, project_id, number, level, currency, created_by)
-  select org_id, project_id, 2, 'by_item', 'USD', created_by from public.budgets
+select throws_ok($$ insert into public.budgets (org_id, project_id, number, level, currency, covered_m2, semicovered_m2,
+                                               semicovered_factor, created_by)
+  select org_id, project_id, 2, 'by_item', 'USD', 2450, 180, 0.5, created_by from public.budgets
   where project_id = (select v from ids where k = 'p1') limit 1 $$,
   '23505', null, 'La base no admite dos presupuestos con el mismo número en un proyecto');
 
