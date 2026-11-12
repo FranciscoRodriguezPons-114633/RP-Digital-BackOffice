@@ -64,10 +64,6 @@ const STATUS_TONE: Record<BudgetStatus, PillTone> = {
 
 const coefFmt = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 4 });
 
-function requestTime() {
-  return new Date();
-}
-
 async function Budgets({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { project, org } = await loadWorksProject(id);
@@ -134,7 +130,7 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
             work={work}
             typologyCoef={coefs.typology}
             qualityCoef={coefs.quality}
-            today={todayInCordoba(requestTime())}
+            today={todayInCordoba()}
           />
         </section>
       )}

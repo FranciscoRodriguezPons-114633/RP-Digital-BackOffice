@@ -56,7 +56,39 @@ export function SubmitButton({
 
 export function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
-  return <p className="-mt-2 text-sm text-danger">{errors[0]}</p>;
+  return (
+    <p role="alert" className="-mt-2 text-sm text-danger">
+      {errors[0]}
+    </p>
+  );
+}
+
+// Un campo con su error pegado abajo, para formularios largos: el error se lee al lado de lo
+// que hay que corregir, no al final del formulario. `children` es el control (input, select).
+export function Field({
+  label,
+  errors,
+  className = "",
+  children,
+}: {
+  label: ReactNode;
+  errors?: string[];
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <label className="field">
+        {label}
+        {children}
+      </label>
+      {errors?.length ? (
+        <p role="alert" className="text-sm text-danger">
+          {errors[0]}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 export function FormMessage({ state }: { state: FormState }) {

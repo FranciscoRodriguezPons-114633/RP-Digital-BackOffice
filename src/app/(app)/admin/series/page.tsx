@@ -18,8 +18,11 @@ type Series = {
   publisher: string;
   source_url: string | null;
   note: string | null;
+  months: number;
+  provisional_months: number;
+  last_period: string | null;
+  last_value: string | null;
 };
-type Value = { series_code: string; period: string; value: string; provisional: boolean };
 type Revision = {
   id: number;
   series_code: string;
@@ -67,16 +70,11 @@ async function SeriesAdmin() {
   const { data: isAdmin } = await supabase.rpc("am_platform_admin");
   if (isAdmin !== true) notFound();
 
-  const [{ data: seriesData }, { data: valueData }, { data: revisionData }] = await Promise.all([
+  const [{ data: seriesData }, { data: revisionData }] = await Promise.all([
     supabase
-      .from("reference_series")
-      .select("code, name, unit, publisher, source_url, note")
+      .from("reference_series_summary")
+      .select("code, name, unit, publisher, source_url, note, months, provisional_months, last_period, last_value")
       .order("position"),
-    supabase
-      .from("reference_values")
-      .select("series_code, period, value, provisional")
-      .order("period", { ascending: false })
-      .limit(2000),
     supabase
       .from("reference_value_revisions")
       .select("id, series_code, period, old_value, new_value, old_provisional, new_provisional, note, actor_email, created_at")
@@ -84,12 +82,8 @@ async function SeriesAdmin() {
       .limit(20),
   ]);
   const series = (seriesData ?? []) as Series[];
-  const values = (valueData ?? []) as Value[];
   const revisions = (revisionData ?? []) as Revision[];
   const names = new Map(series.map((s) => [s.code, s.name]));
-
-  const bySeries = new Map<string, Value[]>();
-  for (const v of values) bySeries.set(v.series_code, [...(bySeries.get(v.series_code) ?? []), v]);
 
   return (
     <>
@@ -102,9 +96,7 @@ async function SeriesAdmin() {
         <h2 className="font-medium">Series</h2>
         <ul className="flex flex-col divide-y divide-line">
           {series.map((s) => {
-            const list = bySeries.get(s.code) ?? [];
-            const last = list[0];
-            const provisional = list.filter((v) => v.provisional).length;
+            const provisional = s.provisional_months;
             return (
               <li key={s.code} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -116,12 +108,12 @@ async function SeriesAdmin() {
                     </StatusPill>
                   )}
                   <span className="ml-auto font-mono text-sm">
-                    {last ? `${formatIndexValue(last.value)} · ${formatPeriod(last.period)}` : "Sin valores"}
+                    {s.last_value !== null ? `${formatIndexValue(s.last_value)} · ${formatPeriod(s.last_period)}` : "Sin valores"}
                   </span>
                 </div>
                 <p className="text-xs text-muted">
                   {s.publisher}
-                  {s.note && ` · ${s.note}`} · {list.length} {list.length === 1 ? "mes" : "meses"}
+                  {s.note && ` · ${s.note}`} · {s.months} {s.months === 1 ? "mes" : "meses"}
                   {s.source_url && (
                     <>
                       {" · "}

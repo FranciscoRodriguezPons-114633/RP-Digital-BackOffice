@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { loadProjectGuests } from "./guests";
 import { Disclosure } from "@/components/disclosure";
 import { StatusPill, type PillTone } from "@/components/status-pill";
 import { PIECE_KIND_LABEL, SHIPMENT_CHANNEL_LABEL, type PieceKind } from "@/lib/validation";
@@ -93,9 +94,9 @@ export function ItemLine({
 
 export async function ShipmentsSection({ projectId }: { projectId: string }) {
   const supabase = await createClient();
-  const [{ data: shipmentData }, { data: guestData }, { data: revData }, { data: pieceData }] = await Promise.all([
+  const [{ data: shipmentData }, guests, { data: revData }, { data: pieceData }] = await Promise.all([
     supabase.from("shipments").select(SHIPMENT_SELECT).eq("project_id", projectId).order("created_at", { ascending: false }),
-    supabase.from("project_guests").select("email, kind").eq("project_id", projectId).order("created_at"),
+    loadProjectGuests(projectId),
     supabase
       .from("revisions")
       .select("id, code, status, documents(code, title)")
@@ -110,7 +111,6 @@ export async function ShipmentsSection({ projectId }: { projectId: string }) {
       .not("uploaded_at", "is", null),
   ]);
   const shipments = (shipmentData ?? []) as unknown as ShipmentRow[];
-  const guests = (guestData ?? []) as { email: string; kind: string }[];
   const revisions: ShippableFile[] = ((revData ?? []) as unknown as {
     id: string;
     code: string;
@@ -155,7 +155,12 @@ export async function ShipmentsSection({ projectId }: { projectId: string }) {
           summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
         >
           <div className="border-t border-line p-4">
-            <ShipmentForm projectId={projectId} guests={guests} revisions={revisions} pieces={pieces} />
+            <ShipmentForm
+              projectId={projectId}
+              guests={guests.map(({ email, kind }) => ({ email, kind }))}
+              revisions={revisions}
+              pieces={pieces}
+            />
           </div>
         </Disclosure>
       )}

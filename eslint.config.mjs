@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "test-results/**",
     "playwright-report/**",
+    // Worktrees de otras sesiones de Claude dentro del repo.
+    ".claude/**",
   ]),
 ]);
 

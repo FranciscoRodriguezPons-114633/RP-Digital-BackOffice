@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { loadProjectGuests } from "./guests";
 import { Disclosure } from "@/components/disclosure";
 import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatHours, formatMoney } from "@/lib/format";
@@ -71,7 +72,7 @@ export async function ChangeOrdersSection({
   defaultStageId?: string;
 }) {
   const supabase = await createClient();
-  const [{ data: orderData }, { data: stageData }, { data: linkData }, { data: approvalData }, { data: guestData }] =
+  const [{ data: orderData }, { data: stageData }, { data: linkData }, { data: approvalData }, guests] =
     await Promise.all([
       supabase
         .from("change_orders")
@@ -94,13 +95,12 @@ export async function ChangeOrdersSection({
         .select("change_order_id, decision, signer_name, signer_email, comment, created_at, change_orders!inner(project_id)")
         .eq("change_orders.project_id", projectId)
         .order("created_at"),
-      supabase.from("project_guests").select("email, kind").eq("project_id", projectId).order("created_at"),
+      loadProjectGuests(projectId),
     ]);
   const orders = (orderData ?? []) as unknown as OrderRow[];
   const stages = (stageData ?? []) as StageChoice[];
   const lastLink = lastByOrder((linkData ?? []) as unknown as LinkRow[]);
   const lastApproval = lastByOrder((approvalData ?? []) as unknown as ApprovalRow[]);
-  const guests = (guestData ?? []) as { email: string; kind: string }[];
   // Primero los clientes: son los que aprueban.
   const guestEmails = [...guests.filter((g) => g.kind === "client"), ...guests.filter((g) => g.kind !== "client")].map(
     (g) => g.email,

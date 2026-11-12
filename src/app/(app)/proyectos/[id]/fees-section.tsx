@@ -106,7 +106,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
       .eq("project_id", projectId)
       .order("position")
       .order("created_at"),
-    isOwner ? supabase.from("price_indices").select("name") : Promise.resolve({ data: [] as { name: string }[] }),
+    isOwner ? supabase.from("price_index_names").select("name").order("name") : Promise.resolve({ data: [] as { name: string }[] }),
   ]);
   const stages = (data ?? []) as unknown as StageSummary[];
   const indexNames = [...new Set((indexRows ?? []).map((r) => r.name))].sort((a, b) => a.localeCompare(b, "es"));
