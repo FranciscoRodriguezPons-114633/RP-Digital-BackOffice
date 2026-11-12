@@ -62,7 +62,13 @@ async function Supply({ params }: { params: Promise<{ id: string }> }) {
         <h1 className="text-2xl font-semibold">{supply.name}</h1>
         <p className="mt-1 text-sm text-muted">
           <span className="font-mono">{supply.code}</span> · {SUPPLY_KIND_LABEL[supply.kind]} ·{" "}
-          <span className="font-mono">{formatUnitPrice(supply.price, supply.currency)}</span> por {supply.unit}
+          {supply.price === null ? (
+            <span className="text-warn">sin precio</span>
+          ) : (
+            <>
+              <span className="font-mono">{formatUnitPrice(supply.price, supply.currency)}</span> por {supply.unit}
+            </>
+          )}
           {!supply.active && " · inactivo"}
         </p>
       </header>
@@ -83,7 +89,8 @@ async function Supply({ params }: { params: Promise<{ id: string }> }) {
           <h2 className="font-medium">Historial de precios</h2>
           <p className="mt-1 text-sm text-muted">Cada precio que tuvo el insumo. No se borra ni se edita.</p>
         </div>
-        <table className="w-full text-sm">
+        {prices.length === 0 && <p className="text-sm text-muted">Todavía no tiene precio: cargalo arriba.</p>}
+        <table className={`w-full text-sm ${prices.length === 0 ? "hidden" : ""}`}>
           <thead>
             <tr className="border-b border-line text-left text-muted">
               <th className="py-2 pr-4 font-medium">Fecha del precio</th>

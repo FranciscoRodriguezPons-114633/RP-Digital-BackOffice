@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type IconName = "projects" | "review" | "calendar" | "clock" | "chart" | "trend" | "team" | "plan" | "works" | "parties" | "supplies";
+type IconName = "projects" | "review" | "calendar" | "clock" | "chart" | "trend" | "team" | "plan" | "works" | "parties" | "supplies" | "analyses";
 
 type NavItem = { href: string; label: string; icon: IconName; count?: number };
 
@@ -45,6 +45,7 @@ export function SidebarNav({
                 title: "Obra",
                 items: [
                   { href: "/obras", label: "Obras", icon: "works" as const },
+                  { href: "/analisis-de-precios", label: "Análisis de precios", icon: "analyses" as const },
                   { href: "/insumos", label: "Insumos", icon: "supplies" as const },
                   { href: "/terceros", label: "Terceros", icon: "parties" as const },
                 ],
@@ -169,6 +170,7 @@ const PATHS: Record<IconName | "menu" | "close", string> = {
   works: "M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6",
   parties: "M4 4h16v16H4zM8 9h8M8 13h8M8 17h5",
   supplies: "M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8",
+  analyses: "M5 3h14v18H5zM9 8h6M9 12h2M13 12h2M9 16h2M13 16h2",
   plan: "M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM3 10h18",
   menu: "M4 7h16M4 12h16M4 17h16",
   close: "M6 6l12 12M18 6L6 18",

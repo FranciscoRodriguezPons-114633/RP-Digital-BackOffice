@@ -14,8 +14,9 @@ export type SupplyValues = {
   name: string;
   unit: string;
   currency: string;
-  price: string;
-  price_date: string;
+  // null = sin precio (por ejemplo, creado al importar un análisis del catálogo).
+  price: string | null;
+  price_date: string | null;
   supplier_party_id: string | null;
   reference_series_code: string | null;
   active: boolean;
@@ -99,7 +100,7 @@ export function SupplyForm({
       ) : (
         <>
           <Field label="Precio" errors={state.errors?.price} className="sm:col-span-2">
-            <input name="price" inputMode="decimal" required defaultValue={supply ? plain(supply.price) : ""} placeholder="9.500" className="input" />
+            <input name="price" inputMode="decimal" required defaultValue={supply?.price ? plain(supply.price) : ""} placeholder="9.500" className="input" />
           </Field>
           <Field label="Moneda" errors={state.errors?.currency} className="sm:col-span-2">
             <select name="currency" defaultValue={supply?.currency ?? "ARS"} className="input">
@@ -169,14 +170,10 @@ export function LaborSettingForm({ chargesPct, today }: { chargesPct: number | n
 // Importación en dos pasos con el mismo archivo: vista previa y confirmación.
 export function ImportSuppliesForm() {
   const { state, pending, formProps } = useActionForm<ImportState>(importSupplies, { resetOnSuccess: false });
-  // Si se elige otro archivo después de la vista previa, hay que volver a verla antes de importar.
-  const [previewed, setPreviewed] = useState<ImportState | null>(null);
-  const [fileChanged, setFileChanged] = useState(false);
-  if (state !== previewed) {
-    setPreviewed(state);
-    setFileChanged(false);
-  }
-  const preview = fileChanged ? undefined : state.preview;
+  // Si se elige otro archivo después de la vista previa, hay que volver a verla antes de importar:
+  // se anota para qué respuesta cambió el archivo, y vale hasta que llegue la respuesta siguiente.
+  const [changedFor, setChangedFor] = useState<ImportState | null>(null);
+  const preview = changedFor === state ? undefined : state.preview;
   const canConfirm = !!preview && preview.valid > 0 && !state.done;
 
   return (
@@ -187,7 +184,7 @@ export function ImportSuppliesForm() {
           type="file"
           required
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          onChange={() => setFileChanged(true)}
+          onChange={() => setChangedFor(state)}
           className="input"
         />
       </Field>
