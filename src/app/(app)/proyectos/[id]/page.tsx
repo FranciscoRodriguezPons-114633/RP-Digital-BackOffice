@@ -3,7 +3,7 @@ import { PageSkeleton } from "@/components/skeleton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrg, requireUser } from "@/lib/dal";
+import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { GUEST_KIND_LABEL, idSchema, type GuestKind } from "@/lib/validation";
 import { removeGuest } from "../../actions";
 import { GuestInviteForm } from "../../forms";
@@ -21,6 +21,7 @@ import { ItemLine, SHIPMENT_SELECT, ShipmentsSection, type ShipmentRow } from ".
 import { PIECE_SELECT, PieceRow, PiecesSection, type PieceRowData } from "./pieces-section";
 import { changeOrderCode } from "@/lib/validation";
 import { formatMoney } from "@/lib/format";
+import { ProjectTabs } from "./project-header";
 
 type Guest = {
   id: string;
@@ -95,6 +96,8 @@ async function Project({
           </div>
         )}
       </header>
+
+      {isMember && hasWorks(org) && <ProjectTabs projectId={project.id} active="summary" />}
 
       {isMember ? (
         <>

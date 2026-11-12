@@ -5,7 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 
 export type SessionUser = { id: string; email: string };
 export type Role = "owner" | "member";
-export type CurrentOrg = { id: string; name: string; role: Role };
+export type CurrentOrg = {
+  id: string;
+  name: string;
+  role: Role;
+  kind: "studio" | "builder";
+  // Funciones en prueba que habilita la plataforma (por ejemplo, "works": finanzas de obra).
+  features: string[];
+};
 
 // Capa de acceso a datos: un solo lugar donde se lee la sesión.
 // React `cache` evita repetir la lectura dentro del mismo render.
@@ -30,14 +37,24 @@ export const getCurrentOrg = cache(async (): Promise<CurrentOrg | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("memberships")
-    .select("role, org_id, created_at, organizations(name)")
+    .select("role, org_id, created_at, organizations(name, kind, beta_features)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   if (!data) return null;
-  const org = data.organizations as unknown as { name: string } | null;
-  return { id: data.org_id as string, name: org?.name ?? "", role: data.role as Role };
+  const org = data.organizations as unknown as {
+    name: string;
+    kind: CurrentOrg["kind"];
+    beta_features: string[] | null;
+  } | null;
+  return {
+    id: data.org_id as string,
+    name: org?.name ?? "",
+    role: data.role as Role,
+    kind: org?.kind ?? "studio",
+    features: org?.beta_features ?? [],
+  };
 });
 
 // Cantidad de proyectos donde la persona participa como invitado externo.
@@ -51,3 +68,7 @@ export const countGuestProjects = cache(async (): Promise<number> => {
     .eq("user_id", user.id);
   return count ?? 0;
 });
+
+export function hasWorks(org: CurrentOrg | null) {
+  return !!org?.features.includes("works");
+}

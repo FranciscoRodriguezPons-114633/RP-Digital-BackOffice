@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type IconName = "projects" | "review" | "calendar" | "clock" | "chart" | "trend" | "team" | "plan";
+type IconName = "projects" | "review" | "calendar" | "clock" | "chart" | "trend" | "team" | "plan" | "works";
 
 type NavItem = { href: string; label: string; icon: IconName; count?: number };
 
@@ -15,11 +15,14 @@ export function SidebarNav({
   email,
   isMember,
   toReview,
+  works = false,
 }: {
   orgName: string | null;
   email: string;
   isMember: boolean;
   toReview: number;
+  // Finanzas de obra habilitadas para la organización (funciones en prueba).
+  works?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -36,6 +39,7 @@ export function SidebarNav({
             { href: "/horas", label: "Horas", icon: "clock" },
           ],
         },
+        ...(works ? [{ title: "Obra", items: [{ href: "/obras", label: "Obras", icon: "works" as const }] }] : []),
         {
           title: "Finanzas",
           items: [
@@ -151,6 +155,7 @@ const PATHS: Record<IconName | "menu" | "close", string> = {
   chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
   trend: "M3 17l6-6 4 4 8-8M15 7h6v6",
   team: "M9 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5",
+  works: "M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6",
   plan: "M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM3 10h18",
   menu: "M4 7h16M4 12h16M4 17h16",
   close: "M6 6l12 12M18 6L6 18",

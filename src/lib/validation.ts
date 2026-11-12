@@ -545,3 +545,109 @@ export const billingRequestSchema = z.object({
   tax_id: z.string({ error: "Indicá el CUIT" }).trim().refine(isValidCuit, { error: "Ese CUIT no es válido" }),
   billing_email: emailSchema,
 });
+
+// ---------------------------------------------------------------------------
+// Obra y presupuesto paramétrico (Finanzas de obra)
+// ---------------------------------------------------------------------------
+
+export const ORG_KINDS = ["studio", "builder"] as const;
+export type OrgKind = (typeof ORG_KINDS)[number];
+export const ORG_KIND_LABEL: Record<OrgKind, string> = {
+  studio: "Estudio de arquitectura",
+  builder: "Constructora",
+};
+
+// Qué papel cumple la organización en la obra.
+export const WORK_ROLES = ["builder", "works_director", "administrator"] as const;
+export type WorkRole = (typeof WORK_ROLES)[number];
+export const WORK_ROLE_LABEL: Record<WorkRole, string> = {
+  builder: "Construimos la obra",
+  works_director: "Dirigimos la obra que construye otro",
+  administrator: "Administramos la obra por cuenta del comitente",
+};
+export const WORK_ROLE_SHORT: Record<WorkRole, string> = {
+  builder: "Constructora",
+  works_director: "Dirección de obra",
+  administrator: "Administración",
+};
+
+export const TYPOLOGIES = ["single_family", "multifamily", "commercial", "office", "industrial"] as const;
+export type Typology = (typeof TYPOLOGIES)[number];
+export const TYPOLOGY_LABEL: Record<Typology, string> = {
+  single_family: "Vivienda unifamiliar",
+  multifamily: "Edificio de viviendas",
+  commercial: "Local comercial",
+  office: "Oficinas",
+  industrial: "Nave industrial",
+};
+
+export const QUALITIES = ["economic", "standard", "high", "premium"] as const;
+export type Quality = (typeof QUALITIES)[number];
+export const QUALITY_LABEL: Record<Quality, string> = {
+  economic: "Económica",
+  standard: "Estándar",
+  high: "Alta",
+  premium: "Premium",
+};
+
+const optionalDate = z
+  .union([z.literal(""), z.iso.date({ error: "Fecha inválida" })])
+  .optional()
+  .transform((v) => (v ? v : null));
+
+export const workSchema = z
+  .object({
+    org_role: z.enum(WORK_ROLES, { error: "Elegí qué papel cumplen en la obra" }),
+    address: optionalText(200),
+    city: optionalText(120),
+    covered_m2: decimal("m² cubiertos", { max: 99999999 }).refine((v) => v !== null && v > 0, {
+      error: "Indicá los m² cubiertos",
+    }),
+    semicovered_m2: decimal("m² semicubiertos", { max: 99999999 }).transform((v) => v ?? 0),
+    typology: z.enum(TYPOLOGIES, { error: "Elegí la tipología" }),
+    quality: z.enum(QUALITIES, { error: "Elegí la calidad" }),
+    planned_start: optionalDate,
+    planned_end: optionalDate,
+    currency: z.enum(CURRENCIES, { error: "Elegí la moneda" }),
+  })
+  .refine((w) => !w.planned_start || !w.planned_end || w.planned_end >= w.planned_start, {
+    path: ["planned_end"],
+    error: "El fin previsto no puede ser anterior al inicio",
+  });
+
+const coefficient = (label: string) =>
+  decimal(label, { max: 10 }).refine((v) => v === null || v > 0, { error: `${label}: tiene que ser mayor que cero` });
+
+export const parametricBudgetSchema = z.object({
+  reference_cost_m2: decimal("Costo de referencia").refine((v) => v !== null && v > 0, {
+    error: "Indicá el costo de referencia por m²",
+  }),
+  reference_date: z.iso.date({ error: "Indicá la fecha del costo de referencia" }),
+  reference_source: z
+    .string({ error: "Indicá de dónde sale el costo" })
+    .trim()
+    .min(2, { error: "Indicá de dónde sale el costo" })
+    .max(200, { error: "Hasta 200 caracteres" }),
+  semicovered_factor: decimal("Factor de semicubiertos", { max: 1 }).transform((v) => v ?? 0.5),
+  typology_coef: coefficient("Coeficiente de tipología"),
+  quality_coef: coefficient("Coeficiente de calidad"),
+  notes: optionalText(2000),
+});
+
+export const BUDGET_STATUS_LABEL = {
+  draft: "Borrador",
+  sent: "Enviado",
+  approved: "Aprobado",
+  rejected: "Rechazado",
+  contractual: "Contractual",
+  superseded: "Reemplazado",
+  void: "Anulado",
+} as const;
+export type BudgetStatus = keyof typeof BUDGET_STATUS_LABEL;
+
+export const BUDGET_LEVEL_LABEL = {
+  parametric: "Paramétrico",
+  by_chapter: "Por rubro",
+  by_item: "Por ítem",
+} as const;
+export type BudgetLevel = keyof typeof BUDGET_LEVEL_LABEL;

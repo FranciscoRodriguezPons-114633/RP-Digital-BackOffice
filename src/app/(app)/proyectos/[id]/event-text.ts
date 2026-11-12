@@ -1,4 +1,5 @@
 import { changeOrderCode } from "@/lib/validation";
+import { formatMoney } from "@/lib/format";
 
 // Texto legible de cada evento del registro, para la actividad y el historial del proyecto.
 export type EventRow = {
@@ -59,6 +60,13 @@ export function eventText(e: EventRow) {
     const what = { "deadline.created": "agregó el vencimiento", "deadline.done": "marcó como hecho", "deadline.reopened": "reabrió" }[e.type];
     if (e.type === "deadline.alert") return `Aviso: «${String(e.data?.title ?? "")}» vence en ${String(e.data?.days_left ?? "")} días`;
     return `${e.actor_email ?? "Alguien"} ${what ?? e.type} «${String(e.data?.title ?? "")}»`;
+  }
+  if (e.type === "work.created" || e.type === "work.updated") {
+    return `${e.actor_email ?? "Alguien"} ${e.type === "work.created" ? "completó" : "modificó"} la ficha de obra`;
+  }
+  if (e.type === "budget.created") {
+    const total = e.data?.total ? ` por ${formatMoney(String(e.data.total), String(e.data?.currency ?? "USD"))}` : "";
+    return `${e.actor_email ?? "Alguien"} creó la estimación paramétrica V${String(e.data?.number ?? "")}${total}`;
   }
   if (e.type === "shipment.sent") {
     const items = Array.isArray(e.data?.items) ? e.data.items.length : 0;
