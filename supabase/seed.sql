@@ -141,3 +141,10 @@ insert into public.platform_admins (user_id) values ('a0000000-0000-4000-8000-00
 
 -- Los correos de estas invitaciones no hacen falta en local.
 update public.outbox set status = 'sent', sent_at = now() where to_email like '%@estudio.test';
+
+-- Serie de referencia de ejemplo (CAC general, enero a agosto). Son valores inventados, no los
+-- publicados: en la nube los carga la plataforma desde /admin/series.
+insert into public.reference_values (series_code, period, value, loaded_by)
+select 'cac_general', make_date(2026, m, 1), v, 'a0000000-0000-4000-8000-000000000001'
+from (values (1, 14120.5), (2, 14498.2), (3, 14870.9), (4, 15215.3), (5, 15540.8),
+             (6, 15902.1), (7, 16288.4), (8, 16655.0)) as t (m, v);

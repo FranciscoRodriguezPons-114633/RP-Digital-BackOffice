@@ -14,6 +14,7 @@ Estado:
 **Finanzas de obra** (en prueba: solo para organizaciones con `works` en `organizations.beta_features`, que carga la plataforma por SQL):
 
 - **Sprint 1** (ficha de obra y estimación paramétrica): la organización se marca como estudio o constructora en `/equipo` (solo el dueño). Cada proyecto tiene su ficha de obra en la pestaña «Obra»: qué papel cumple la organización (construye, dirige o administra), dirección, m² cubiertos y semicubiertos, tipología, calidad, fechas previstas y moneda; los invitados no la ven. En la pestaña «Presupuestos», la estimación paramétrica: (m² cubiertos + semicubiertos × factor) × costo de referencia por m² × coeficiente de tipología × coeficiente de calidad. Se guarda como una versión numerada con el costo de referencia, su fecha y su origen, y muestra el total y el costo por m². Los coeficientes son orientativos y se pueden cambiar en cada versión. `/obras` lista las obras con su última estimación.
+- **Sprint 2** (series de referencia y tipo de cambio): la plataforma carga una vez para todos los valores mensuales de CAC (general, materiales y mano de obra), ICC Córdoba, UOCRA por categoría (Zona A, provisoria) y FACPCE RT 6, pegándolos desde una planilla en `/admin/series`. Un valor puede quedar como provisorio; rectificarlo guarda el anterior. En `/indices`, el dueño adopta una serie con un nombre propio: el historial se copia a sus índices y cada valor nuevo o rectificado le llega solo, así que las etapas ajustadas por índice se actualizan sin cargar nada. Un índice adoptado no se edita a mano. También en `/indices`, el tipo de cambio por fecha y fuente (oficial, MEP, CCL, informal); los cálculos usan la última cotización anterior o igual a la fecha (`exchange_rate_at`).
 
 El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md). El de Finanzas de obra, en [`docs/plan-sprints-finanzas-de-obra.md`](docs/plan-sprints-finanzas-de-obra.md).
 
@@ -22,7 +23,7 @@ El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-m
 - **Next.js 16** (App Router, Server Actions, Cache Components) + Tailwind 4
 - **Supabase**: Postgres con RLS, Auth (enlace mágico), Edge Functions, Cron
 - **Resend** para correos, **Vercel** para la app
-- Pruebas: **pgTAP** (base), **Vitest** (lógica), CI en GitHub Actions
+- Pruebas: **pgTAP** (base), **Vitest** (lógica), **Playwright** (punta a punta), CI en GitHub Actions
 
 ## Arrancar en local
 
@@ -39,7 +40,7 @@ Los correos del enlace mágico en local llegan a Mailpit: <http://127.0.0.1:5432
 
 **Ingreso rápido en desarrollo:** con `npm run dev` y Supabase local, la pantalla de ingreso muestra botones para entrar como Ana (dueña), Beto (miembro) o el cliente invitado, sin correo. Los usuarios y un estudio de ejemplo salen de `supabase/seed.sql`, que se carga con `npx supabase db reset`. En producción esos botones no existen y la nube no recibe el seed.
 
-El seed habilita Finanzas de obra para el estudio de ejemplo y deja la ficha de obra de Edificio Alba. Si tu base local es anterior, aplicá la migración con `npx supabase migration up --local` y habilitala a mano: `update public.organizations set beta_features = '{works}' where name = 'Estudio Demo';`.
+El seed habilita Finanzas de obra para el estudio de ejemplo, deja la ficha de obra de Edificio Alba y carga valores inventados de la CAC general (enero a agosto) para probar la adopción de series. Si tu base local es anterior, aplicá la migración con `npx supabase migration up --local` y habilitala a mano: `update public.organizations set beta_features = '{works}' where name = 'Estudio Demo';`.
 
 El seed deja la orden OC-001 de Edificio Alba esperando al cliente, con un link fijo para probar la página de aprobación: <http://localhost:3000/aprobar/link-de-prueba-local-para-aprobar-la-oc-001>.
 
@@ -63,6 +64,9 @@ curl -X POST http://127.0.0.1:54321/functions/v1/process-outbox \
 | `npm run test:db` | Pruebas de la base con pgTAP (requiere `supabase start`) |
 | `npm run test:db:local` | Las mismas pruebas sobre un Postgres común, sin Docker (ver `scripts/db/`) |
 | `npm run db:reset` | Recrea la base local desde las migraciones |
+| `npm run test:e2e` | Pruebas punta a punta con Playwright (ver abajo) |
+
+Las pruebas punta a punta (`e2e/`) levantan `next dev` en el puerto 3100 y usan los botones de ingreso de desarrollo, así que necesitan Supabase local recién reseteado (`npx supabase db reset`): aprueban la OC-001, editan la OC-003 después de enviarla y completan la ficha de Casa Norte. Para volver a correrlas, reseteá la base. La primera vez: `npx playwright install chromium`. En CI corren en `main` y en los PR con la etiqueta `e2e`.
 
 ## Estructura
 
