@@ -9,6 +9,9 @@ insert into auth.users (id, email) values
   ('33333333-3333-3333-3333-333333333333', 'bruno@estudio-b.com'),   -- dueño B
   ('55555555-5555-5555-5555-555555555555', 'admin@plataforma.com');  -- plataforma
 insert into public.platform_admins (user_id) values ('55555555-5555-5555-5555-555555555555');
+-- La prueba parte de series vacías aunque la base tenga el seed (vuelve todo atrás al final).
+delete from public.reference_value_revisions;
+delete from public.reference_values;
 
 create temp table ids (k text primary key, v uuid);
 grant select, insert, update on ids to public;
