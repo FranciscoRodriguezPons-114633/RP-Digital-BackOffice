@@ -26,6 +26,20 @@ select gen_random_uuid(), u.id, u.id::text, 'email',
 from auth.users u
 where u.email like '%@estudio.test';
 
+-- Series de referencia de ejemplo: CAC general (enero a agosto) y escala UOCRA (septiembre y
+-- octubre). Son valores inventados, no los publicados: en la nube los carga la plataforma desde
+-- /admin/series.
+insert into public.reference_values (series_code, period, value, loaded_by)
+select 'cac_general', make_date(2026, m, 1), v, 'a0000000-0000-4000-8000-000000000001'
+from (values (1, 14120.5), (2, 14498.2), (3, 14870.9), (4, 15215.3), (5, 15540.8),
+             (6, 15902.1), (7, 16288.4), (8, 16655.0)) as t (m, v);
+insert into public.reference_values (series_code, period, value, provisional, loaded_by)
+select code, make_date(2026, m, 1), v, true, 'a0000000-0000-4000-8000-000000000001'
+from (values ('uocra_ayudante', 9, 3350.0), ('uocra_ayudante', 10, 3520.0),
+             ('uocra_medio_oficial', 9, 3640.0), ('uocra_medio_oficial', 10, 3820.0),
+             ('uocra_oficial', 9, 3950.0), ('uocra_oficial', 10, 4150.0),
+             ('uocra_oficial_especializado', 9, 4630.0), ('uocra_oficial_especializado', 10, 4860.0)) as t (code, m, v);
+
 -- ---------- Estudio de ejemplo, creado por Ana con las mismas funciones que usa la app ----------
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000001"}', false);
 
@@ -33,6 +47,7 @@ do $$
 declare
   v_ana constant uuid := 'a0000000-0000-4000-8000-000000000001';
   v_client uuid;
+  v_supplier uuid;
   v_org uuid;
   v_alba uuid;
   v_norte uuid;
@@ -136,6 +151,21 @@ begin
   -- Ficha de obra de Edificio Alba: el estudio dirige la obra que construye otro.
   perform public.upsert_work(v_alba, 'works_director', 'Av. Hipólito Yrigoyen 450', 'Córdoba',
                              2400, 180, 'multifamily', 'standard', '2027-03-01', '2028-09-30', 'USD', v_client);
+  -- Biblioteca de insumos de ejemplo (precios inventados): un proveedor, el coeficiente de cargas
+  -- y cuatro insumos; el oficial toma el precio de la escala UOCRA × (1 + cargas).
+  insert into public.parties (org_id, name, tax_id, roles, vat_condition, created_by)
+  values (v_org, 'Corralón del Centro', '30712345671', '{supplier}', 'registered', v_ana)
+  returning id into v_supplier;
+  insert into public.labor_settings (org_id, valid_from, charges_pct, created_by)
+  values (v_org, '2026-01-01', 62.5, v_ana);
+  perform public.upsert_supply(v_org, null, 'material', 'MAT-001', 'Cemento Portland x 50 kg', 'bolsa', 'ARS',
+                               9500, '2026-11-02', v_supplier);
+  perform public.upsert_supply(v_org, null, 'material', 'MAT-002', 'Hierro ADN 420 ø 12 mm', 'kg', 'USD',
+                               1.35, '2026-11-02', v_supplier);
+  perform public.upsert_supply(v_org, null, 'equipment', 'EQ-001', 'Hormigonera 130 l', 'día', 'ARS',
+                               18000, '2026-11-02');
+  perform public.upsert_supply(v_org, null, 'labor', 'MO-OFICIAL', 'Oficial albañil', 'h', 'ARS',
+                               null, null, null, 'uocra_oficial');
   -- Costo por hora de Ana (inventado), para ver la rentabilidad. Beto no tiene: la app avisa que falta.
   insert into public.member_costs (org_id, user_id, hourly_cost, currency, valid_from, created_by)
   values (v_org, v_ana, 25, 'USD', '2026-01-01', v_ana);
@@ -149,10 +179,3 @@ insert into public.platform_admins (user_id) values ('a0000000-0000-4000-8000-00
 
 -- Los correos de estas invitaciones no hacen falta en local.
 update public.outbox set status = 'sent', sent_at = now() where to_email like '%@estudio.test';
-
--- Serie de referencia de ejemplo (CAC general, enero a agosto). Son valores inventados, no los
--- publicados: en la nube los carga la plataforma desde /admin/series.
-insert into public.reference_values (series_code, period, value, loaded_by)
-select 'cac_general', make_date(2026, m, 1), v, 'a0000000-0000-4000-8000-000000000001'
-from (values (1, 14120.5), (2, 14498.2), (3, 14870.9), (4, 15215.3), (5, 15540.8),
-             (6, 15902.1), (7, 16288.4), (8, 16655.0)) as t (m, v);
