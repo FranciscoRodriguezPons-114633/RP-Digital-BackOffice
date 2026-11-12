@@ -10,6 +10,7 @@ import { GuestInviteForm } from "../../forms";
 import { SubmitButton } from "@/components/form";
 import { StatusPill } from "@/components/status-pill";
 import { FeesSection } from "./fees-section";
+import { ProfitabilitySection } from "./profitability-section";
 import { ChangeOrdersSection } from "./change-orders-section";
 import { DocumentsSection } from "./documents-section";
 import { eventText, type EventRow } from "./event-text";
@@ -103,6 +104,7 @@ async function Project({
         <>
           <ProjectDeadlines projectId={project.id} />
           <FeesSection projectId={project.id} isOwner={org?.role === "owner"} />
+          {org?.role === "owner" && hasWorks(org) && <ProfitabilitySection projectId={project.id} orgId={org.id} />}
           <ChangeOrdersSection projectId={project.id} isOwner={org?.role === "owner"} defaultStageId={ocStage} />
           <DocumentsSection projectId={project.id} />
           <PiecesSection projectId={project.id} />

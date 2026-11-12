@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatCuit,
+  partySchema,
   emailSchema,
   guestInviteSchema,
   memberInviteSchema,
@@ -238,5 +240,24 @@ describe("pase a pago", () => {
     const base = { plan: "estudio", billing_cycle: "monthly", billing_name: "Estudio A SRL", billing_email: "Pagos@A.com" };
     expect(billingRequestSchema.parse({ ...base, tax_id: "20-12345678-6" }).billing_email).toBe("pagos@a.com");
     expect(billingRequestSchema.safeParse({ ...base, tax_id: "20-12345678-0" }).success).toBe(false);
+  });
+});
+
+describe("CUIT", () => {
+  it.each(["20123456786", "20-12345678-6", "30-71234567-1", "27345678900", "30500000003"])("acepta %s", (c) => {
+    expect(isValidCuit(c)).toBe(true);
+  });
+  it.each(["20123456787", "2012345678", "201234567861", "ab-12345678-6", ""])("rechaza %s", (c) => {
+    expect(isValidCuit(c)).toBe(false);
+  });
+  it("formatea con guiones", () => {
+    expect(formatCuit("30712345671")).toBe("30-71234567-1");
+    expect(formatCuit(null)).toBe("—");
+  });
+  it("el esquema de terceros normaliza el CUIT y exige un rol", () => {
+    const ok = partySchema.safeParse({ name: "Hormigonera Sur", tax_id: "30-71234567-1", roles: ["supplier"] });
+    expect(ok.success && ok.data.tax_id).toBe("30712345671");
+    expect(partySchema.safeParse({ name: "Sin rol", roles: [] }).success).toBe(false);
+    expect(partySchema.safeParse({ name: "Mal CUIT", tax_id: "20-12345678-7", roles: ["client"] }).success).toBe(false);
   });
 });

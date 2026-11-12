@@ -35,6 +35,7 @@ export async function saveWork(projectId: string, _prev: FormState, formData: Fo
     planned_start: formData.get("planned_start") ?? undefined,
     planned_end: formData.get("planned_end") ?? undefined,
     currency: formData.get("currency"),
+    client_party_id: formData.get("client_party_id") ?? undefined,
   });
   if (!parsed.success) return fieldErrors(parsed.error);
 
@@ -52,7 +53,9 @@ export async function saveWork(projectId: string, _prev: FormState, formData: Fo
     p_planned_start: w.planned_start,
     p_planned_end: w.planned_end,
     p_currency: w.currency,
+    p_client_party_id: w.client_party_id,
   });
+  if (error?.code === "23514") return { ok: false, errors: { client_party_id: ["Elegí un comitente de la lista"] } };
   if (error) return { ok: false, message: dbErrorMessage(error) };
   revalidateWork(projectId);
   return { ok: true, message: "Ficha de obra guardada." };

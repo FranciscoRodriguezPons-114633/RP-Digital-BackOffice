@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrg, requireUser } from "@/lib/dal";
+import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { formatMoney, formatPeriod, sumAmounts } from "@/lib/format";
 import { changeOrderCode } from "@/lib/validation";
 
@@ -62,7 +62,9 @@ async function Recovered() {
   if (!org) redirect("/proyectos");
 
   const supabase = await createClient();
-  const [{ data: projectData }, { data: monthData }, { data: pendingData }] = await Promise.all([
+  // Rentabilidad: solo el dueño, con Finanzas de obra (a un miembro la vista le devuelve vacío).
+  const showProfit = org.role === "owner" && hasWorks(org);
+  const [{ data: projectData }, { data: monthData }, { data: pendingData }, { data: profitData }] = await Promise.all([
     supabase
       .from("change_order_recovery")
       .select("project_id, project_name, currency, approved_count, approved_amount, pending_count, pending_amount, draft_count, draft_amount, rejected_count")
@@ -77,7 +79,15 @@ async function Recovered() {
       .select("id, number, title, amount, currency, sent_at, project_id, projects(name)")
       .eq("status", "sent")
       .order("sent_at"),
+    showProfit
+      ? supabase.from("stage_profitability").select("project_id, currency, profit")
+      : Promise.resolve({ data: [] as { project_id: string; currency: string; profit: string }[] }),
   ]);
+  const profitByProject = new Map<string, string[]>();
+  for (const r of (profitData ?? []) as { project_id: string; currency: string; profit: string }[]) {
+    const key = `${r.project_id}|${r.currency}`;
+    profitByProject.set(key, [...(profitByProject.get(key) ?? []), r.profit]);
+  }
   const projects = (projectData ?? []) as ProjectRow[];
   const months = (monthData ?? []) as MonthRow[];
   const pending = (pendingData ?? []) as unknown as PendingRow[];
@@ -132,6 +142,7 @@ async function Recovered() {
                 <th className="py-2 pr-4 text-right font-medium">Esperando</th>
                 <th className="py-2 pr-4 text-right font-medium">Borradores</th>
                 <th className="py-2 text-right font-medium">Rechazadas</th>
+                {showProfit && <th className="py-2 pl-4 text-right font-medium">Rentabilidad</th>}
               </tr>
             </thead>
             <tbody>
@@ -146,6 +157,9 @@ async function Recovered() {
                   <AmountCell amount={p.pending_amount} count={p.pending_count} currency={p.currency} />
                   <AmountCell amount={p.draft_amount} count={p.draft_count} currency={p.currency} />
                   <td className="py-3 text-right font-mono text-muted">{p.rejected_count || "—"}</td>
+                  {showProfit && (
+                    <ProfitCell values={profitByProject.get(`${p.project_id}|${p.currency}`)} currency={p.currency} />
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -229,6 +243,16 @@ function AmountCell({ amount, count, currency }: { amount: string; count: number
           <div className="text-xs text-muted">{plural(count, "orden", "órdenes")}</div>
         </>
       )}
+    </td>
+  );
+}
+
+function ProfitCell({ values, currency }: { values?: string[]; currency: string }) {
+  if (!values?.length) return <td className="py-3 pl-4 text-right font-mono text-muted">—</td>;
+  const total = sumAmounts(values);
+  return (
+    <td className={`py-3 pl-4 text-right font-mono whitespace-nowrap ${total < 0 ? "text-danger" : ""}`}>
+      {formatMoney(total, currency)}
     </td>
   );
 }

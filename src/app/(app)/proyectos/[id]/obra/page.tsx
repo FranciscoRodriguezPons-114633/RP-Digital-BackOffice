@@ -22,14 +22,20 @@ export default function WorkPage({ params }: PageProps<"/proyectos/[id]/obra">) 
 }
 
 const WORK_SELECT =
-  "org_role, address, city, covered_m2, semicovered_m2, typology, quality, planned_start, planned_end, currency";
+  "org_role, address, city, covered_m2, semicovered_m2, typology, quality, planned_start, planned_end, currency, " +
+  "client_party_id";
 
 async function Work({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { project } = await loadWorksProject(id);
   const supabase = await createClient();
-  const { data } = await supabase.from("works").select(WORK_SELECT).eq("project_id", id).maybeSingle<WorkValues>();
+  const [{ data }, { data: clientData }] = await Promise.all([
+    supabase.from("works").select(WORK_SELECT).eq("project_id", id).maybeSingle<WorkValues>(),
+    supabase.from("parties").select("id, name").eq("org_id", project.org_id).contains("roles", ["client"]).order("name"),
+  ]);
   const work = data ?? null;
+  const clients = (clientData ?? []) as { id: string; name: string }[];
+  const clientName = clients.find((c) => c.id === work?.client_party_id)?.name;
 
   return (
     <>
@@ -53,6 +59,7 @@ async function Work({ params }: { params: Promise<{ id: string }> }) {
             <Fact label="Inicio previsto" value={formatDate(work.planned_start)} />
             <Fact label="Fin previsto" value={formatDate(work.planned_end)} />
             <Fact label="Moneda" value={work.currency} />
+            <Fact label="Comitente" value={clientName ?? "—"} />
           </dl>
         </section>
       )}
@@ -65,7 +72,7 @@ async function Work({ params }: { params: Promise<{ id: string }> }) {
             invitados del proyecto no la ven.
           </p>
         </div>
-        <WorkForm projectId={project.id} work={work} />
+        <WorkForm projectId={project.id} work={work} clients={clients} />
       </section>
     </>
   );

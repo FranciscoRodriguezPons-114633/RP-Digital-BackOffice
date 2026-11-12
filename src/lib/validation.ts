@@ -609,6 +609,10 @@ export const workSchema = z
     planned_start: optionalDate,
     planned_end: optionalDate,
     currency: z.enum(CURRENCIES, { error: "Elegí la moneda" }),
+    client_party_id: z
+      .union([z.literal(""), z.uuid()])
+      .optional()
+      .transform((v) => (v ? v : null)),
   })
   .refine((w) => !w.planned_start || !w.planned_end || w.planned_end >= w.planned_start, {
     path: ["planned_end"],
@@ -683,4 +687,85 @@ export const exchangeRateSchema = z.object({
   rate: decimal("Cotización", { max: MAX_INDEX_VALUE }).refine((v) => v !== null && v > 0, {
     error: "Indicá cuántos pesos vale un dólar",
   }),
+});
+
+// ---------------------------------------------------------------------------
+// Finanzas de obra · Costo interno y terceros
+// ---------------------------------------------------------------------------
+
+export const memberCostSchema = z.object({
+  user_id: z.uuid({ error: "Elegí a la persona" }),
+  hourly_cost: decimal("Costo por hora", { max: 9_999_999_999 }).refine((v) => v !== null && v > 0, {
+    error: "Indicá un costo por hora mayor que cero",
+  }),
+  currency: z.enum(CURRENCIES, { error: "Elegí la moneda" }),
+  valid_from: z.iso.date({ error: "Indicá desde cuándo vale" }),
+});
+
+export function normalizeCuit(input: string) {
+  return input.replace(/\D/g, "");
+}
+
+// "30712345671" → "30-71234567-1"
+export function formatCuit(cuit: string | null | undefined) {
+  if (!cuit) return "—";
+  const d = normalizeCuit(cuit);
+  return d.length === 11 ? `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}` : cuit;
+}
+
+export const PARTY_ROLES = ["client", "supplier", "subcontractor"] as const;
+export type PartyRole = (typeof PARTY_ROLES)[number];
+export const PARTY_ROLE_LABEL: Record<PartyRole, string> = {
+  client: "Comitente",
+  supplier: "Proveedor",
+  subcontractor: "Subcontratista",
+};
+
+export const VAT_CONDITIONS = ["registered", "monotax", "exempt", "final_consumer", "not_applicable"] as const;
+export type VatCondition = (typeof VAT_CONDITIONS)[number];
+export const VAT_CONDITION_LABEL: Record<VatCondition, string> = {
+  registered: "Responsable inscripto",
+  monotax: "Monotributo",
+  exempt: "Exento",
+  final_consumer: "Consumidor final",
+  not_applicable: "No alcanzado",
+};
+
+export const GROSS_INCOME_CONDITIONS = ["local", "multilateral", "exempt", "not_registered"] as const;
+export type GrossIncomeCondition = (typeof GROSS_INCOME_CONDITIONS)[number];
+export const GROSS_INCOME_CONDITION_LABEL: Record<GrossIncomeCondition, string> = {
+  local: "Contribuyente local",
+  multilateral: "Convenio multilateral",
+  exempt: "Exento",
+  not_registered: "No inscripto",
+};
+
+const optionalEnum = <T extends readonly [string, ...string[]]>(values: T) =>
+  z
+    .union([z.literal(""), z.enum(values)])
+    .optional()
+    .transform((v) => (v ? v : null));
+
+export const partySchema = z.object({
+  name: z
+    .string({ error: "Indicá el nombre o la razón social" })
+    .trim()
+    .min(2, { error: "Indicá el nombre o la razón social" })
+    .max(200, { error: "Hasta 200 caracteres" }),
+  tax_id: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? normalizeCuit(v) : null))
+    .refine((v) => v === null || isValidCuit(v), { error: "El CUIT no es válido: revisá los 11 números" }),
+  roles: z.array(z.enum(PARTY_ROLES)).min(1, { error: "Marcá al menos un rol" }),
+  vat_condition: optionalEnum(VAT_CONDITIONS),
+  gross_income_condition: optionalEnum(GROSS_INCOME_CONDITIONS),
+  email: z
+    .union([z.literal(""), z.email({ error: "Correo inválido" }).max(200)])
+    .optional()
+    .transform((v) => (v ? v.toLowerCase() : null)),
+  phone: optionalText(40),
+  address: optionalText(200),
+  notes: optionalText(2000),
 });

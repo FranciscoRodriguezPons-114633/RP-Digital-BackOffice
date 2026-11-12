@@ -32,6 +32,7 @@ export type WorkValues = {
   planned_start: string | null;
   planned_end: string | null;
   currency: string;
+  client_party_id?: string | null;
 };
 
 // Los números de la base ("2400.00") se muestran como los escribe la gente ("2400").
@@ -39,7 +40,16 @@ function plain(n: string | null | undefined) {
   return n === null || n === undefined ? "" : String(Number(n)).replace(".", ",");
 }
 
-export function WorkForm({ projectId, work }: { projectId: string; work: WorkValues | null }) {
+export function WorkForm({
+  projectId,
+  work,
+  clients = [],
+}: {
+  projectId: string;
+  work: WorkValues | null;
+  // Terceros con el rol de comitente.
+  clients?: { id: string; name: string }[];
+}) {
   const { state, pending, formProps } = useActionForm(saveWork.bind(null, projectId), { resetOnSuccess: false });
   return (
     <form {...formProps} className="grid grid-cols-1 gap-4 sm:grid-cols-6">
@@ -106,6 +116,18 @@ export function WorkForm({ projectId, work }: { projectId: string; work: WorkVal
         </select>
       </label>
 
+      <label className="field sm:col-span-6">
+        Comitente
+        <select name="client_party_id" defaultValue={work?.client_party_id ?? ""} className="input">
+          <option value="">{clients.length === 0 ? "Todavía no cargaste comitentes en Terceros" : "Sin elegir"}</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <label className="field sm:col-span-3">
         Inicio previsto
         <input name="planned_start" type="date" defaultValue={work?.planned_start ?? ""} className="input" />
@@ -120,6 +142,7 @@ export function WorkForm({ projectId, work }: { projectId: string; work: WorkVal
         <FieldError errors={state.errors?.semicovered_m2} />
         <FieldError errors={state.errors?.typology} />
         <FieldError errors={state.errors?.planned_end} />
+        <FieldError errors={state.errors?.client_party_id} />
       </div>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-6">
         <SubmitButton pending={pending} pendingLabel="Guardando…">

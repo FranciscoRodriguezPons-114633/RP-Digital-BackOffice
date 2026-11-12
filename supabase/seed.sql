@@ -32,6 +32,7 @@ select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-0000000
 do $$
 declare
   v_ana constant uuid := 'a0000000-0000-4000-8000-000000000001';
+  v_client uuid;
   v_org uuid;
   v_alba uuid;
   v_norte uuid;
@@ -128,9 +129,16 @@ begin
 
   -- Finanzas de obra en prueba para el estudio de ejemplo (en la nube lo habilita la plataforma).
   update public.organizations set beta_features = '{works}' where id = v_org;
+  -- El comitente de Edificio Alba, registrado como tercero (CUIT de ejemplo con dígito verificador válido).
+  insert into public.parties (org_id, name, tax_id, roles, vat_condition, gross_income_condition, created_by)
+  values (v_org, 'Desarrollos del Centro', '30500000003', '{client}', 'registered', 'local', v_ana)
+  returning id into v_client;
   -- Ficha de obra de Edificio Alba: el estudio dirige la obra que construye otro.
   perform public.upsert_work(v_alba, 'works_director', 'Av. Hipólito Yrigoyen 450', 'Córdoba',
-                             2400, 180, 'multifamily', 'standard', '2027-03-01', '2028-09-30', 'USD');
+                             2400, 180, 'multifamily', 'standard', '2027-03-01', '2028-09-30', 'USD', v_client);
+  -- Costo por hora de Ana (inventado), para ver la rentabilidad. Beto no tiene: la app avisa que falta.
+  insert into public.member_costs (org_id, user_id, hourly_cost, currency, valid_from, created_by)
+  values (v_org, v_ana, 25, 'USD', '2026-01-01', v_ana);
 end;
 $$;
 
