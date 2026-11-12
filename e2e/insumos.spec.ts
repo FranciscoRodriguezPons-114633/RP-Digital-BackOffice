@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { expect, test } from "@playwright/test";
-import { signInAs } from "./helpers";
+import { openDisclosure, signInAs, trackPageErrors } from "./helpers";
 
 // Arma en memoria una lista de precios como la plantilla, con una fila inválida.
 async function priceList(prefix: string) {
@@ -17,6 +17,7 @@ async function priceList(prefix: string) {
 test("el dueño importa una lista de precios desde Excel, con vista previa", async ({ page }) => {
   // Códigos distintos en cada corrida: la prueba no depende de lo que ya haya en la base.
   const prefix = `E${Date.now().toString(36).toUpperCase()}`;
+  const errors = trackPageErrors(page);
   await signInAs(page, "Ana");
   await page.goto("/insumos/importar");
 
@@ -40,15 +41,16 @@ test("el dueño importa una lista de precios desde Excel, con vista previa", asy
   await expect(page.getByRole("link", { name: "Cal hidráulica x 25 kg" })).toBeVisible();
   await expect(page.getByText("ARS 4.850,50")).toBeVisible();
   await expect(page.getByText("3 insumos", { exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
 });
 
 test("la mano de obra toma el precio de la escala UOCRA más las cargas", async ({ page }) => {
   const code = `MO${Date.now().toString(36).toUpperCase()}`;
+  const errors = trackPageErrors(page);
   await signInAs(page, "Ana");
   await page.goto("/insumos");
 
-  // El formulario arranca abierto solo cuando la biblioteca está vacía.
-  if (!(await page.getByLabel("Código", { exact: true }).isVisible())) await page.getByText("Nuevo insumo").click();
+  await openDisclosure(page, "Nuevo insumo");
   await page.getByRole("combobox", { name: "Tipo", exact: true }).selectOption({ label: "Mano de obra" });
   await page.getByLabel("Código", { exact: true }).fill(code);
   await page.getByLabel("Unidad", { exact: true }).fill("h");
@@ -61,4 +63,5 @@ test("la mano de obra toma el precio de la escala UOCRA más las cargas", async 
 
   await page.goto(`/insumos?q=${code}`);
   await expect(page.getByText("precio de la escala salarial")).toBeVisible();
+  expect(errors).toEqual([]);
 });

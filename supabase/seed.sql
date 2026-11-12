@@ -40,6 +40,38 @@ from (values ('uocra_ayudante', 9, 3350.0), ('uocra_ayudante', 10, 3520.0),
              ('uocra_oficial', 9, 3950.0), ('uocra_oficial', 10, 4150.0),
              ('uocra_oficial_especializado', 9, 4630.0), ('uocra_oficial_especializado', 10, 4860.0)) as t (code, m, v);
 
+-- Catálogo de análisis de precios de ejemplo. Los rendimientos son ilustrativos, sin validar:
+-- en la nube el catálogo lo carga la plataforma cuando esté curado.
+insert into public.catalog_unit_analyses (code, name, unit, chapter, default_waste_pct, note, position) values
+  ('MAM-H18', 'Mampostería de ladrillo hueco 18 cm', 'm2', 'Mampostería', 5, 'Ejemplo sin validar', 10),
+  ('MAM-H12', 'Mampostería de ladrillo hueco 12 cm', 'm2', 'Mampostería', 5, 'Ejemplo sin validar', 20),
+  ('REV-GRUESO', 'Revoque grueso a la cal', 'm2', 'Revoques', 8, 'Ejemplo sin validar', 30),
+  ('CONTRAPISO-8', 'Contrapiso de hormigón pobre de 8 cm', 'm2', 'Contrapisos y carpetas', 5, 'Ejemplo sin validar', 40);
+insert into public.catalog_components (analysis_code, supply_code, supply_name, supply_kind, supply_unit, yield, waste_pct, position) values
+  ('MAM-H18', 'LAD-H18', 'Ladrillo hueco 18x18x33', 'material', 'u', 15.5, 5, 1),
+  ('MAM-H18', 'CEM-PORT', 'Cemento Portland', 'material', 'kg', 4.2, 5, 2),
+  ('MAM-H18', 'CAL-HID', 'Cal hidráulica', 'material', 'kg', 5.5, 5, 3),
+  ('MAM-H18', 'ARENA', 'Arena fina', 'material', 'm3', 0.03, 10, 4),
+  ('MAM-H18', 'MO-OFICIAL', 'Oficial albañil', 'labor', 'h', 0.8, 0, 5),
+  ('MAM-H18', 'MO-AYUDANTE', 'Ayudante', 'labor', 'h', 0.6, 0, 6),
+  ('MAM-H12', 'LAD-H12', 'Ladrillo hueco 12x18x33', 'material', 'u', 15.5, 5, 1),
+  ('MAM-H12', 'CEM-PORT', 'Cemento Portland', 'material', 'kg', 3.1, 5, 2),
+  ('MAM-H12', 'CAL-HID', 'Cal hidráulica', 'material', 'kg', 4.0, 5, 3),
+  ('MAM-H12', 'ARENA', 'Arena fina', 'material', 'm3', 0.022, 10, 4),
+  ('MAM-H12', 'MO-OFICIAL', 'Oficial albañil', 'labor', 'h', 0.7, 0, 5),
+  ('MAM-H12', 'MO-AYUDANTE', 'Ayudante', 'labor', 'h', 0.5, 0, 6),
+  ('REV-GRUESO', 'CEM-PORT', 'Cemento Portland', 'material', 'kg', 2.0, 8, 1),
+  ('REV-GRUESO', 'CAL-HID', 'Cal hidráulica', 'material', 'kg', 4.5, 8, 2),
+  ('REV-GRUESO', 'ARENA', 'Arena fina', 'material', 'm3', 0.025, 10, 3),
+  ('REV-GRUESO', 'MO-OFICIAL', 'Oficial albañil', 'labor', 'h', 0.55, 0, 4),
+  ('REV-GRUESO', 'MO-AYUDANTE', 'Ayudante', 'labor', 'h', 0.3, 0, 5),
+  ('CONTRAPISO-8', 'CEM-PORT', 'Cemento Portland', 'material', 'kg', 9.0, 5, 1),
+  ('CONTRAPISO-8', 'ARENA', 'Arena fina', 'material', 'm3', 0.04, 10, 2),
+  ('CONTRAPISO-8', 'CASCOTE', 'Cascote de ladrillo', 'material', 'm3', 0.07, 10, 3),
+  ('CONTRAPISO-8', 'MO-OFICIAL', 'Oficial albañil', 'labor', 'h', 0.35, 0, 4),
+  ('CONTRAPISO-8', 'MO-AYUDANTE', 'Ayudante', 'labor', 'h', 0.5, 0, 5),
+  ('CONTRAPISO-8', 'EQ-HORMIGONERA', 'Hormigonera 130 l', 'equipment', 'día', 0.01, 0, 6);
+
 -- ---------- Estudio de ejemplo, creado por Ana con las mismas funciones que usa la app ----------
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000001"}', false);
 
@@ -158,11 +190,12 @@ begin
   returning id into v_supplier;
   insert into public.labor_settings (org_id, valid_from, charges_pct, created_by)
   values (v_org, '2026-01-01', 62.5, v_ana);
-  perform public.upsert_supply(v_org, null, 'material', 'MAT-001', 'Cemento Portland x 50 kg', 'bolsa', 'ARS',
-                               9500, '2026-11-02', v_supplier);
-  perform public.upsert_supply(v_org, null, 'material', 'MAT-002', 'Hierro ADN 420 ø 12 mm', 'kg', 'USD',
+  -- Los códigos coinciden con los del catálogo de ejemplo: al importar un análisis se emparejan.
+  perform public.upsert_supply(v_org, null, 'material', 'CEM-PORT', 'Cemento Portland', 'kg', 'ARS',
+                               190, '2026-11-02', v_supplier);
+  perform public.upsert_supply(v_org, null, 'material', 'HIE-ADN12', 'Hierro ADN 420 ø 12 mm', 'kg', 'USD',
                                1.35, '2026-11-02', v_supplier);
-  perform public.upsert_supply(v_org, null, 'equipment', 'EQ-001', 'Hormigonera 130 l', 'día', 'ARS',
+  perform public.upsert_supply(v_org, null, 'equipment', 'EQ-HORMIGONERA', 'Hormigonera 130 l', 'día', 'ARS',
                                18000, '2026-11-02');
   perform public.upsert_supply(v_org, null, 'labor', 'MO-OFICIAL', 'Oficial albañil', 'h', 'ARS',
                                null, null, null, 'uocra_oficial');

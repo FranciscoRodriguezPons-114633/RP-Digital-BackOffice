@@ -24,8 +24,8 @@ type Row = {
   name: string;
   unit: string;
   currency: string;
-  price: string;
-  price_date: string;
+  price: string | null;
+  price_date: string | null;
   reference_series_code: string | null;
   active: boolean;
   parties: { name: string } | null;
@@ -63,6 +63,7 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
   // La búsqueda va dentro de un filtro `or`: se sacan los caracteres que lo romperían.
   const q = (typeof query.q === "string" ? query.q : "").replace(/[,()%*\\"]/g, " ").trim().slice(0, 60);
   const kind = SUPPLY_KINDS.find((k) => k === query.tipo);
+  const unpricedOnly = query.sin_precio === "1";
 
   const supabase = await createClient();
   let list = supabase
@@ -75,11 +76,16 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
     .limit(PAGE_SIZE);
   if (kind) list = list.eq("kind", kind);
   if (q) list = list.or(`code.ilike.%${q}%,name.ilike.%${q}%`);
+  if (unpricedOnly) list = list.is("price", null);
 
-  const [{ data, count }, form] = await Promise.all([list, loadSupplyFormData(org.id)]);
+  const [{ data, count }, form, { count: unpriced }] = await Promise.all([
+    list,
+    loadSupplyFormData(org.id),
+    supabase.from("supplies").select("id", { count: "exact", head: true }).eq("org_id", org.id).is("price", null),
+  ]);
   const rows = (data ?? []) as unknown as Row[];
   const total = count ?? rows.length;
-  const filtered = !!q || !!kind;
+  const filtered = !!q || !!kind || unpricedOnly;
   const today = todayInCordoba();
   const href = (k?: SupplyKind) => {
     const params = new URLSearchParams();
@@ -128,6 +134,22 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
           ))}
         </nav>
 
+        {(unpriced ?? 0) > 0 && (
+          <p className="rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">
+            {unpriced === 1 ? "Hay un insumo sin precio" : `Hay ${unpriced} insumos sin precio`}: los análisis que los
+            usan no los suman.{" "}
+            {unpricedOnly ? (
+              <Link href="/insumos" className="underline">
+                Ver todos
+              </Link>
+            ) : (
+              <Link href="/insumos?sin_precio=1" className="underline">
+                Ver cuáles
+              </Link>
+            )}
+          </p>
+        )}
+
         {rows.length === 0 ? (
           <p className="text-sm text-muted">
             {filtered ? "No hay insumos que coincidan con la búsqueda." : "Todavía no hay insumos. Cargá el primero o importá una lista desde Excel."}
@@ -164,7 +186,9 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
                         </span>
                       </td>
                       <td className="py-2 pr-4">{s.unit}</td>
-                      <td className="py-2 pr-4 text-right font-mono whitespace-nowrap">{formatUnitPrice(s.price, s.currency)}</td>
+                      <td className="py-2 pr-4 text-right font-mono whitespace-nowrap">
+                        {s.price === null ? <span className="font-sans text-warn">Sin precio</span> : formatUnitPrice(s.price, s.currency)}
+                      </td>
                       <td className="py-2 whitespace-nowrap text-muted">{formatDate(s.price_date)}</td>
                     </tr>
                   ))}
