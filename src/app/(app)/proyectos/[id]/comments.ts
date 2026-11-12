@@ -31,7 +31,9 @@ export const loadComments = cache(async (projectId: string, isMember: boolean) =
       created_at: c.created_at,
       canResolve: isMember || c.author_id === user?.id,
     };
-    byFile.set(key, [...(byFile.get(key) ?? []), view]);
+    const list = byFile.get(key);
+    if (list) list.push(view);
+    else byFile.set(key, [view]);
   }
   return byFile;
 });

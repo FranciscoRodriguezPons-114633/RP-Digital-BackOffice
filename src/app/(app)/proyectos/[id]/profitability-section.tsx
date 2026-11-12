@@ -20,7 +20,7 @@ type Member = { user_id: string; email: string };
 // si las etapas cobran en dólares y los costos están en pesos, se ven las dos columnas.
 export async function ProfitabilitySection({ projectId, orgId }: { projectId: string; orgId: string }) {
   const supabase = await createClient();
-  const [{ data: rowData }, { data: missingData }, { data: memberData }] = await Promise.all([
+  const [{ data: rowData }, { data: missingData }] = await Promise.all([
     supabase
       .from("stage_profitability")
       .select("stage_id, stage_name, position, currency, income, cost, profit, hours_costed, hours_missing_cost")
@@ -28,11 +28,13 @@ export async function ProfitabilitySection({ projectId, orgId }: { projectId: st
       .order("position")
       .order("currency"),
     supabase.from("missing_member_costs").select("user_id, hours").eq("project_id", projectId),
-    supabase.rpc("list_org_members", { p_org_id: orgId }),
   ]);
   const rows = (rowData ?? []) as Row[];
   if (rows.length === 0) return null;
   const missing = (missingData ?? []) as Missing[];
+  // Los correos hacen falta solo para nombrar a quien no tiene costo cargado.
+  const { data: memberData } =
+    missing.length > 0 ? await supabase.rpc("list_org_members", { p_org_id: orgId }) : { data: [] };
   const emails = new Map(((memberData ?? []) as Member[]).map((m) => [m.user_id, m.email]));
 
   const currencies = [...new Set(rows.map((r) => r.currency))].sort();

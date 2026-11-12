@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadProjectGuests } from "./guests";
 import { createClient } from "@/lib/supabase/server";
 import { Disclosure } from "@/components/disclosure";
 import { StatusPill, type PillTone } from "@/components/status-pill";
@@ -150,17 +151,16 @@ const STATUS_ORDER: Record<PieceStatus, number> = { to_review: 0, current: 1, re
 
 export async function PiecesSection({ projectId }: { projectId: string }) {
   const supabase = await createClient();
-  const [{ data }, current, { data: guestData }, comments] = await Promise.all([
+  const [{ data }, current, guests, comments] = await Promise.all([
     supabase.from("dependencies").select(PIECE_SELECT).eq("project_id", projectId).order("created_at", { ascending: false }),
     currentRevisionByDocument([projectId]),
-    supabase.from("project_guests").select("email, kind").eq("project_id", projectId),
+    loadProjectGuests(projectId),
     loadComments(projectId, true),
   ]);
   const pieces = ((data ?? []) as unknown as PieceRowData[]).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
   const sources: SourceChoice[] = [...current.values()]
     .map((r) => ({ id: r.id, label: `${r.documents?.code ?? ""} ${r.code} · ${r.documents?.title ?? ""}` }))
     .sort((a, b) => a.label.localeCompare(b.label, "es"));
-  const guests = (guestData ?? []) as { email: string; kind: string }[];
   const emails = [...guests.filter((g) => g.kind === "renderer"), ...guests.filter((g) => g.kind !== "renderer")].map((g) => g.email);
 
   return (

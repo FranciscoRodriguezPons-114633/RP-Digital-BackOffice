@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { FieldError, FormMessage, SubmitButton, useActionForm } from "@/components/form";
+import { Field, FormMessage, SubmitButton, useActionForm } from "@/components/form";
 import {
   GROSS_INCOME_CONDITIONS,
   GROSS_INCOME_CONDITION_LABEL,
@@ -37,14 +37,12 @@ export function PartyForm({ party }: { party?: PartyValues }) {
   const prefix = party?.id ?? "new";
   return (
     <form {...formProps} className="grid gap-3 sm:grid-cols-6">
-      <label className="field sm:col-span-4">
-        Nombre o razón social
+      <Field label="Nombre o razón social" errors={state.errors?.name} className="sm:col-span-4">
         <input name="name" required minLength={2} maxLength={200} defaultValue={party?.name} placeholder="Hormigonera Sur SA" className="input" />
-      </label>
-      <label className="field sm:col-span-2">
-        CUIT (opcional)
+      </Field>
+      <Field label="CUIT (opcional)" errors={state.errors?.tax_id} className="sm:col-span-2">
         <input name="tax_id" inputMode="numeric" defaultValue={party?.tax_id ? formatCuit(party.tax_id) : ""} placeholder="30-71234567-1" className="input" />
-      </label>
+      </Field>
       <fieldset className="flex flex-wrap gap-x-5 gap-y-2 sm:col-span-6">
         <legend className="mb-1 text-sm font-medium">Rol</legend>
         {PARTY_ROLES.map((r) => (
@@ -53,6 +51,11 @@ export function PartyForm({ party }: { party?: PartyValues }) {
             {PARTY_ROLE_LABEL[r]}
           </label>
         ))}
+        {state.errors?.roles?.length ? (
+          <p role="alert" className="w-full text-sm text-danger">
+            {state.errors.roles[0]}
+          </p>
+        ) : null}
       </fieldset>
       <label className="field sm:col-span-3">
         Condición frente al IVA
@@ -76,10 +79,9 @@ export function PartyForm({ party }: { party?: PartyValues }) {
           ))}
         </select>
       </label>
-      <label className="field sm:col-span-3">
-        Correo
+      <Field label="Correo" errors={state.errors?.email} className="sm:col-span-3">
         <input name="email" type="email" maxLength={200} defaultValue={party?.email ?? ""} className="input" />
-      </label>
+      </Field>
       <label className="field sm:col-span-3">
         Teléfono
         <input name="phone" maxLength={40} defaultValue={party?.phone ?? ""} className="input" />
@@ -92,12 +94,6 @@ export function PartyForm({ party }: { party?: PartyValues }) {
         Notas
         <textarea name="notes" rows={2} maxLength={2000} defaultValue={party?.notes ?? ""} className="input" />
       </label>
-      <div className="flex flex-col gap-1 sm:col-span-6">
-        <FieldError errors={state.errors?.name} />
-        <FieldError errors={state.errors?.tax_id} />
-        <FieldError errors={state.errors?.roles} />
-        <FieldError errors={state.errors?.email} />
-      </div>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-6">
         <SubmitButton pending={pending} pendingLabel="Guardando…">
           {party ? "Guardar cambios" : "Registrar tercero"}

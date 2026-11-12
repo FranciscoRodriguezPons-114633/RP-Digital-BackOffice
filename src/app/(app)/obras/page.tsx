@@ -44,12 +44,10 @@ async function Works() {
       .from("works")
       .select("project_id, org_role, city, covered_m2, projects(name, code, status)")
       .order("created_at", { ascending: false }),
-    supabase.from("budget_totals").select("project_id, number, total, currency").order("number", { ascending: false }),
+    supabase.from("latest_budget_totals").select("project_id, number, total, currency"),
   ]);
   const rows = (works ?? []) as unknown as WorkRow[];
-  // La consulta viene ordenada por versión descendente: la primera de cada proyecto es la última.
-  const latest = new Map<string, TotalRow>();
-  for (const t of (totals ?? []) as TotalRow[]) if (!latest.has(t.project_id)) latest.set(t.project_id, t);
+  const latest = new Map(((totals ?? []) as TotalRow[]).map((t) => [t.project_id, t]));
 
   if (rows.length === 0) {
     return (

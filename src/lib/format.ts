@@ -32,7 +32,7 @@ export function formatHours(hours: number | string | null | undefined) {
 }
 
 // Fecha de hoy en Córdoba como YYYY-MM-DD (para el valor por defecto de un <input type="date">).
-export function todayInCordoba(now: Date) {
+export function todayInCordoba(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Cordoba" }).format(now);
 }
 

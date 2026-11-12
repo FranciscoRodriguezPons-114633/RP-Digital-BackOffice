@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
-import { GUEST_KIND_LABEL, idSchema, type GuestKind } from "@/lib/validation";
+import { GUEST_KIND_LABEL, idSchema } from "@/lib/validation";
 import { removeGuest } from "../../actions";
 import { GuestInviteForm } from "../../forms";
 import { SubmitButton } from "@/components/form";
@@ -23,14 +23,7 @@ import { PIECE_SELECT, PieceRow, PiecesSection, type PieceRowData } from "./piec
 import { changeOrderCode } from "@/lib/validation";
 import { formatMoney } from "@/lib/format";
 import { ProjectTabs } from "./project-header";
-
-type Guest = {
-  id: string;
-  email: string;
-  kind: GuestKind;
-  accepted_at: string | null;
-  created_at: string;
-};
+import { loadProjectGuests } from "./guests";
 
 const dateFmt = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "short",
@@ -266,13 +259,7 @@ async function ProjectDeadlines({ projectId }: { projectId: string }) {
 }
 
 async function Guests({ projectId }: { projectId: string }) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("project_guests")
-    .select("id, email, kind, accepted_at, created_at")
-    .eq("project_id", projectId)
-    .order("created_at");
-  const guests = (data ?? []) as Guest[];
+  const guests = await loadProjectGuests(projectId);
 
   return (
     <section className="card flex flex-col gap-6">

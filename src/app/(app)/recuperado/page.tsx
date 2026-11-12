@@ -23,6 +23,7 @@ type ProjectRow = {
   rejected_count: number;
 };
 
+type ProfitRow = { project_id: string; currency: string; profit: string };
 type MonthRow = { currency: string; month: string; approved_count: number; approved_amount: string };
 
 type PendingRow = {
@@ -80,14 +81,12 @@ async function Recovered() {
       .eq("status", "sent")
       .order("sent_at"),
     showProfit
-      ? supabase.from("stage_profitability").select("project_id, currency, profit")
-      : Promise.resolve({ data: [] as { project_id: string; currency: string; profit: string }[] }),
+      ? supabase.from("project_profitability").select("project_id, currency, profit")
+      : Promise.resolve({ data: [] as ProfitRow[] }),
   ]);
-  const profitByProject = new Map<string, string[]>();
-  for (const r of (profitData ?? []) as { project_id: string; currency: string; profit: string }[]) {
-    const key = `${r.project_id}|${r.currency}`;
-    profitByProject.set(key, [...(profitByProject.get(key) ?? []), r.profit]);
-  }
+  const profitByProject = new Map(
+    ((profitData ?? []) as ProfitRow[]).map((r) => [`${r.project_id}|${r.currency}`, r.profit]),
+  );
   const projects = (projectData ?? []) as ProjectRow[];
   const months = (monthData ?? []) as MonthRow[];
   const pending = (pendingData ?? []) as unknown as PendingRow[];
@@ -158,7 +157,7 @@ async function Recovered() {
                   <AmountCell amount={p.draft_amount} count={p.draft_count} currency={p.currency} />
                   <td className="py-3 text-right font-mono text-muted">{p.rejected_count || "—"}</td>
                   {showProfit && (
-                    <ProfitCell values={profitByProject.get(`${p.project_id}|${p.currency}`)} currency={p.currency} />
+                    <ProfitCell profit={profitByProject.get(`${p.project_id}|${p.currency}`)} currency={p.currency} />
                   )}
                 </tr>
               ))}
@@ -247,12 +246,11 @@ function AmountCell({ amount, count, currency }: { amount: string; count: number
   );
 }
 
-function ProfitCell({ values, currency }: { values?: string[]; currency: string }) {
-  if (!values?.length) return <td className="py-3 pl-4 text-right font-mono text-muted">—</td>;
-  const total = sumAmounts(values);
+function ProfitCell({ profit, currency }: { profit?: string; currency: string }) {
+  if (profit === undefined) return <td className="py-3 pl-4 text-right font-mono text-muted">—</td>;
   return (
-    <td className={`py-3 pl-4 text-right font-mono whitespace-nowrap ${total < 0 ? "text-danger" : ""}`}>
-      {formatMoney(total, currency)}
+    <td className={`py-3 pl-4 text-right font-mono whitespace-nowrap ${Number(profit) < 0 ? "text-danger" : ""}`}>
+      {formatMoney(profit, currency)}
     </td>
   );
 }

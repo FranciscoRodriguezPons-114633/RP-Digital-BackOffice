@@ -18,10 +18,6 @@ type Invitation = { id: string; email: string; role: "owner" | "member"; created
 
 const ROLE_LABEL = { owner: "Dueño", member: "Miembro" } as const;
 
-function requestTime() {
-  return new Date();
-}
-
 export default function TeamPage() {
   return (
     <div className="flex flex-col gap-8">
@@ -58,7 +54,7 @@ async function Team() {
   ]);
   const memberList = (members ?? []) as Member[];
   const costs = (costData ?? []) as MemberCost[];
-  const today = todayInCordoba(requestTime());
+  const today = todayInCordoba();
   const emailOf = new Map(memberList.map((m) => [m.user_id, m.email]));
   // Costo vigente hoy: el último con fecha de vigencia anterior o igual a hoy.
   const current = new Map<string, MemberCost>();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { FieldError, FormMessage, SubmitButton, useActionForm } from "@/components/form";
 import { formatIndexValue, formatPeriod } from "@/lib/format";
 import { parseSeriesPaste } from "@/lib/series";
@@ -15,7 +15,7 @@ export function SeriesPasteForm({ series }: { series: SeriesOption[] }) {
   // No se vacía al guardar: si algo salió mal, se corrige la fila y se vuelve a enviar.
   const { state, pending, formProps } = useActionForm(loadReferenceValues, { resetOnSuccess: false });
   const [text, setText] = useState("");
-  const { rows, errors } = parseSeriesPaste(text);
+  const { rows, errors } = useMemo(() => parseSeriesPaste(text), [text]);
 
   return (
     <form {...formProps} className="flex flex-col gap-4">
