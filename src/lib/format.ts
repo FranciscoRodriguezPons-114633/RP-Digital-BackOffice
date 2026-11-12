@@ -142,3 +142,25 @@ export function parametricEstimate(input: {
 function roundCents(n: number) {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
+
+const unitPriceFormatters = new Map<string, Intl.NumberFormat>();
+
+// Precio unitario de un insumo: como formatMoney, pero con cuatro decimales si el precio los
+// tiene ("USD 0,0125" por tornillo).
+export function formatUnitPrice(amount: number | string | null | undefined, currency: string) {
+  if (amount === null || amount === undefined || amount === "") return "—";
+  const n = Number(amount);
+  if (Math.round(n * 10000) % 100 === 0) return formatMoney(n, currency);
+  let f = unitPriceFormatters.get(currency);
+  if (!f) {
+    f = new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency,
+      currencyDisplay: "code",
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    });
+    unitPriceFormatters.set(currency, f);
+  }
+  return f.format(n);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDay, formatHours, formatMoney, todayInCordoba } from "./format";
+import { formatDay, formatHours, formatMoney, formatUnitPrice, todayInCordoba } from "./format";
 
 describe("formatMoney", () => {
   it("usa separadores argentinos y muestra la moneda", () => {
@@ -105,5 +105,14 @@ describe("formatDate", () => {
   it("muestra el año y no corre el día", () => {
     expect(formatDate("2027-03-01")).toBe("1 mar 2027");
     expect(formatDate(null)).toBe("—");
+  });
+});
+
+describe("formatUnitPrice", () => {
+  it("usa dos decimales o ninguno cuando alcanza, y cuatro si el precio los tiene", () => {
+    expect(formatUnitPrice("9500.0000", "ARS").replace(/\s/g, " ")).toBe("ARS 9.500");
+    expect(formatUnitPrice("12.5000", "USD").replace(/\s/g, " ")).toBe("USD 12,50");
+    expect(formatUnitPrice("0.0125", "USD").replace(/\s/g, " ")).toBe("USD 0,0125");
+    expect(formatUnitPrice(null, "USD")).toBe("—");
   });
 });
