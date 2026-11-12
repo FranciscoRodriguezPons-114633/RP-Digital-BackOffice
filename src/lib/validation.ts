@@ -651,3 +651,36 @@ export const BUDGET_LEVEL_LABEL = {
   by_item: "Por ítem",
 } as const;
 export type BudgetLevel = keyof typeof BUDGET_LEVEL_LABEL;
+
+// ---------------------------------------------------------------------------
+// Finanzas de obra · Series de referencia y tipo de cambio
+// ---------------------------------------------------------------------------
+
+export const seriesCodeSchema = z.string().regex(/^[a-z0-9_]{2,40}$/, { error: "Elegí una serie" });
+
+export const adoptSeriesSchema = z.object({
+  series_code: seriesCodeSchema,
+  local_name: indexName,
+  replace: z
+    .unknown()
+    .optional()
+    .transform((v) => v === "on" || v === "true"),
+});
+
+export const EXCHANGE_SOURCES = ["official", "mep", "ccl", "blue", "other"] as const;
+export type ExchangeSource = (typeof EXCHANGE_SOURCES)[number];
+export const EXCHANGE_SOURCE_LABEL: Record<ExchangeSource, string> = {
+  official: "Oficial (BNA vendedor)",
+  mep: "MEP",
+  ccl: "Contado con liquidación",
+  blue: "Informal",
+  other: "Otra",
+};
+
+export const exchangeRateSchema = z.object({
+  rate_date: z.iso.date({ error: "Indicá la fecha" }),
+  source: z.enum(EXCHANGE_SOURCES, { error: "Elegí la fuente" }),
+  rate: decimal("Cotización", { max: MAX_INDEX_VALUE }).refine((v) => v !== null && v > 0, {
+    error: "Indicá cuántos pesos vale un dólar",
+  }),
+});

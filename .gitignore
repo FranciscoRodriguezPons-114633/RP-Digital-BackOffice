@@ -48,3 +48,8 @@ next-env.d.ts
 
 # capturas que deja la app de Claude en la carpeta
 Claude outputs/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/

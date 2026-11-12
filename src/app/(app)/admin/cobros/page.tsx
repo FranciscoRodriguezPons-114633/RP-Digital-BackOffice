@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { ListSkeleton } from "@/components/skeleton";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -45,7 +46,10 @@ export default function BillingAdminPage() {
         <h1 className="text-2xl font-semibold">Cobros</h1>
         <p className="mt-1 text-sm text-muted">
           Pedidos de pase a pago de los estudios. Cuando llega la transferencia, confirmá el pago y el estudio queda en
-          su plan.
+          su plan.{" "}
+          <Link href="/admin/series" className="underline">
+            Ir a series de referencia
+          </Link>
         </p>
       </div>
       <Suspense fallback={<ListSkeleton rows={3} />}>

@@ -20,6 +20,9 @@ import {
 
 // ---------- Índices ----------
 
+const ADOPTED_MESSAGE =
+  "Ese índice viene de una serie de referencia y se actualiza solo. Para cargar uno propio, usá otro nombre.";
+
 export async function addIndexValue(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
   const org = await getCurrentOrg();
@@ -37,6 +40,7 @@ export async function addIndexValue(_prev: FormState, formData: FormData): Promi
     .from("price_indices")
     .insert({ ...parsed.data, org_id: org.id, created_by: user.id });
   if (error?.code === "23505") return correctIndexValue(org.id, parsed.data);
+  if (error?.code === "42501" && org.role === "owner") return { ok: false, message: ADOPTED_MESSAGE };
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
   revalidatePath("/indices");
@@ -62,6 +66,7 @@ async function correctIndexValue(
   if (Number(current.value) === value) return { ok: true, message: `${label} ya tenía ese valor.` };
 
   const { data, error } = await supabase.from("price_indices").update({ value }).eq("id", current.id).select("id");
+  if (error?.code === "42501") return { ok: false, message: ADOPTED_MESSAGE };
   if (error) return { ok: false, message: dbErrorMessage(error) };
   if (!data?.length) return { ok: false, message: "Solo el dueño del estudio puede corregir índices." };
 
