@@ -16,6 +16,7 @@ import {
   type Typology,
 } from "@/lib/validation";
 import { ParametricBudgetForm, type WorkValues } from "../../../work-forms";
+import { NewItemBudgetForm } from "../../../budget-forms";
 import { ProjectTabs, ProjectTitle, loadWorksProject } from "../project-header";
 
 export const metadata: Metadata = { title: "Presupuestos" };
@@ -39,18 +40,18 @@ type BudgetRow = {
   currency: string;
   covered_m2: string;
   semicovered_m2: string;
-  semicovered_factor: string;
+  semicovered_factor: string | null;
   typology: Typology;
-  typology_coef: string;
+  typology_coef: string | null;
   quality: Quality;
-  quality_coef: string;
-  reference_cost_m2: string;
-  reference_date: string;
-  reference_source: string;
+  quality_coef: string | null;
+  reference_cost_m2: string | null;
+  reference_date: string | null;
+  reference_source: string | null;
   notes: string | null;
   created_at: string;
 };
-type TotalRow = { budget_id: string; weighted_m2: string; total: string; cost_per_m2: string };
+type TotalRow = { budget_id: string; weighted_m2: string; total: string; cost_per_m2: string; items: number };
 
 const STATUS_TONE: Record<BudgetStatus, PillTone> = {
   draft: "neutral",
@@ -82,7 +83,7 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
       )
       .eq("project_id", id)
       .order("number", { ascending: false }),
-    supabase.from("budget_totals").select("budget_id, weighted_m2, total, cost_per_m2").eq("project_id", id),
+    supabase.from("budget_totals").select("budget_id, weighted_m2, total, cost_per_m2, items").eq("project_id", id),
   ]);
   const rows = (budgets ?? []) as unknown as BudgetRow[];
   const byId = new Map(((totals ?? []) as TotalRow[]).map((t) => [t.budget_id, t]));
@@ -135,6 +136,19 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
         </section>
       )}
 
+      {work && (
+        <section className="card flex flex-col gap-4">
+          <div>
+            <h2 className="font-medium">Nuevo presupuesto por rubros o por ítem</h2>
+            <p className="mt-1 text-sm text-muted">
+              Del orden de magnitud al presupuesto: rubros con sus ítems, valorizados con análisis de precios o con un
+              precio directo. Toma los m² y la moneda de la ficha.
+            </p>
+          </div>
+          <NewItemBudgetForm projectId={project.id} />
+        </section>
+      )}
+
       {rows.length > 0 && (
         <section className="card flex flex-col gap-4">
           <h2 className="font-medium">Versiones</h2>
@@ -145,7 +159,13 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
                 <li key={b.id} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span className="font-mono text-sm text-muted">V{b.number}</span>
-                    <span className="font-medium">{BUDGET_LEVEL_LABEL[b.level]}</span>
+                    {b.level === "parametric" ? (
+                      <span className="font-medium">{BUDGET_LEVEL_LABEL[b.level]}</span>
+                    ) : (
+                      <Link href={`/proyectos/${project.id}/presupuestos/${b.id}`} className="font-medium underline">
+                        {BUDGET_LEVEL_LABEL[b.level]}
+                      </Link>
+                    )}
                     <StatusPill tone={STATUS_TONE[b.status]} struck={b.status === "superseded" || b.status === "void"}>
                       {BUDGET_STATUS_LABEL[b.status]}
                     </StatusPill>
@@ -158,12 +178,18 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
                       {formatCostPerM2(t.cost_per_m2, b.currency)} · {formatArea(t.weighted_m2)} ponderados
                     </p>
                   )}
+                  {b.level !== "parametric" ? (
+                    <p className="text-xs text-muted">
+                      {t?.items ?? 0} {t?.items === 1 ? "ítem" : "ítems"} · creado el {formatDate(b.created_at)}
+                    </p>
+                  ) : (
                   <p className="text-xs text-muted">
                     Costo de referencia {formatCostPerM2(b.reference_cost_m2, b.currency)} al{" "}
                     {formatDate(b.reference_date)} ({b.reference_source}) · semicubiertos al{" "}
                     {coefFmt.format(Number(b.semicovered_factor) * 100)}% · tipología × {coefFmt.format(Number(b.typology_coef))} ·
                     calidad × {coefFmt.format(Number(b.quality_coef))}
                   </p>
+                  )}
                   {b.notes && <p className="text-sm">{b.notes}</p>}
                 </li>
               );
