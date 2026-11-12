@@ -7,17 +7,19 @@ import { formatArea, formatDate } from "@/lib/format";
 import { QUALITY_LABEL, TYPOLOGY_LABEL, WORK_ROLE_SHORT } from "@/lib/validation";
 import { WorkForm, type WorkValues } from "../../../work-forms";
 import { ProjectTabs, ProjectTitle, loadWorksProject } from "../project-header";
+import { PageTransition } from "@/components/motion/page-transition";
+import { reveal } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Obra" };
 
 export default function WorkPage({ params }: PageProps<"/proyectos/[id]/obra">) {
   return (
-    <div className="flex flex-col gap-8">
+    <PageTransition className="flex flex-col gap-8">
       <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
       <Suspense fallback={<PageSkeleton label="Cargando ficha de obra…" cards={1} list={false} />}>
         <Work params={params} />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -37,7 +39,7 @@ async function Work({ params }: { params: Promise<{ id: string }> }) {
       <ProjectTabs projectId={project.id} active="work" />
 
       {work && (
-        <section className="card flex flex-col gap-3">
+        <section className="card reveal flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline gap-3">
             <h2 className="font-medium">{WORK_ROLE_SHORT[work.org_role]}</h2>
             <span className="text-sm text-muted">{[work.address, work.city].filter(Boolean).join(", ")}</span>
@@ -57,7 +59,7 @@ async function Work({ params }: { params: Promise<{ id: string }> }) {
         </section>
       )}
 
-      <section className="card flex flex-col gap-4">
+      <section className="card reveal flex flex-col gap-4" style={reveal(work ? 1 : 0)}>
         <div>
           <h2 className="font-medium">{work ? "Editar la ficha" : "Ficha de obra"}</h2>
           <p className="mt-1 text-sm text-muted">

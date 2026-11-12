@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { idSchema } from "@/lib/validation";
+import { RevealTitle } from "@/components/motion/reveal-title";
+import { SameSection } from "@/components/motion/same-section";
+import { TabUnderline } from "@/components/motion/tab-underline";
 
 export type ProjectTab = "summary" | "work" | "budgets";
 
@@ -13,25 +16,30 @@ const TABS: { key: ProjectTab; label: string; path: string }[] = [
 ];
 
 // Pestañas del proyecto. Obra y Presupuestos son de Finanzas de obra: solo se ven si la
-// plataforma habilitó «works» para la organización.
+// plataforma habilitó «works» para la organización. El subrayado viaja entre pestañas.
 export function ProjectTabs({ projectId, active }: { projectId: string; active: ProjectTab }) {
   return (
-    <nav aria-label="Secciones del proyecto" className="-mt-4 flex gap-1 overflow-x-auto border-b border-line">
-      {TABS.map((t) => (
-        <Link
-          key={t.key}
-          href={`/proyectos/${projectId}${t.path}`}
-          aria-current={t.key === active ? "page" : undefined}
-          className={`-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-focus ${
-            t.key === active
-              ? "border-accent font-medium text-foreground"
-              : "border-transparent text-muted hover:text-foreground"
-          }`}
-        >
-          {t.label}
-        </Link>
-      ))}
-    </nav>
+    <SameSection prefix={`/proyectos/${projectId}`} className="-mt-4">
+      <nav aria-label="Secciones del proyecto" className="reveal-fade overflow-x-auto border-b border-line">
+        <div className="tabs-host relative flex w-max min-w-full gap-1">
+          {TABS.map((t) => (
+            <Link
+              key={t.key}
+              href={`/proyectos/${projectId}${t.path}`}
+              aria-current={t.key === active ? "page" : undefined}
+              className={`border-b-2 px-3 py-2 text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-focus ${
+                t.key === active
+                  ? "border-accent font-semibold text-foreground"
+                  : "border-transparent text-muted hover:text-foreground"
+              }`}
+            >
+              {t.label}
+            </Link>
+          ))}
+          <TabUnderline group={projectId} />
+        </div>
+      </nav>
+    </SameSection>
   );
 }
 
@@ -53,9 +61,9 @@ export async function loadWorksProject(id: string) {
 
 export function ProjectTitle({ project }: { project: WorksProject }) {
   return (
-    <header>
-      <h1 className="text-2xl font-semibold">{project.name}</h1>
-      <p className="mt-1 text-sm text-muted">{[project.code, project.client_name].filter(Boolean).join(" · ")}</p>
-    </header>
+    <SameSection as="header" prefix={`/proyectos/${project.id}`}>
+      <RevealTitle text={project.name} />
+      <p className="reveal-fade mt-1 text-sm text-muted">{[project.code, project.client_name].filter(Boolean).join(" · ")}</p>
+    </SameSection>
   );
 }

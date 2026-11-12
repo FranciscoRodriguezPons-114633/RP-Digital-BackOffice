@@ -17,17 +17,20 @@ import {
 } from "@/lib/validation";
 import { ParametricBudgetForm, type WorkValues } from "../../../work-forms";
 import { ProjectTabs, ProjectTitle, loadWorksProject } from "../project-header";
+import { CountUp } from "@/components/motion/count-up";
+import { PageTransition } from "@/components/motion/page-transition";
+import { reveal } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Presupuestos" };
 
 export default function BudgetsPage({ params }: PageProps<"/proyectos/[id]/presupuestos">) {
   return (
-    <div className="flex flex-col gap-8">
+    <PageTransition className="flex flex-col gap-8">
       <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
       <Suspense fallback={<PageSkeleton label="Cargando presupuestos…" cards={2} list={false} />}>
         <Budgets params={params} />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -109,7 +112,7 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
       <ProjectTabs projectId={project.id} active="budgets" />
 
       {!work ? (
-        <section className="card flex flex-col items-start gap-3">
+        <section className="card reveal flex flex-col items-start gap-3">
           <h2 className="font-medium">Primero, la ficha de obra</h2>
           <p className="text-sm text-muted">La estimación sale de los m², la tipología y la calidad de la obra.</p>
           <Link href={`/proyectos/${project.id}/obra`} className="btn btn-primary">
@@ -117,7 +120,7 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
           </Link>
         </section>
       ) : (
-        <section className="card flex flex-col gap-4">
+        <section className="card reveal flex flex-col gap-4">
           <div>
             <h2 className="font-medium">Nueva estimación paramétrica</h2>
             <p className="mt-1 text-sm text-muted">
@@ -140,7 +143,7 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
       )}
 
       {rows.length > 0 && (
-        <section className="card flex flex-col gap-4">
+        <section className="card reveal flex flex-col gap-4" style={reveal(1)}>
           <h2 className="font-medium">Versiones</h2>
           <ul className="flex flex-col divide-y divide-line">
             {rows.map((b) => {
@@ -154,12 +157,13 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
                       {BUDGET_STATUS_LABEL[b.status]}
                     </StatusPill>
                     <span className="ml-auto font-mono text-lg font-semibold whitespace-nowrap">
-                      {formatMoney(t?.total, b.currency)}
+                      {t ? <CountUp value={Number(t.total)} format="money" currency={b.currency} /> : formatMoney(null, b.currency)}
                     </span>
                   </div>
                   {t && (
                     <p className="font-mono text-sm text-muted">
-                      {formatCostPerM2(t.cost_per_m2, b.currency)} · {formatArea(t.weighted_m2)} ponderados
+                      {formatCostPerM2(t.cost_per_m2, b.currency)} · <CountUp value={Number(t.weighted_m2)} format="area" />{" "}
+                      ponderados
                     </p>
                   )}
                   <p className="text-xs text-muted">

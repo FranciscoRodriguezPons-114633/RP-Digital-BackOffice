@@ -5,22 +5,26 @@ import type { Metadata } from "next";
 import { PageSkeleton } from "@/components/skeleton";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
-import { formatArea, formatMoney } from "@/lib/format";
+import { formatArea } from "@/lib/format";
 import { WORK_ROLE_SHORT, type WorkRole } from "@/lib/validation";
+import { CountUp } from "@/components/motion/count-up";
+import { PageTransition } from "@/components/motion/page-transition";
+import { RevealTitle } from "@/components/motion/reveal-title";
+import { revealFrom } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Obras" };
 
 export default function WorksPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <PageTransition className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Obras</h1>
-        <p className="mt-1 text-sm text-muted">Los proyectos con ficha de obra y su última estimación de costo.</p>
+        <RevealTitle text="Obras" />
+        <p className="reveal-fade mt-1 text-sm text-muted">Los proyectos con ficha de obra y su última estimación de costo.</p>
       </div>
       <Suspense fallback={<PageSkeleton label="Cargando obras…" title={false} cards={0} />}>
         <Works />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -53,7 +57,7 @@ async function Works() {
 
   if (rows.length === 0) {
     return (
-      <section className="card flex flex-col items-start gap-3">
+      <section className="card reveal flex flex-col items-start gap-3">
         <h2 className="font-medium">Todavía no hay obras</h2>
         <p className="text-sm text-muted">Entrá a un proyecto, abrí la pestaña «Obra» y completá la ficha.</p>
         <Link href="/proyectos" className="btn btn-primary">Ir a proyectos</Link>
@@ -62,7 +66,7 @@ async function Works() {
   }
 
   return (
-    <ul className="card flex flex-col divide-y divide-line p-0">
+    <ul className="card reveal reveal-group flex flex-col divide-y divide-line p-0" style={revealFrom(1)}>
       {rows.map((w) => {
         const t = latest.get(w.project_id);
         return (
@@ -79,7 +83,7 @@ async function Works() {
               </span>
               <span className="font-mono text-sm text-muted">{formatArea(w.covered_m2)}</span>
               <span className="w-40 text-right font-mono whitespace-nowrap">
-                {t ? formatMoney(t.total, t.currency) : <span className="text-sm text-muted">Sin estimar</span>}
+                {t ? <CountUp value={Number(t.total)} format="money" currency={t.currency} /> : <span className="text-sm text-muted">Sin estimar</span>}
               </span>
             </Link>
           </li>

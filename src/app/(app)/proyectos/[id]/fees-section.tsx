@@ -5,6 +5,7 @@ import { STAGE_KIND_LABEL, type StageKind } from "@/lib/validation";
 import { applyFeeTemplate } from "../../fee-actions";
 import { DeleteStageButton, StageForm } from "../../fee-forms";
 import { SubmitButton } from "@/components/form";
+import { GrowBar } from "@/components/motion/grow-bar";
 
 type StageSummary = {
   id: string;
@@ -75,13 +76,10 @@ function ExtrasCell({ s }: { s: StageSummary }) {
   );
 }
 
-function HoursBar({ pct, tone, className }: { pct: number | null; tone: ReturnType<typeof hoursTone>; className: string }) {
+// Crece desde la izquierda cuando entra la tarjeta, de a una etapa (SPEC-animaciones §4.3).
+function HoursBar({ pct, tone, className, index }: { pct: number | null; tone: ReturnType<typeof hoursTone>; className: string; index: number }) {
   if (pct === null) return null;
-  return (
-    <div className={`h-1.5 overflow-hidden rounded-full bg-line ${className}`} aria-hidden="true">
-      <div className={`h-full ${tone.bar}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-    </div>
-  );
+  return <GrowBar pct={pct} index={index} className={className} fillClassName={tone.bar} />;
 }
 
 function OverBudgetLink({ s, pct }: { s: StageSummary; pct: number | null }) {
@@ -156,7 +154,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
         <>
           {/* Teléfono: una tarjeta por etapa */}
           <ul className="flex flex-col divide-y divide-line sm:hidden">
-            {stages.map((s) => {
+            {stages.map((s, i) => {
               const pct = s.budget_pct === null ? null : Number(s.budget_pct);
               const tone = hoursTone(pct);
               return (
@@ -186,7 +184,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                       {formatHours(s.hours_used)}
                       {s.budget_hours !== null && <span className="text-muted"> / {formatHours(s.budget_hours)}</span>}
                     </span>
-                    <HoursBar pct={pct} tone={tone} className="flex-1" />
+                    <HoursBar pct={pct} tone={tone} className="flex-1" index={i} />
                     {pct !== null && <span className={`text-xs ${tone.text}`}>{`${String(pct).replace(".", ",")}%`}</span>}
                   </div>
                   {tone.label && <span className={`text-xs ${tone.text}`}>{tone.label}</span>}
@@ -215,7 +213,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                 </tr>
               </thead>
               <tbody>
-                {stages.map((s) => {
+                {stages.map((s, i) => {
                   const pct = s.budget_pct === null ? null : Number(s.budget_pct);
                   const tone = hoursTone(pct);
                   return (
@@ -234,7 +232,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                           {formatHours(s.hours_used)}
                           {s.budget_hours !== null && <span className="text-muted"> / {formatHours(s.budget_hours)}</span>}
                         </div>
-                        <HoursBar pct={pct} tone={tone} className="mt-1.5 w-32" />
+                        <HoursBar pct={pct} tone={tone} className="mt-1.5 w-32" index={i} />
                       </td>
                       <td className={`py-3 text-xs ${tone.text}`}>
                         <div className="whitespace-nowrap">{pct !== null && `${String(pct).replace(".", ",")}%`}</div>

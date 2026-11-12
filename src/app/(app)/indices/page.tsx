@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { formatIndexValue, formatPeriod } from "@/lib/format";
 import { DeleteIndexValueForm, IndexValueForm } from "../co-forms";
+import { PageTransition } from "@/components/motion/page-transition";
+import { RevealTitle } from "@/components/motion/reveal-title";
+import { reveal, revealFrom } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Índices" };
 
@@ -15,10 +18,10 @@ const pctFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2, 
 
 export default function IndicesPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <PageTransition className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Índices</h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted">
+        <RevealTitle text="Índices" />
+        <p className="reveal-fade mt-1 max-w-2xl text-sm text-muted">
           Cargá el valor de cada mes del índice que usás para actualizar honorarios (por ejemplo, el costo de la
           construcción). Cada etapa vinculada se actualiza con el último valor dividido el de su mes base. Si
           un valor quedó mal, cargalo de nuevo para el mismo mes y se corrige.
@@ -27,7 +30,7 @@ export default function IndicesPage() {
       <Suspense fallback={<CardSkeleton label="Cargando índices…" lines={4} />}>
         <Indices />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -64,18 +67,18 @@ async function Indices() {
   return (
     <>
       {isOwner ? (
-        <section className="card">
+        <section className="card reveal">
           <h2 className="mb-4 font-medium">Cargar un valor</h2>
           <IndexValueForm names={names} />
         </section>
       ) : (
-        <p className="text-sm text-muted">Los valores los carga el dueño del estudio.</p>
+        <p className="reveal text-sm text-muted">Los valores los carga el dueño del estudio.</p>
       )}
 
       {names.length === 0 ? (
-        <p className="text-sm text-muted">Todavía no hay índices cargados.</p>
+        <p className="reveal text-sm text-muted" style={reveal(1)}>Todavía no hay índices cargados.</p>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="reveal-group grid gap-6 lg:grid-cols-2" style={revealFrom(1)}>
           {names.map((name) => {
             const list = byName.get(name)!;
             return (

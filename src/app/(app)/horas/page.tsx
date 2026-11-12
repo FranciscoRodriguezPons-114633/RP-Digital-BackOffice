@@ -10,6 +10,9 @@ import { idSchema } from "@/lib/validation";
 import { SubmitButton } from "@/components/form";
 import { deleteTimeEntry } from "../fee-actions";
 import { TimeEntryForm, type ProjectStages } from "../fee-forms";
+import { PageTransition } from "@/components/motion/page-transition";
+import { RevealTitle } from "@/components/motion/reveal-title";
+import { revealFrom } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Horas" };
 
@@ -25,12 +28,12 @@ type EntryRow = {
 
 export default function HoursPage({ searchParams }: PageProps<"/horas">) {
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Cargar horas</h1>
+    <PageTransition className="mx-auto flex w-full max-w-xl flex-col gap-8">
+      <RevealTitle text="Cargar horas" />
       <Suspense fallback={<CardSkeleton lines={4} />}>
         <Hours searchParams={searchParams} />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -64,7 +67,7 @@ async function Hours({ searchParams }: { searchParams: Promise<Record<string, st
 
   if (stages.length === 0) {
     return (
-      <div className="card text-sm">
+      <div className="card reveal text-sm">
         <p>Todavía no hay etapas para cargar horas.</p>
         <p className="mt-2 text-muted">
           El dueño del estudio las crea desde cada proyecto, en <Link href="/proyectos" className="underline">Proyectos</Link>.
@@ -95,11 +98,11 @@ async function Hours({ searchParams }: { searchParams: Promise<Record<string, st
 
   return (
     <>
-      <section className="card">
+      <section className="card reveal">
         <TimeEntryForm key={defaultStageId} groups={sortedGroups} defaultStageId={defaultStageId} today={today} />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="reveal-group flex flex-col gap-3" style={revealFrom(1)}>
         <div className="flex items-baseline gap-3">
           <h2 className="font-medium">Tus últimas dos semanas</h2>
           <span className="ml-auto font-mono text-sm">{formatHours(total)}</span>

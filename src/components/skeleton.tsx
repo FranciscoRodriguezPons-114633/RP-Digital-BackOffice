@@ -1,7 +1,9 @@
-import type { ReactNode } from "react";
+import { ViewTransition, type ReactNode } from "react";
 
 // Esqueletos de carga: muestran la forma del bloque que va a llegar, así la página no salta
-// cuando aparecen los datos. El texto oculto avisa a los lectores de pantalla.
+// cuando aparecen los datos. El texto oculto avisa a los lectores de pantalla. Cuando llega el
+// contenido, el esqueleto se funde en --dur-fast y el contenido entra con su propia animación
+// (SPEC-animaciones §5.6).
 
 export function Skeleton({ className = "" }: { className?: string }) {
   return <span aria-hidden="true" className={`skeleton ${className}`} />;
@@ -9,10 +11,12 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 function Loading({ label, className = "", children }: { label: string; className?: string; children: ReactNode }) {
   return (
-    <div role="status" className={className || undefined}>
-      <span className="sr-only">{label}</span>
-      {children}
-    </div>
+    <ViewTransition exit="skeleton-exit" default="none">
+      <div role="status" className={className || undefined}>
+        <span className="sr-only">{label}</span>
+        {children}
+      </div>
+    </ViewTransition>
   );
 }
 

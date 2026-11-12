@@ -9,6 +9,9 @@ import { ProjectForm } from "../forms";
 import { createSampleProject } from "../actions";
 import { SubmitButton } from "@/components/form";
 import { StatusPill } from "@/components/status-pill";
+import { PageTransition } from "@/components/motion/page-transition";
+import { RevealTitle } from "@/components/motion/reveal-title";
+import { reveal, revealFrom } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Proyectos" };
 
@@ -24,12 +27,12 @@ type ProjectRow = {
 
 export default function ProjectsPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Proyectos</h1>
+    <PageTransition className="flex flex-col gap-8">
+      <RevealTitle text="Proyectos" />
       <Suspense fallback={<PageSkeleton label="Cargando proyectos…" title={false} />}>
         <Projects />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -48,7 +51,7 @@ async function Projects() {
   return (
     <>
       {org && (
-        <section className="card">
+        <section className="card reveal" style={reveal(0)}>
           <h2 className="mb-4 font-medium">Nuevo proyecto</h2>
           <ProjectForm
             isOwner={org.role === "owner"}
@@ -58,7 +61,7 @@ async function Projects() {
       )}
 
       {!org && (
-        <p className="text-sm text-muted">
+        <p className="reveal text-sm text-muted" style={reveal(0)}>
           Estos son los proyectos a los que te invitaron. Si querés gestionar los tuyos,{" "}
           <Link href="/onboarding" className="underline">creá tu estudio</Link>.
         </p>
@@ -66,7 +69,7 @@ async function Projects() {
 
       {projects.length === 0 ? (
         org?.role === "owner" ? (
-          <section className="card flex flex-wrap items-center gap-4">
+          <section className="card reveal flex flex-wrap items-center gap-4" style={reveal(1)}>
             <div className="min-w-0 flex-1">
               <h2 className="font-medium">¿Querés verlo con datos primero?</h2>
               <p className="mt-1 text-sm text-muted">
@@ -79,10 +82,10 @@ async function Projects() {
             </form>
           </section>
         ) : (
-          <p className="text-sm text-muted">Todavía no hay proyectos.</p>
+          <p className="reveal text-sm text-muted" style={reveal(1)}>Todavía no hay proyectos.</p>
         )
       ) : (
-        <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
+        <ul className="reveal-group divide-y divide-line rounded-xl border border-line bg-surface" style={revealFrom(1)}>
           {projects.map((p) => (
             <li key={p.id}>
               <Link href={`/proyectos/${p.id}`} className="flex items-center gap-4 px-4 py-3 hover:bg-hover">

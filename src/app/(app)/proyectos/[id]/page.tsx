@@ -22,6 +22,9 @@ import { PIECE_SELECT, PieceRow, PiecesSection, type PieceRowData } from "./piec
 import { changeOrderCode } from "@/lib/validation";
 import { formatMoney } from "@/lib/format";
 import { ProjectTabs } from "./project-header";
+import { PageTransition } from "@/components/motion/page-transition";
+import { RevealTitle } from "@/components/motion/reveal-title";
+import { SameSection } from "@/components/motion/same-section";
 
 type Guest = {
   id: string;
@@ -39,12 +42,12 @@ const dateFmt = new Intl.DateTimeFormat("es-AR", {
 
 export default function ProjectPage({ params, searchParams }: PageProps<"/proyectos/[id]">) {
   return (
-    <div className="flex flex-col gap-8">
+    <PageTransition className="flex flex-col gap-8">
       <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
       <Suspense fallback={<PageSkeleton label="Cargando proyecto…" cards={3} list={false} />}>
         <Project params={params} searchParams={searchParams} />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -77,15 +80,15 @@ async function Project({
 
   return (
     <>
-      <header className="flex flex-wrap items-start gap-3">
+      <SameSection as="header" prefix={`/proyectos/${project.id}`} className="flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold">{project.name}</h1>
-          <p className="mt-1 text-sm text-muted">
+          <RevealTitle text={project.name} />
+          <p className="reveal-fade mt-1 text-sm text-muted">
             {[project.code, project.client_name, !isMember && orgName].filter(Boolean).join(" · ")}
           </p>
         </div>
         {isMember && (
-          <div className="flex flex-wrap gap-2">
+          <div className="reveal-fade flex flex-wrap gap-2">
             <Link href={`/proyectos/${project.id}/historial`} className="btn btn-secondary">
               Historial
             </Link>
@@ -95,12 +98,13 @@ async function Project({
             </a>
           </div>
         )}
-      </header>
+      </SameSection>
 
       {isMember && hasWorks(org) && <ProjectTabs projectId={project.id} active="summary" />}
 
+      {/* Las secciones entran de a una, de arriba abajo (SPEC-animaciones §2.2). */}
       {isMember ? (
-        <>
+        <div className="reveal-group flex flex-col gap-8">
           <ProjectDeadlines projectId={project.id} />
           <FeesSection projectId={project.id} isOwner={org?.role === "owner"} />
           <ChangeOrdersSection projectId={project.id} isOwner={org?.role === "owner"} defaultStageId={ocStage} />
@@ -109,9 +113,9 @@ async function Project({
           <ShipmentsSection projectId={project.id} />
           <Guests projectId={project.id} />
           <Activity projectId={project.id} />
-        </>
+        </div>
       ) : (
-        <>
+        <div className="reveal-group flex flex-col gap-8">
           <section className="card">
             <h2 className="font-medium">Tu acceso</h2>
             <p className="mt-2 text-sm text-muted">
@@ -122,7 +126,7 @@ async function Project({
           <GuestShipments projectId={project.id} />
           <GuestChangeOrders projectId={project.id} />
           <GuestPieces projectId={project.id} />
-        </>
+        </div>
       )}
     </>
   );

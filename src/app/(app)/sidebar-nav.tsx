@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NavPill } from "@/components/motion/nav-pill";
+import { useRememberPath } from "@/components/motion/same-section";
 
 type IconName = "projects" | "review" | "calendar" | "clock" | "chart" | "trend" | "team" | "plan" | "works";
 
@@ -26,6 +28,7 @@ export function SidebarNav({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  useRememberPath(pathname);
 
   // Los invitados externos no tienen estudio: solo ven sus proyectos.
   const groups: { title: string; items: NavItem[] }[] = isMember
@@ -76,39 +79,43 @@ export function SidebarNav({
       </div>
 
       <div id="app-nav" className={`${open ? "flex" : "hidden"} min-h-0 flex-1 flex-col md:flex`}>
-        <nav aria-label="Principal" className="flex flex-col gap-5 overflow-y-auto px-3 pb-4">
-          {groups.map((g) => (
-            <div key={g.title} className="flex flex-col gap-0.5">
-              <span className="px-2.5 pb-1.5 text-[11px] font-semibold tracking-wider text-muted uppercase">{g.title}</span>
-              {g.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => setOpen(false)}
-                    className={`flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-focus ${
-                      active
-                        ? "bg-surface font-medium text-foreground shadow-[0_1px_0_var(--line)]"
-                        : "text-subtle hover:bg-surface/60 hover:text-foreground"
-                    }`}
-                  >
-                    <span className={active ? "text-accent" : "text-muted"}>
-                      <Icon name={item.icon} />
-                    </span>
-                    <span className="flex-1">{item.label}</span>
-                    {item.count ? (
-                      <span className="rounded-full bg-warn-soft px-2 text-xs font-semibold text-warn">
-                        {item.count}
-                        <span className="sr-only"> pendientes</span>
+        <nav aria-label="Principal" className="overflow-y-auto px-3 pb-4">
+          {/* La pastilla del ítem activo viaja entre secciones (SPEC-animaciones §3.1). */}
+          <div className="nav-pill-host relative isolate flex flex-col gap-5">
+            <NavPill />
+            {groups.map((g) => (
+              <div key={g.title} className="flex flex-col gap-0.5">
+                <span className="px-2.5 pb-1.5 text-[11px] font-semibold tracking-wider text-muted uppercase">{g.title}</span>
+                {g.items.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setOpen(false)}
+                      className={`nav-link flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-focus ${
+                        active
+                          ? "bg-surface font-medium text-foreground shadow-[0_1px_0_var(--line)]"
+                          : "text-subtle hover:bg-surface/60 hover:text-foreground"
+                      }`}
+                    >
+                      <span className={active ? "text-accent" : "text-muted"}>
+                        <Icon name={item.icon} />
                       </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+                      <span className="flex-1">{item.label}</span>
+                      {item.count ? (
+                        <span className="rounded-full bg-warn-soft px-2 text-xs font-semibold text-warn">
+                          {item.count}
+                          <span className="sr-only"> pendientes</span>
+                        </span>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </nav>
 
         <div className="mt-auto flex items-center gap-2.5 border-t border-line px-5 py-4">

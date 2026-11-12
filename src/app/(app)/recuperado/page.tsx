@@ -7,6 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { formatMoney, formatPeriod, sumAmounts } from "@/lib/format";
 import { changeOrderCode } from "@/lib/validation";
+import { CountUp } from "@/components/motion/count-up";
+import { PageTransition } from "@/components/motion/page-transition";
+import { RevealTitle } from "@/components/motion/reveal-title";
+import { reveal, revealFrom } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Lo recuperado" };
 
@@ -41,10 +45,10 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export default function RecoveredPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <PageTransition className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Lo recuperado</h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted">
+        <RevealTitle text="Lo recuperado" />
+        <p className="reveal-fade mt-1 max-w-2xl text-sm text-muted">
           Adicionales que los clientes aprobaron, por proyecto y por mes, y lo que todavía espera respuesta. Lo
           aprobado ya suma a los honorarios de cada etapa. Los montos van por moneda, sin convertir.
         </p>
@@ -52,7 +56,7 @@ export default function RecoveredPage() {
       <Suspense fallback={<PageSkeleton title={false} cards={2} list={false} />}>
         <Recovered />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -84,7 +88,7 @@ async function Recovered() {
 
   if (projects.length === 0) {
     return (
-      <p className="text-sm text-muted">
+      <p className="reveal text-sm text-muted">
         Todavía no hay órdenes de cambio. Se crean desde cada proyecto, en la sección Órdenes de cambio.
       </p>
     );
@@ -107,21 +111,26 @@ async function Recovered() {
 
   return (
     <>
-      {totals.map((t) => (
-        <section key={t.currency} aria-label={`Totales en ${t.currency}`} className="grid gap-4 sm:grid-cols-3">
-          <StatTile label={`Aprobado · ${t.currency}`} value={formatMoney(t.approved, t.currency)} hero>
+      {totals.map((t, k) => (
+        <section
+          key={t.currency}
+          aria-label={`Totales en ${t.currency}`}
+          className="reveal-group grid gap-4 sm:grid-cols-3"
+          style={revealFrom(k * 3)}
+        >
+          <StatTile label={`Aprobado · ${t.currency}`} value={<CountUp value={t.approved} format="money" currency={t.currency} />} hero>
             {plural(t.approvedCount, "orden aprobada", "órdenes aprobadas")}
           </StatTile>
-          <StatTile label="Esperando al cliente" value={formatMoney(t.pending, t.currency)}>
+          <StatTile label="Esperando al cliente" value={<CountUp value={t.pending} format="money" currency={t.currency} />}>
             {plural(t.pendingCount, "orden enviada", "órdenes enviadas")}
           </StatTile>
-          <StatTile label="Borradores sin enviar" value={formatMoney(t.draft, t.currency)}>
+          <StatTile label="Borradores sin enviar" value={<CountUp value={t.draft} format="money" currency={t.currency} />}>
             {plural(t.draftCount, "borrador", "borradores")}
           </StatTile>
         </section>
       ))}
 
-      <section className="card flex flex-col gap-4">
+      <section className="card reveal flex flex-col gap-4" style={reveal(totals.length * 3)}>
         <h2 className="font-medium">Por proyecto</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse text-sm">
@@ -153,7 +162,7 @@ async function Recovered() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="reveal-group grid gap-6 lg:grid-cols-2" style={revealFrom(totals.length * 3 + 1)}>
         <section className="card flex flex-col gap-4">
           <h2 className="font-medium">Aprobado por mes</h2>
           {months.length === 0 ? (
@@ -208,7 +217,7 @@ async function Recovered() {
   );
 }
 
-function StatTile({ label, value, hero = false, children }: { label: string; value: string; hero?: boolean; children: ReactNode }) {
+function StatTile({ label, value, hero = false, children }: { label: string; value: ReactNode; hero?: boolean; children: ReactNode }) {
   return (
     <div className="card flex flex-col gap-1">
       <span className="text-sm text-muted">{label}</span>

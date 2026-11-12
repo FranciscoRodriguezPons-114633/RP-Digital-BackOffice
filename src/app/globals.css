@@ -25,6 +25,36 @@
   --danger-soft: #fce9e7;
   --info: #2b4c7e;
   --info-soft: #e7edf6;
+
+  /* Movimiento (docs: SPEC-animaciones §1). Ningún componente usa números sueltos: todos
+     leen estos tokens. No definen colores. */
+  --dur-press: 90ms; /* feedback de presión */
+  --dur-fast: 150ms; /* hover, tooltips, salida de página */
+  --dur-base: 240ms; /* entrada de bloques y letras del título */
+  --dur-lead: 360ms; /* borde delantero de la pastilla / subrayado */
+  --dur-trail: 550ms; /* borde trasero de la pastilla / subrayado */
+  --dur-data: 900ms; /* conteo de números */
+  --dur-bar: 600ms; /* barras horizontales (§4.3) */
+
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1); /* easeOutQuart */
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1); /* easeInOutQuart */
+  --ease-in: cubic-bezier(0.5, 0, 0.75, 0); /* easeInQuart, solo para salidas */
+  --ease-data: cubic-bezier(0.16, 1, 0.3, 1); /* ≈ easeOutExpo, números y barras */
+
+  --reveal-offset: 120ms; /* espera desde el clic hasta la primera entrada */
+  --stagger-char: 30ms;
+  --stagger-block: 50ms;
+  --stagger-bar: 70ms;
+  --stagger-cell: 18ms;
+
+  --blur-enter: 8px;
+  --blur-exit: 6px;
+
+  /* Capas de la coreografía (§2), derivadas de los tokens de arriba. */
+  --reveal-lead: calc(var(--reveal-offset) + 50ms); /* acciones y subtítulo, ~170 ms */
+  --reveal-start: calc(var(--reveal-offset) + 80ms); /* título y bloques, ~200 ms */
+  --reveal-data: calc(var(--reveal-offset) + 130ms); /* números y barras, ~250 ms */
+  --stagger-max: 400ms; /* tope del escalonado total de una página */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -97,9 +127,17 @@ body {
     @apply min-h-10 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent focus:ring-3 focus:ring-focus;
   }
 
-  /* Botones: 40 px de alto, foco visible con teclado. Tamaños: btn-sm y btn-lg. */
+  /* Botones: 40 px de alto, foco visible con teclado. Tamaños: btn-sm y btn-lg.
+     Al presionar se achican un 3 % y vuelven con la curva de salida (SPEC-animaciones §5.1). */
   .btn {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-transparent px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-transparent px-4 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+    transition-property: color, background-color, border-color, transform;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-out);
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: var(--dur-press);
   }
   .btn-sm {
     @apply min-h-8 px-3 text-xs;
@@ -175,5 +213,279 @@ body {
   /* Esqueletos de carga. Ver components/skeleton.tsx. */
   .skeleton {
     @apply block rounded-md bg-line motion-safe:animate-pulse;
+  }
+}
+
+/* ─── Movimiento (docs: SPEC-animaciones) ────────────────────────────────────────────────
+   Salir rápido, entrar en capas: lo viejo se va en --dur-fast; lo nuevo entra por niveles
+   (acciones y subtítulo → título → bloques → datos). Todo sale de los tokens de :root. */
+
+/* Índice de escalonado: no se hereda, así una fila no toma el índice de su tarjeta. */
+@property --i {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+/* Registradas para que el conteo (count-up.tsx) lea el tiempo ya resuelto. */
+@property --dur-data {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 900ms;
+}
+@property --reveal-data {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 250ms;
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    filter: blur(var(--blur-enter));
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes char-rise {
+  from {
+    transform: translateY(105%);
+  }
+}
+@keyframes page-exit {
+  to {
+    opacity: 0;
+    filter: blur(var(--blur-exit));
+  }
+}
+@keyframes bar-grow {
+  from {
+    clip-path: inset(0 100% 0 0 round 99px);
+  }
+}
+
+/* §2.1 Título con máscara: cada letra (o palabra, en títulos largos) sube desde una ranura
+   bajo la línea de base. Sin cambio de opacidad. --n es la cantidad de piezas: el paso se
+   achica para que el escalonado entero no pase de --dur-fast. (El spec propone un tope de
+   ~240 ms, pero así un título de 13 letras termina a los ~660 ms y no cumple el criterio 1:
+   leerse en ≤ 450 ms. Con 150 ms, la última letra está arriba en un 90 % a los ~440 ms.) */
+.reveal-title__mask {
+  display: inline-block;
+  overflow: hidden;
+  padding-block: 0.08em;
+  margin-block: -0.08em;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+.reveal-title__piece {
+  display: inline-block;
+  animation: char-rise var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-start) + var(--i) * min(var(--stagger-char), var(--dur-fast) / var(--n, 1)));
+}
+
+/* §2.2 Entrada de bloques: opacidad y desenfoque que se resuelven, sin desplazamiento.
+   `backwards` (no `both`): al terminar no queda ningún filter aplicado.
+   .reveal lleva el índice inline (style --i); .reveal-group numera a sus hijos solo.
+   --i0 corre el arranque de un grupo (por ejemplo, filas dentro de la segunda tarjeta). */
+.reveal,
+.reveal-group > * {
+  animation: reveal-in var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(
+    var(--reveal-start) + min((var(--i0, 0) + var(--i)) * var(--stagger-block), var(--stagger-max))
+  );
+}
+.reveal-group > :nth-child(2) { --i: 1; }
+.reveal-group > :nth-child(3) { --i: 2; }
+.reveal-group > :nth-child(4) { --i: 3; }
+.reveal-group > :nth-child(5) { --i: 4; }
+.reveal-group > :nth-child(6) { --i: 5; }
+.reveal-group > :nth-child(7) { --i: 6; }
+.reveal-group > :nth-child(8) { --i: 7; }
+.reveal-group > :nth-child(9) { --i: 8; }
+.reveal-group > :nth-child(10) { --i: 9; }
+.reveal-group > :nth-child(11) { --i: 10; }
+.reveal-group > :nth-child(12) { --i: 11; }
+/* Desde el ítem 13: aparece junto con el último escalonado y solo con opacidad (§7). */
+.reveal-group > :nth-child(n + 13),
+.reveal-lite {
+  --i: 11;
+  animation-name: fade-in;
+}
+
+/* Acciones de cabecera y subtítulo: solo opacidad, antes que el título. */
+.reveal-fade {
+  animation: fade-in var(--dur-fast) var(--ease-out) backwards;
+  animation-delay: var(--reveal-lead);
+}
+
+/* Misma sección, otra pestaña: el título y la cabecera se quedan quietos (§2). */
+[data-still] :is(.reveal-title__piece, .reveal-fade, .reveal) {
+  animation: none;
+}
+
+/* §3.1 Pastilla del ítem activo. Dos propiedades registradas que transicionan con duraciones
+   distintas: el borde que va adelante llega rápido y el de atrás lo alcanza después. */
+@property --pill-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --pill-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+.nav-pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 0 var(--line));
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.nav-pill:not([data-ready]),
+.nav-pill[data-empty] {
+  opacity: 0;
+}
+.nav-pill__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  clip-path: inset(var(--pill-top) 0 var(--pill-bottom) 0 round 0.5rem);
+}
+.nav-pill__fill[data-dir="down"] {
+  transition:
+    --pill-bottom var(--dur-lead) var(--ease-out),
+    --pill-top var(--dur-trail) var(--ease-in-out);
+}
+.nav-pill__fill[data-dir="up"] {
+  transition:
+    --pill-top var(--dur-lead) var(--ease-out),
+    --pill-bottom var(--dur-trail) var(--ease-in-out);
+}
+/* Mientras la pastilla no midió (sin JavaScript o antes de hidratar), el ítem activo lleva su
+   propio fondo. Después lo pinta la pastilla. */
+.nav-pill-host:has(> .nav-pill[data-ready]) [aria-current="page"] {
+  background-color: transparent;
+  box-shadow: none;
+}
+/* El ítem nuevo pasa a «activo» cuando llega el borde delantero. */
+.nav-link,
+.nav-link > span:first-child {
+  transition: color var(--dur-fast) var(--ease-out) var(--reveal-offset);
+}
+
+/* §3.2 Subrayado de pestañas: el mismo estiramiento, en horizontal. */
+@property --ul-left {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --ul-right {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+.tab-underline {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  pointer-events: none;
+  background: var(--accent);
+  clip-path: inset(0 var(--ul-right) 0 var(--ul-left) round 99px);
+}
+.tab-underline:not([data-ready]) {
+  opacity: 0;
+}
+.tab-underline[data-dir="right"] {
+  transition:
+    --ul-right var(--dur-lead) var(--ease-out),
+    --ul-left var(--dur-trail) var(--ease-in-out);
+}
+.tab-underline[data-dir="left"] {
+  transition:
+    --ul-left var(--dur-lead) var(--ease-out),
+    --ul-right var(--dur-trail) var(--ease-in-out);
+}
+.tabs-host:has(> .tab-underline[data-ready]) [aria-current="page"] {
+  border-color: transparent;
+}
+
+/* §4.1 Conteo: el valor final reserva el ancho (el número que cuenta no mueve nada). */
+.count-up {
+  display: inline-grid;
+  font-variant-numeric: tabular-nums;
+}
+.count-up > *,
+.count-up::after {
+  grid-area: 1 / 1;
+}
+.count-up::after {
+  content: attr(data-final);
+  visibility: hidden;
+}
+
+/* §4.3 Barras horizontales: crecen desde la izquierda cuando entra su tarjeta. Si la barra
+   está fuera de pantalla, espera (grow-bar.tsx pone data-offscreen). */
+.bar-fill {
+  animation: bar-grow var(--dur-bar) var(--ease-data) backwards;
+  animation-delay: calc(var(--reveal-data) + min(var(--i) * var(--stagger-bar), var(--stagger-max)));
+}
+[data-offscreen] .bar-fill {
+  animation-play-state: paused;
+}
+
+/* §2.3 Salida de página y §5.6 esqueleto → contenido, con <ViewTransition> de React.
+   La entrada la hacen las animaciones de arriba. El marco (root) no participa: la barra
+   lateral no parpadea y la pastilla se ve viajar en vivo. */
+::view-transition {
+  pointer-events: none; /* los clics durante la transición llegan a la página */
+}
+::view-transition-old(root) {
+  display: none;
+}
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(.page-exit) {
+  animation: page-exit var(--dur-fast) var(--ease-in) both;
+}
+::view-transition-old(.skeleton-exit) {
+  animation: fade-out var(--dur-fast) var(--ease-in) both;
+}
+
+/* §6 Movimiento reducido: sin movimiento, sin desenfoque, sin escalonado; los números
+   aparecen con su valor final (count-up.tsx también lo mira). */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-group > *,
+  .reveal-fade,
+  .reveal-title__piece,
+  .bar-fill {
+    animation: none !important;
+  }
+  .nav-pill,
+  .nav-pill__fill,
+  .tab-underline,
+  .nav-link,
+  .nav-link > span:first-child {
+    transition: none !important;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

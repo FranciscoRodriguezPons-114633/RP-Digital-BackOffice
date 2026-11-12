@@ -107,3 +107,17 @@ describe("formatDate", () => {
     expect(formatDate(null)).toBe("—");
   });
 });
+
+import { formatAreaLike, formatMoneyLike } from "./format";
+
+describe("valores intermedios de un conteo", () => {
+  it("usan los decimales del valor final", () => {
+    expect(formatMoneyLike(8400.37, 16800, "USD").replace(/\s/g, " ")).toBe("USD 8.400");
+    expect(formatMoneyLike(2781, 5563.2, "USD").replace(/\s/g, " ")).toBe("USD 2.781,00");
+    expect(formatMoneyLike(16800, 16800, "USD")).toBe(formatMoney(16800, "USD"));
+    expect(formatAreaLike(90.25, 180.5)).toBe("90,3 m²");
+    expect(formatAreaLike(1200.4, 2400)).toBe("1.200 m²");
+    expect(formatAreaLike(180.5, 180.5)).toBe(formatArea(180.5));
+    expect(formatAreaLike(10, 12.25)).toBe("10,00 m²");
+  });
+});
