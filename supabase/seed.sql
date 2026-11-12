@@ -125,6 +125,12 @@ begin
   perform public.invite_guest(v_alba, 'cliente@estudio.test', 'client');
   -- Beto entra como miembro la primera vez que inicia sesión (claim_invitations).
   perform public.invite_member(v_org, 'beto@estudio.test', 'member');
+
+  -- Finanzas de obra en prueba para el estudio de ejemplo (en la nube lo habilita la plataforma).
+  update public.organizations set beta_features = '{works}' where id = v_org;
+  -- Ficha de obra de Edificio Alba: el estudio dirige la obra que construye otro.
+  perform public.upsert_work(v_alba, 'works_director', 'Av. Hipólito Yrigoyen 450', 'Córdoba',
+                             2400, 180, 'multifamily', 'standard', '2027-03-01', '2028-09-30', 'USD');
 end;
 $$;
 

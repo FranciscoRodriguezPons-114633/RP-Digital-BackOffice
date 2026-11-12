@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { countGuestProjects, getCurrentOrg, requireUser } from "@/lib/dal";
 import { MemberInviteForm } from "../forms";
+import { OrganizationKindForm } from "../work-forms";
+import { ORG_KIND_LABEL } from "@/lib/validation";
 
 export const metadata: Metadata = { title: "Equipo" };
 
@@ -43,7 +45,10 @@ async function Team() {
   return (
     <>
       <section className="card">
-        <h2 className="mb-4 font-medium">{org.name}</h2>
+        <div className="mb-4 flex flex-wrap items-baseline gap-3">
+          <h2 className="font-medium">{org.name}</h2>
+          <span className="badge">{ORG_KIND_LABEL[org.kind]}</span>
+        </div>
         <ul className="divide-y divide-line text-sm">
           {((members ?? []) as Member[]).map((m) => (
             <li key={m.user_id} className="flex items-center gap-3 py-2">
@@ -61,6 +66,16 @@ async function Team() {
           ))}
         </ul>
       </section>
+
+      {org.role === "owner" && (
+        <section className="card flex flex-col gap-3">
+          <div>
+            <h2 className="font-medium">Tipo de organización</h2>
+            <p className="mt-1 text-sm text-muted">Define qué funciones ves. Lo puede cambiar solo el dueño.</p>
+          </div>
+          <OrganizationKindForm kind={org.kind} />
+        </section>
+      )}
 
       {org.role === "owner" ? (
         <section className="card">

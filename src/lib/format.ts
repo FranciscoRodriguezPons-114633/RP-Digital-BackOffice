@@ -48,6 +48,19 @@ export function formatDay(isoDate: string) {
   return dayFormatter.format(new Date(`${isoDate}T00:00:00Z`));
 }
 
+const dateWithYearFormatter = new Intl.DateTimeFormat("es-AR", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+// Con año, para fechas que no son de esta semana: "2027-03-01" → "1 mar 2027".
+export function formatDate(isoDate: string | null | undefined) {
+  if (!isoDate) return "—";
+  return dateWithYearFormatter.format(new Date(`${isoDate.slice(0, 10)}T00:00:00Z`)).replace(".", "").replace(/ de /g, " ");
+}
+
 // Hoy y el inicio de la ventana de las últimas `days` jornadas (incluido hoy), en Córdoba.
 export function recentWindow(days: number, now = new Date()) {
   const since = new Date(now.getTime() - (days - 1) * 86400000);
@@ -91,4 +104,41 @@ export function formatBytes(bytes: number | string | null | undefined) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${bytesFormatter.format(n / 1024)} KB`;
   return `${bytesFormatter.format(n / (1024 * 1024))} MB`;
+}
+
+const areaFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
+
+// 2400 → "2.400 m²"; 180.5 → "180,5 m²"
+export function formatArea(m2: number | string | null | undefined) {
+  if (m2 === null || m2 === undefined || m2 === "") return "—";
+  return `${areaFormatter.format(Number(m2))} m²`;
+}
+
+// Costo por m²: "USD 1.578,15/m²"
+export function formatCostPerM2(amount: number | string | null | undefined, currency: string) {
+  const money = formatMoney(amount, currency);
+  return money === "—" ? money : `${money}/m²`;
+}
+
+// Misma cuenta que la vista budget_totals, para mostrar la estimación mientras se escribe.
+// Lo que se guarda lo calcula siempre la base.
+export function parametricEstimate(input: {
+  coveredM2: number;
+  semicoveredM2: number;
+  semicoveredFactor: number;
+  referenceCostM2: number;
+  typologyCoef: number;
+  qualityCoef: number;
+}) {
+  const weightedM2 = input.coveredM2 + input.semicoveredM2 * input.semicoveredFactor;
+  const factor = input.referenceCostM2 * input.typologyCoef * input.qualityCoef;
+  return {
+    weightedM2,
+    total: roundCents(weightedM2 * factor),
+    costPerM2: roundCents(factor),
+  };
+}
+
+function roundCents(n: number) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
 }

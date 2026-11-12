@@ -11,7 +11,11 @@ Estado:
 - **Sprint 4** (lo vigente): piezas dependientes (renders, planos de venta, brochures) hechas sobre una revisión vigente, con un responsable que puede ser un renderista invitado que sube su entrega. Al publicar una revisión nueva, las piezas de la anterior pasan a «a revisar» y su responsable recibe un aviso; en `/a-revisar` se decide si cada una sigue sirviendo o quedó obsoleta. Registro de envíos: qué revisión o pieza exacta (con su huella) se le mandó a cada invitado, cuándo y cuándo la abrió, con aviso si ya no es la vigente. Comentarios por archivo, con página en los PDF, que se resuelven; si comenta un invitado, se avisa al estudio.
 - **Sprint 5** (cierre y lanzamiento): comentarios anclados con un pin sobre la imagen y rondas de correcciones por pieza, con aviso al pasar las contratadas. Vencimientos con avisos a 30, 15 y 5 días (o los que se elijan), una sola vez por umbral. Historial completo de cada proyecto y exportación a Excel (etapas, horas y adicionales, con los totales del panel). Puesta en marcha: crear un proyecto copiando otro, carga masiva de planos por nombre de archivo y proyecto de ejemplo. Lanzamiento: página de producto en `/`, términos y privacidad (borradores para revisar con un abogado), prueba de 30 días y pase a pago con cobro manual, que el dueño pide en `/plan` y la plataforma confirma en `/admin/cobros`.
 
-El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md).
+**Finanzas de obra** (en prueba: solo para organizaciones con `works` en `organizations.beta_features`, que carga la plataforma por SQL):
+
+- **Sprint 1** (ficha de obra y estimación paramétrica): la organización se marca como estudio o constructora en `/equipo` (solo el dueño). Cada proyecto tiene su ficha de obra en la pestaña «Obra»: qué papel cumple la organización (construye, dirige o administra), dirección, m² cubiertos y semicubiertos, tipología, calidad, fechas previstas y moneda; los invitados no la ven. En la pestaña «Presupuestos», la estimación paramétrica: (m² cubiertos + semicubiertos × factor) × costo de referencia por m² × coeficiente de tipología × coeficiente de calidad. Se guarda como una versión numerada con el costo de referencia, su fecha y su origen, y muestra el total y el costo por m². Los coeficientes son orientativos y se pueden cambiar en cada versión. `/obras` lista las obras con su última estimación.
+
+El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md). El de Finanzas de obra, en [`docs/plan-sprints-finanzas-de-obra.md`](docs/plan-sprints-finanzas-de-obra.md).
 
 ## Stack
 
@@ -34,6 +38,8 @@ npm run dev                   # http://localhost:3000
 Los correos del enlace mágico en local llegan a Mailpit: <http://127.0.0.1:54324>.
 
 **Ingreso rápido en desarrollo:** con `npm run dev` y Supabase local, la pantalla de ingreso muestra botones para entrar como Ana (dueña), Beto (miembro) o el cliente invitado, sin correo. Los usuarios y un estudio de ejemplo salen de `supabase/seed.sql`, que se carga con `npx supabase db reset`. En producción esos botones no existen y la nube no recibe el seed.
+
+El seed habilita Finanzas de obra para el estudio de ejemplo y deja la ficha de obra de Edificio Alba. Si tu base local es anterior, aplicá la migración con `npx supabase migration up --local` y habilitala a mano: `update public.organizations set beta_features = '{works}' where name = 'Estudio Demo';`.
 
 El seed deja la orden OC-001 de Edificio Alba esperando al cliente, con un link fijo para probar la página de aprobación: <http://localhost:3000/aprobar/link-de-prueba-local-para-aprobar-la-oc-001>.
 

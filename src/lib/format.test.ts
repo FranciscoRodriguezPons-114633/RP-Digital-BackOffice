@@ -58,3 +58,52 @@ describe("formatBytes", () => {
     expect(formatBytes(1234567)).toBe("1,2 MB");
   });
 });
+
+import { formatArea, formatCostPerM2, parametricEstimate } from "./format";
+
+describe("superficies y costo por m²", () => {
+  it("formatea m² con separadores argentinos", () => {
+    expect(formatArea(2400)).toBe("2.400 m²");
+    expect(formatArea("180.50")).toBe("180,5 m²");
+    expect(formatArea(null)).toBe("—");
+  });
+  it("formatea el costo por m² con la moneda", () => {
+    expect(formatCostPerM2("1578.15", "USD").replace(/\s/g, " ")).toBe("USD 1.578,15/m²");
+    expect(formatCostPerM2(250000, "ARS").replace(/\s/g, " ")).toBe("ARS 250.000/m²");
+    expect(formatCostPerM2(null, "USD")).toBe("—");
+  });
+});
+
+describe("parametricEstimate", () => {
+  it("da lo mismo que la vista budget_totals (prueba pgTAP 15)", () => {
+    const e = parametricEstimate({
+      coveredM2: 2450,
+      semicoveredM2: 180,
+      semicoveredFactor: 0.5,
+      referenceCostM2: 1503,
+      typologyCoef: 1.05,
+      qualityCoef: 1,
+    });
+    expect(e).toEqual({ weightedM2: 2540, total: 4008501, costPerM2: 1578.15 });
+  });
+  it("redondea a 2 decimales", () => {
+    const e = parametricEstimate({
+      coveredM2: 2450,
+      semicoveredM2: 180,
+      semicoveredFactor: 0.4,
+      referenceCostM2: 1503,
+      typologyCoef: 1.1,
+      qualityCoef: 1.25,
+    });
+    expect(e.total).toBe(5212028.25);
+  });
+});
+
+import { formatDate } from "./format";
+
+describe("formatDate", () => {
+  it("muestra el año y no corre el día", () => {
+    expect(formatDate("2027-03-01")).toBe("1 mar 2027");
+    expect(formatDate(null)).toBe("—");
+  });
+});

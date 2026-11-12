@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { Skeleton } from "@/components/skeleton";
-import { getCurrentOrg, getUser } from "@/lib/dal";
+import { getCurrentOrg, getUser, hasWorks } from "@/lib/dal";
 import { createClient } from "@/lib/supabase/server";
 import { Brand, SidebarNav } from "./sidebar-nav";
 
@@ -32,6 +32,7 @@ async function Sidebar() {
       email={user?.email ?? ""}
       isMember={!!org}
       toReview={org ? await countToReview(org.id) : 0}
+      works={hasWorks(org)}
     />
   );
 }
