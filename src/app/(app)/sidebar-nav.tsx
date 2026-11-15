@@ -3,14 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Ellipsis, LogOut, Search } from "lucide-react";
+import { Sheet } from "@/components/ui/sheet";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { CommandPalette, openSearch } from "./command-palette";
+import { isActivePath, navGroups, type NavGroup, type NavItem } from "./nav-items";
 
-type IconName = "projects" | "review" | "calendar" | "clock" | "chart" | "trend" | "team" | "plan" | "works" | "parties" | "supplies" | "analyses";
-
-type NavItem = { href: string; label: string; icon: IconName; count?: number };
-
-// Barra lateral: en escritorio queda fija a la izquierda; en el teléfono es una barra
-// superior y el menú se abre con un botón. La sección activa sale de la URL.
-export function SidebarNav({
+// Navegación de la app. En escritorio, barra lateral oscura fija. En el teléfono, una barra
+// superior con la marca y el buscador, y una barra inferior con las secciones de todos los
+// días; el resto está en «Más». La sección activa sale de la URL.
+export function AppNav({
   orgName,
   email,
   isMember,
@@ -25,161 +27,178 @@ export function SidebarNav({
   works?: boolean;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-
-  // Los invitados externos no tienen estudio: solo ven sus proyectos.
-  const groups: { title: string; items: NavItem[] }[] = isMember
-    ? [
-        {
-          title: "Trabajo",
-          items: [
-            { href: "/proyectos", label: "Proyectos", icon: "projects" },
-            { href: "/a-revisar", label: "A revisar", icon: "review", count: toReview },
-            { href: "/vencimientos", label: "Vencimientos", icon: "calendar" },
-            { href: "/horas", label: "Horas", icon: "clock" },
-          ],
-        },
-        ...(works
-          ? [
-              {
-                title: "Obra",
-                items: [
-                  { href: "/obras", label: "Obras", icon: "works" as const },
-                  { href: "/analisis-de-precios", label: "Análisis de precios", icon: "analyses" as const },
-                  { href: "/insumos", label: "Insumos", icon: "supplies" as const },
-                  { href: "/terceros", label: "Terceros", icon: "parties" as const },
-                ],
-              },
-            ]
-          : []),
-        {
-          title: "Finanzas",
-          items: [
-            { href: "/recuperado", label: "Recuperado", icon: "chart" },
-            { href: "/indices", label: "Índices", icon: "trend" },
-          ],
-        },
-        {
-          title: "Estudio",
-          items: [
-            { href: "/equipo", label: "Equipo", icon: "team" },
-            { href: "/plan", label: "Plan", icon: "plan" },
-          ],
-        },
-      ]
-    : [{ title: "Trabajo", items: [{ href: "/proyectos", label: "Proyectos", icon: "projects" }] }];
-
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const groups = navGroups({ isMember, works, toReview });
+  const all = groups.flatMap((g) => g.items);
+  // En la barra inferior: lo que se usa en obra y todos los días.
+  const primary = ["/proyectos", works ? "/obras" : "/vencimientos", "/horas"]
+    .map((href) => all.find((i) => i.href === href))
+    .filter((i): i is NavItem => !!i);
+  const moreActive = !primary.some((i) => isActivePath(pathname, i.href));
 
   return (
-    <div className="flex flex-col md:h-full">
-      <div className="flex items-center gap-3 px-4 py-3 md:px-5 md:pt-5 md:pb-4">
+    <>
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-5 bg-nav px-3.5 py-5 md:flex">
         <Brand orgName={orgName} />
         <button
           type="button"
-          className="btn btn-secondary btn-sm ml-auto md:hidden"
-          aria-expanded={open}
-          aria-controls="app-nav"
-          onClick={() => setOpen((v) => !v)}
+          onClick={openSearch}
+          className="flex min-h-10 items-center gap-2.5 rounded-[var(--radius-control)] bg-nav-raised px-3 text-sm text-nav-muted outline-none hover:text-nav-strong focus-visible:ring-3 focus-visible:ring-focus"
         >
-          <Icon name={open ? "close" : "menu"} />
-          Menú
+          <Search aria-hidden="true" size={16} />
+          <span className="flex-1 text-left">Buscar</span>
+          <kbd className="rounded border border-nav-muted/40 px-1.5 text-[11px] font-sans">⌘K</kbd>
         </button>
-      </div>
+        <NavGroups groups={groups} pathname={pathname} />
+        <div className="mt-auto flex flex-col gap-3">
+          <ThemeSwitcher />
+          <UserRow email={email} />
+        </div>
+      </aside>
 
-      <div id="app-nav" className={`${open ? "flex" : "hidden"} min-h-0 flex-1 flex-col md:flex`}>
-        <nav aria-label="Principal" className="flex flex-col gap-5 overflow-y-auto px-3 pb-4">
-          {groups.map((g) => (
-            <div key={g.title} className="flex flex-col gap-0.5">
-              <span className="px-2.5 pb-1.5 text-[11px] font-semibold tracking-wider text-muted uppercase">{g.title}</span>
-              {g.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => setOpen(false)}
-                    className={`flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-focus ${
-                      active
-                        ? "bg-surface font-medium text-foreground shadow-[0_1px_0_var(--line)]"
-                        : "text-subtle hover:bg-surface/60 hover:text-foreground"
-                    }`}
-                  >
-                    <span className={active ? "text-accent" : "text-muted"}>
-                      <Icon name={item.icon} />
-                    </span>
-                    <span className="flex-1">{item.label}</span>
-                    {item.count ? (
-                      <span className="rounded-full bg-warn-soft px-2 text-xs font-semibold text-warn">
-                        {item.count}
-                        <span className="sr-only"> pendientes</span>
-                      </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
+      <header className="sticky top-0 z-30 flex items-center gap-2 bg-nav px-4 py-2.5 md:hidden">
+        <Brand orgName={orgName} />
+        <button
+          type="button"
+          onClick={openSearch}
+          aria-label="Buscar"
+          className="ml-auto flex size-11 items-center justify-center rounded-[var(--radius-control)] text-nav-fg outline-none hover:text-nav-strong focus-visible:ring-3 focus-visible:ring-focus"
+        >
+          <Search aria-hidden="true" size={20} />
+        </button>
+      </header>
 
-        <div className="mt-auto flex items-center gap-2.5 border-t border-line px-5 py-4">
-          <span
-            aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-sm font-semibold text-subtle"
-          >
-            {email.charAt(0).toUpperCase()}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-xs text-muted" title={email}>
-            {email}
-          </span>
-          <form action="/auth/salir" method="post">
-            <button className="btn btn-ghost btn-sm" type="submit">Salir</button>
+      <nav
+        aria-label="Principal"
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        {primary.map((item) => (
+          <BottomLink key={item.href} item={item} active={isActivePath(pathname, item.href)} />
+        ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-expanded={moreOpen}
+          className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] outline-none focus-visible:ring-3 focus-visible:ring-focus ${
+            moreActive ? "font-bold text-accent" : "text-muted"
+          }`}
+        >
+          <Ellipsis aria-hidden="true" size={22} />
+          Más
+        </button>
+      </nav>
+
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={orgName ?? "RP Backoffice"} side="bottom">
+        <div className="flex flex-col gap-5" onClick={(e) => (e.target as HTMLElement).closest("a") && setMoreOpen(false)}>
+          <NavGroups groups={groups} pathname={pathname} light />
+          <div className="rounded-[var(--radius-card)] bg-nav p-3">
+            <ThemeSwitcher />
+          </div>
+          <form action="/auth/salir" method="post" className="flex items-center gap-3 text-sm">
+            <span className="min-w-0 flex-1 truncate text-muted">{email}</span>
+            <button className="btn btn-secondary" type="submit">
+              <LogOut aria-hidden="true" size={16} />
+              Salir
+            </button>
           </form>
         </div>
-      </div>
+      </Sheet>
+
+      <CommandPalette groups={groups} />
+    </>
+  );
+}
+
+function NavGroups({ groups, pathname, light = false }: { groups: NavGroup[]; pathname: string; light?: boolean }) {
+  return (
+    <nav aria-label={light ? "Todas las secciones" : "Principal"} className="flex min-h-0 flex-col gap-5 overflow-y-auto">
+      {groups.map((g) => (
+        <div key={g.title} className="flex flex-col gap-0.5">
+          <span className={`px-3 pb-1.5 text-[11px] font-semibold tracking-wider uppercase ${light ? "text-muted" : "text-nav-muted"}`}>
+            {g.title}
+          </span>
+          {g.items.map((item) => {
+            const active = isActivePath(pathname, item.href);
+            const Icon = item.icon;
+            const color = light
+              ? active
+                ? "bg-accent-soft font-semibold text-foreground"
+                : "text-subtle hover:bg-hover"
+              : active
+                ? "bg-nav-raised font-semibold text-nav-strong"
+                : "text-nav-fg hover:bg-nav-raised/60 hover:text-nav-strong";
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-11 items-center gap-3 rounded-[var(--radius-control)] px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-focus ${color}`}
+              >
+                <Icon aria-hidden="true" size={18} className={active ? (light ? "text-accent" : "text-nav-accent") : ""} />
+                <span className="flex-1">{item.label}</span>
+                {item.count ? (
+                  <span className="rounded-full bg-[#fbbf24] px-2 text-xs font-bold text-[#0f172a] tabular">
+                    {item.count}
+                    <span className="sr-only"> pendientes</span>
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function BottomLink({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] outline-none focus-visible:ring-3 focus-visible:ring-focus ${
+        active ? "font-bold text-accent" : "text-muted"
+      }`}
+    >
+      <Icon aria-hidden="true" size={22} />
+      {item.label}
+    </Link>
+  );
+}
+
+function UserRow({ email }: { email: string }) {
+  return (
+    <div className="flex items-center gap-2.5 border-t border-nav-raised px-1 pt-3">
+      <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-nav-raised text-sm font-bold text-nav-strong">
+        {email.charAt(0).toUpperCase()}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-xs text-nav-muted" title={email}>
+        {email}
+      </span>
+      <form action="/auth/salir" method="post">
+        <button
+          className="flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-nav-fg outline-none hover:text-nav-strong focus-visible:ring-3 focus-visible:ring-focus"
+          type="submit"
+        >
+          <LogOut aria-hidden="true" size={15} />
+          Salir
+        </button>
+      </form>
     </div>
   );
 }
 
 export function Brand({ orgName }: { orgName: string | null }) {
   return (
-    <Link href="/proyectos" className="flex min-w-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-focus">
-      <span
-        aria-hidden="true"
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent font-mono text-xs font-medium text-[var(--accent-fg)]"
-      >
+    <Link href="/proyectos" className="flex min-w-0 items-center gap-2.5 rounded-[var(--radius-control)] px-1.5 outline-none focus-visible:ring-3 focus-visible:ring-focus">
+      <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-[#c2410c] text-sm font-extrabold text-white">
         RP
       </span>
       <span className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-semibold">{orgName ?? "RP Backoffice"}</span>
-        {orgName && <span className="text-xs text-muted">RP Backoffice</span>}
+        <span className="truncate text-sm font-bold text-nav-strong">{orgName ?? "RP Backoffice"}</span>
+        {orgName && <span className="text-xs text-nav-muted">RP Backoffice</span>}
       </span>
     </Link>
-  );
-}
-
-const PATHS: Record<IconName | "menu" | "close", string> = {
-  projects: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
-  review: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
-  calendar: "M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM3 10h18M8 3v4M16 3v4",
-  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
-  chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
-  trend: "M3 17l6-6 4 4 8-8M15 7h6v6",
-  team: "M9 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5",
-  works: "M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6",
-  parties: "M4 4h16v16H4zM8 9h8M8 13h8M8 17h5",
-  supplies: "M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8",
-  analyses: "M5 3h14v18H5zM9 8h6M9 12h2M13 12h2M9 16h2M13 16h2",
-  plan: "M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM3 10h18",
-  menu: "M4 7h16M4 12h16M4 17h16",
-  close: "M6 6l12 12M18 6L6 18",
-};
-
-function Icon({ name }: { name: IconName | "menu" | "close" }) {
-  return (
-    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d={PATHS[name]} />
-    </svg>
   );
 }

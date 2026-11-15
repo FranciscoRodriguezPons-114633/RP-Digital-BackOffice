@@ -22,9 +22,11 @@ Estado:
 
 El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-mvp.md) y la propuesta en [`docs/propuesta-mvp-backoffice.md`](docs/propuesta-mvp-backoffice.md). El de Finanzas de obra, en [`docs/plan-sprints-finanzas-de-obra.md`](docs/plan-sprints-finanzas-de-obra.md).
 
+**Interfaz:** dirección «Tablero de obra» (fondo gris, tarjetas blancas, barra lateral oscura, acento naranja), con tema claro, oscuro o automático que se elige desde la barra lateral. Los componentes base están en `src/components/ui/` y se ven todos juntos en `/sistema`. El buscador se abre con ⌘K (o Ctrl+K). El plan de las pantallas que faltan está en [`docs/plan-de-desarrollo-2026-2027.md`](docs/plan-de-desarrollo-2026-2027.md).
+
 ## Stack
 
-- **Next.js 16** (App Router, Server Actions, Cache Components) + Tailwind 4
+- **Next.js 16** (App Router, Server Actions, Cache Components) + Tailwind 4 + Lucide (íconos) + Inter
 - **Supabase**: Postgres con RLS, Auth (enlace mágico), Edge Functions, Cron
 - **Resend** para correos, **Vercel** para la app
 - Pruebas: **pgTAP** (base), **Vitest** (lógica), **Playwright** (punta a punta), CI en GitHub Actions
