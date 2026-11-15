@@ -1,56 +1,108 @@
 @import "tailwindcss";
 
-/* Tokens de la propuesta de UI (fase 1): papel, tinta y verde pino.
-   Cada estado tiene un color de texto y un fondo suave (-soft) para las pastillas. */
+/* Tokens de la interfaz «Tablero de obra» (dirección B, elegida el 15/11/2026).
+   Fondo gris claro con tarjetas blancas, barra lateral oscura, un acento naranja de obra
+   y estados fuertes. Cada estado tiene su color de texto y un fondo suave (-soft).
+   El tema se elige en la app (claro, oscuro o automático): ver components/theme.tsx. */
 :root {
-  --background: #f6f5f2;
-  --foreground: #1c1b19;
-  --subtle: #4a4842;
+  --background: #eef1f4;
+  --foreground: #0f172a;
+  --subtle: #334155;
   --surface: #ffffff;
-  --muted: #6b6860;
-  --line: #e4e1da;
-  --line-strong: #cfcbc1;
-  --hover: #f0eee9;
-  --sunken: #efede8;
-  --accent: #1f4e46;
-  --accent-hover: #173c36;
-  --accent-soft: #e3eeeb;
+  --muted: #475569;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --hover: #f1f5f9;
+  --sunken: #f1f5f9;
+  --accent: #c2410c;
+  --accent-hover: #9a3412;
+  --accent-soft: #ffedd5;
   --accent-fg: #ffffff;
-  --focus: #a9cbc3;
-  --ok: #1f6b3a;
-  --ok-soft: #e6f2ea;
-  --warn: #7a4f00;
-  --warn-soft: #fbf0d9;
-  --danger: #a61f14;
-  --danger-soft: #fce9e7;
-  --info: #2b4c7e;
-  --info-soft: #e7edf6;
+  --focus: #fdba74;
+  --ok: #15803d;
+  --ok-soft: #dcfce7;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --info: #1d4ed8;
+  --info-soft: #dbeafe;
+  /* Barra lateral: oscura en los dos temas. */
+  --nav: #0f172a;
+  --nav-raised: #1e293b;
+  --nav-fg: #cbd5e1;
+  --nav-muted: #94a3b8;
+  --nav-strong: #ffffff;
+  --nav-accent: #fb923c;
+  /* Tarjetas: en claro flotan con una sombra suave; en oscuro, con un borde. */
+  --card-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 16px rgb(15 23 42 / 0.04);
+  --card-border: transparent;
+  --overlay: rgb(15 23 42 / 0.45);
+  color-scheme: light;
 }
 
+:root[data-theme="dark"] {
+  --background: #0b1120;
+  --foreground: #e2e8f0;
+  --subtle: #cbd5e1;
+  --surface: #131c2e;
+  --muted: #94a3b8;
+  --line: #1e293b;
+  --line-strong: #334155;
+  --hover: #1e293b;
+  --sunken: #0f172a;
+  --accent: #fb923c;
+  --accent-hover: #fdba74;
+  --accent-soft: #431407;
+  --accent-fg: #1c0a02;
+  --focus: #c2410c;
+  --ok: #4ade80;
+  --ok-soft: #052e16;
+  --warn: #fbbf24;
+  --warn-soft: #422006;
+  --danger: #f87171;
+  --danger-soft: #450a0a;
+  --info: #93c5fd;
+  --info-soft: #172554;
+  --nav: #060a14;
+  --nav-raised: #172033;
+  --card-shadow: none;
+  --card-border: #1e293b;
+  --overlay: rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+/* Automático: sigue al sistema, salvo que se haya elegido claro. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #141412;
-    --foreground: #ecebe7;
-    --subtle: #c9c6be;
-    --surface: #1d1d1a;
-    --muted: #a19e95;
-    --line: #2f2e2a;
-    --line-strong: #45433d;
-    --hover: #26251f;
-    --sunken: #181816;
-    --accent: #7cc4b4;
-    --accent-hover: #96d3c5;
-    --accent-soft: #1b2f2b;
-    --accent-fg: #0e1a17;
-    --focus: #3d6b61;
-    --ok: #86d4a2;
-    --ok-soft: #1a2b20;
-    --warn: #f0c36a;
-    --warn-soft: #2e2615;
-    --danger: #f4a397;
-    --danger-soft: #33201d;
-    --info: #9dbbe8;
-    --info-soft: #1c2433;
+  :root:not([data-theme="light"]) {
+    --background: #0b1120;
+    --foreground: #e2e8f0;
+    --subtle: #cbd5e1;
+    --surface: #131c2e;
+    --muted: #94a3b8;
+    --line: #1e293b;
+    --line-strong: #334155;
+    --hover: #1e293b;
+    --sunken: #0f172a;
+    --accent: #fb923c;
+    --accent-hover: #fdba74;
+    --accent-soft: #431407;
+    --accent-fg: #1c0a02;
+    --focus: #c2410c;
+    --ok: #4ade80;
+    --ok-soft: #052e16;
+    --warn: #fbbf24;
+    --warn-soft: #422006;
+    --danger: #f87171;
+    --danger-soft: #450a0a;
+    --info: #93c5fd;
+    --info-soft: #172554;
+    --nav: #060a14;
+    --nav-raised: #172033;
+    --card-shadow: none;
+    --card-border: #1e293b;
+    --overlay: rgb(0 0 0 / 0.6);
+    color-scheme: dark;
   }
 }
 
@@ -76,33 +128,54 @@
   --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-nav: var(--nav);
+  --color-nav-raised: var(--nav-raised);
+  --color-nav-fg: var(--nav-fg);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-strong: var(--nav-strong);
+  --color-nav-accent: var(--nav-accent);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  /* Los importes van en Inter con cifras tabulares (mismo ancho), no en una monoespaciada. */
+  --font-mono: var(--font-inter), system-ui, sans-serif;
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --shadow-card: var(--card-shadow);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Cifras que se alinean en columnas y no cambian de ancho al actualizarse. */
+.font-mono,
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-line bg-surface p-6;
+    @apply rounded-[var(--radius-card)] border border-[var(--card-border)] bg-surface p-6 shadow-[var(--card-shadow)];
+  }
+  /* Número grande de una tarjeta de resumen. */
+  .stat {
+    @apply text-3xl font-extrabold tracking-tight tabular-nums;
   }
   .field {
     @apply flex flex-col gap-1 text-sm font-medium;
   }
   .input {
-    @apply min-h-10 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent focus:ring-3 focus:ring-focus;
+    @apply min-h-11 rounded-[var(--radius-control)] border border-line-strong bg-surface px-3 py-2 text-sm font-normal text-foreground outline-none placeholder:text-muted focus:border-accent focus:ring-3 focus:ring-focus;
   }
 
-  /* Botones: 40 px de alto, foco visible con teclado. Tamaños: btn-sm y btn-lg. */
+  /* Botones: 44 px de alto (se usan con guantes y en el teléfono), foco visible con teclado.
+     Tamaños: btn-sm y btn-lg. */
   .btn {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-transparent px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-transparent px-4 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-sm {
-    @apply min-h-8 px-3 text-xs;
+    @apply min-h-9 px-3 text-xs;
   }
   .btn-lg {
     @apply min-h-12 px-5 text-base;
@@ -114,7 +187,7 @@ body {
     @apply border-accent-hover bg-accent-hover;
   }
   .btn-secondary {
-    @apply border-line-strong bg-surface text-foreground hover:bg-hover;
+    @apply border-line-strong bg-surface text-foreground hover:border-muted hover:bg-hover;
   }
   .btn-ghost {
     @apply text-muted hover:bg-hover hover:text-foreground;
@@ -125,7 +198,7 @@ body {
 
   /* Pastillas de estado: siempre color + punto + texto. Ver components/status-pill.tsx. */
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap;
   }
   .pill::before {
     content: "";
@@ -157,11 +230,11 @@ body {
     content: none;
   }
   .badge {
-    @apply rounded-full bg-hover px-2.5 py-0.5 text-xs font-medium text-subtle;
+    @apply rounded-full bg-hover px-2.5 py-1 text-xs font-semibold text-subtle;
   }
 
   .chip {
-    @apply flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-base font-medium select-none;
+    @apply flex min-h-12 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface text-base font-semibold select-none;
   }
   .chip:has(input:checked) {
     background: var(--accent);

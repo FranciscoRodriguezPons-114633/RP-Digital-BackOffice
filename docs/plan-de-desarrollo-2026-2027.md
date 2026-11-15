@@ -82,6 +82,8 @@ Las tres resuelven lo de arriba; cambian el carácter. En el sprint UI-1 se maqu
 
 Si ninguna convence, la dirección «papel y vidrio» del traspaso sigue disponible como cuarta opción.
 
+**Decisión (15/11/2026): B · «Tablero de obra».** Las maquetas de las tres están en el lienzo [Direcciones de interfaz](https://claude.ai/artifact/5QtqgE1wXuVVbcX4Lt29L8) (privado). UI-2 implementó los tokens, el tema claro y oscuro con selector, Inter con cifras tabulares, los íconos Lucide, los componentes base (`src/components/ui/`), el shell (barra lateral oscura; en el teléfono, barra superior, barra inferior y hoja «Más») y el buscador ⌘K. Todo se ve en `/sistema`.
+
 ### 3.3 Sprints de la etapa 0
 
 | Sprint | Semana | Horas | Qué queda hecho |
