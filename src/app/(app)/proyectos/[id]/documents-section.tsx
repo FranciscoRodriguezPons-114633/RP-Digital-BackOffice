@@ -56,7 +56,7 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
   return (
     <section id="documentos" className="card flex scroll-mt-6 flex-col gap-6">
       <div>
-        <h2 className="font-medium">Planos y documentos</h2>
+        <h2 className="font-bold">Planos y documentos</h2>
         <p className="mt-1 text-sm text-muted">
           Cada documento tiene una sola revisión vigente. Al publicar una nueva, la anterior queda reemplazada y cada
           archivo guarda su huella (SHA-256) para saber exactamente qué se compartió.

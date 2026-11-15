@@ -13,6 +13,16 @@ export async function openProject(page: Page, name: string) {
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
 }
 
+// Pasa a una pestaña del proyecto (Honorarios, Órdenes de cambio, Documentos…). El nombre
+// del link puede llevar un número al final («Órdenes de cambio 1 esperando respuesta»).
+export async function openProjectSection(page: Page, label: string) {
+  const link = page
+    .getByRole("navigation", { name: "Secciones del proyecto" })
+    .getByRole("link", { name: new RegExp(`^${label}`) });
+  await link.click();
+  await expect(link).toHaveAttribute("aria-current", "page");
+}
+
 // Abre un desplegable de alta («Nuevo insumo», «Nuevo análisis de precio») si está cerrado:
 // arranca abierto solo cuando la lista está vacía. Espera a que la página termine de cargar
 // antes de mirar, para no cerrarlo por error.

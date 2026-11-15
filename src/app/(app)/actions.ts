@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
@@ -91,7 +92,7 @@ export async function inviteGuest(_prev: FormState, formData: FormData): Promise
   });
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${parsed.data.project_id}`);
+  revalidateProjectPages();
   return { ok: true, message: `Listo: le llega un correo a ${parsed.data.email}.` };
 }
 
@@ -101,7 +102,7 @@ export async function removeGuest(projectId: string, guestId: string): Promise<v
 
   const supabase = await createClient();
   await supabase.rpc("remove_guest", { p_guest_id: guestId });
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
 }
 
 export async function inviteMember(_prev: FormState, formData: FormData): Promise<FormState> {

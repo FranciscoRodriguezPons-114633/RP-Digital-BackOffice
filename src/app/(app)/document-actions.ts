@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -38,7 +38,7 @@ export async function createDocument(projectId: string, _prev: FormState, formDa
   if (error?.code === "23505") return { ok: false, errors: { code: [`Ya hay un documento ${parsed.data.code} en este proyecto`] } };
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: `Documento ${parsed.data.code} creado. Ahora subí su primera revisión.` };
 }
 
@@ -96,7 +96,7 @@ export async function finishRevisionUpload(projectId: string, revisionId: string
   const { error } = await supabase.rpc("complete_revision_upload", { p_id: revisionId, p_sha256: sha256 });
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: `Revisión ${rev.code} subida. Publicala cuando sea la vigente.` };
 }
 
@@ -107,7 +107,7 @@ export async function publishRevision(projectId: string, revisionId: string): Pr
   const { error } = await supabase.rpc("publish_revision", { p_id: revisionId });
   if (error?.code === "22023") return { ok: false, message: "Esta revisión no se puede publicar." };
   if (error) return { ok: false, message: dbErrorMessage(error) };
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true };
 }
 
@@ -116,7 +116,7 @@ export async function discardRevision(projectId: string, revisionId: string): Pr
   if (!idSchema.safeParse(revisionId).success) return;
   const supabase = await createClient();
   await supabase.rpc("discard_revision", { p_id: revisionId });
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
 }
 
 // Carga masiva: cada archivo ("A-101 Planta baja.pdf") va a su documento, que se crea si no

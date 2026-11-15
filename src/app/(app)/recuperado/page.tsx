@@ -148,7 +148,7 @@ async function Recovered() {
               {projects.map((p) => (
                 <tr key={`${p.project_id}-${p.currency}`} className="border-b border-line align-top last:border-0">
                   <td className="py-3 pr-4">
-                    <Link href={`/proyectos/${p.project_id}#ordenes`} className="font-medium hover:underline">
+                    <Link href={`/proyectos/${p.project_id}/ordenes`} className="font-medium hover:underline">
                       {p.project_name}
                     </Link>
                   </td>
@@ -202,7 +202,7 @@ async function Recovered() {
               {pending.map((o) => (
                 <li key={o.id} className="flex flex-col gap-0.5 py-2 first:pt-0">
                   <div className="flex items-baseline gap-3">
-                    <Link href={`/proyectos/${o.project_id}#ordenes`} className="min-w-0 flex-1 font-medium hover:underline">
+                    <Link href={`/proyectos/${o.project_id}/ordenes`} className="min-w-0 flex-1 font-medium hover:underline">
                       {changeOrderCode(o.number)} · {o.title}
                     </Link>
                     <span className="font-mono whitespace-nowrap">{formatMoney(o.amount, o.currency)}</span>

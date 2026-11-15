@@ -110,7 +110,7 @@ export async function ChangeOrdersSection({
   return (
     <section id="ordenes" className="card flex scroll-mt-6 flex-col gap-6">
       <div>
-        <h2 className="font-medium">Órdenes de cambio</h2>
+        <h2 className="font-bold">Órdenes de cambio</h2>
         <p className="mt-1 text-sm text-muted">
           Lo que el cliente pidió fuera de lo contratado, con horas y monto. Se la mandás por link y la aprueba sin
           crear cuenta; aprobada, suma a su etapa.

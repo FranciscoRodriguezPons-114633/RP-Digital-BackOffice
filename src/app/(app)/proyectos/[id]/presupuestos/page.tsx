@@ -17,18 +17,15 @@ import {
 } from "@/lib/validation";
 import { ParametricBudgetForm, type WorkValues } from "../../../work-forms";
 import { NewItemBudgetForm } from "../../../budget-forms";
-import { ProjectTabs, ProjectTitle, loadWorksProject } from "../project-header";
+import { loadWorksProject } from "../project-header";
 
 export const metadata: Metadata = { title: "Presupuestos" };
 
 export default function BudgetsPage({ params }: PageProps<"/proyectos/[id]/presupuestos">) {
   return (
-    <div className="flex flex-col gap-8">
-      <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
-      <Suspense fallback={<PageSkeleton label="Cargando presupuestos…" cards={2} list={false} />}>
-        <Budgets params={params} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<PageSkeleton label="Cargando presupuestos…" title={false} cards={2} list={false} />}>
+      <Budgets params={params} />
+    </Suspense>
   );
 }
 
@@ -102,9 +99,6 @@ async function Budgets({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <ProjectTitle project={project} />
-      <ProjectTabs projectId={project.id} active="budgets" />
-
       {!work ? (
         <section className="card flex flex-col items-start gap-3">
           <h2 className="font-medium">Primero, la ficha de obra</h2>

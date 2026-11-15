@@ -19,14 +19,16 @@ export function OrganizationForm() {
   );
 }
 
+// Va en el panel «Nuevo proyecto»: un campo debajo del otro. Al crear, la acción lleva al proyecto.
 export function ProjectForm({ isOwner, projects = [] }: { isOwner: boolean; projects?: { id: string; name: string }[] }) {
   const { state, pending, formProps } = useActionForm(createProject);
   return (
-    <form {...formProps} className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end">
+    <form {...formProps} className="flex flex-col gap-4">
       <label className="field">
         Nombre
         <input name="name" required minLength={2} maxLength={160} placeholder="Edificio Alba" className="input" />
       </label>
+      <FieldError errors={state.errors?.name} />
       <label className="field">
         Código
         <input name="code" maxLength={40} placeholder="EA-01" className="input" />
@@ -35,35 +37,34 @@ export function ProjectForm({ isOwner, projects = [] }: { isOwner: boolean; proj
         Cliente
         <input name="client_name" maxLength={160} placeholder="Desarrollos del Centro" className="input" />
       </label>
-      <SubmitButton pending={pending} pendingLabel="Creando…">Crear proyecto</SubmitButton>
       {isOwner && (
-        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:col-span-4">
-          {/* En el teléfono el texto largo de la opción no debe ensanchar el formulario. */}
-          <label className="flex min-w-0 max-w-full items-center gap-2">
-            <span className="shrink-0">Arrancar con</span>
-            <select name="setup" defaultValue="template" className="input min-w-0 max-w-full py-1">
-              <option value="template">las 4 etapas de honorarios (croquis, anteproyecto, documentación, dirección de obra)</option>
+        <>
+          <label className="field">
+            Arrancar con
+            <select name="setup" defaultValue="template" aria-describedby="setup-ayuda" className="input">
+              <option value="template">Las 4 etapas de honorarios habituales</option>
               {projects.map((p) => (
                 <option key={p.id} value={`copy:${p.id}`}>
-                  las etapas y la lista de planos de «{p.name}»
+                  Las etapas y la lista de planos de «{p.name}»
                 </option>
               ))}
-              <option value="empty">un proyecto vacío</option>
+              <option value="empty">Un proyecto vacío</option>
+            </select>
+            <span id="setup-ayuda" className="text-xs font-normal text-muted">
+              Las habituales: croquis preliminar, anteproyecto, documentación de proyecto y dirección de obra.
+            </span>
+          </label>
+          <label className="field">
+            Moneda de los honorarios
+            <select name="currency" defaultValue="USD" className="input">
+              <option value="USD">Dólares (USD)</option>
+              <option value="ARS">Pesos (ARS)</option>
             </select>
           </label>
-          <label className="flex items-center gap-2 text-muted">
-            en
-            <select name="currency" defaultValue="USD" className="input py-1">
-              <option value="USD">USD</option>
-              <option value="ARS">ARS</option>
-            </select>
-          </label>
-        </div>
+        </>
       )}
-      <div className="sm:col-span-4">
-        <FieldError errors={state.errors?.name} />
-        <FormMessage state={state} />
-      </div>
+      <SubmitButton pending={pending} pendingLabel="Creando…">Crear proyecto</SubmitButton>
+      <FormMessage state={state} />
     </form>
   );
 }

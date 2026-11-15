@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -54,7 +55,7 @@ export async function applyFeeTemplate(projectId: string, formData: FormData): P
   const currency = CURRENCIES.find((c) => c === formData.get("currency")) ?? "USD";
   const supabase = await createClient();
   await supabase.rpc("apply_fee_template", { p_project_id: projectId, p_currency: currency });
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
 }
 
 export async function createStage(projectId: string, _prev: FormState, formData: FormData): Promise<FormState> {
@@ -80,7 +81,7 @@ export async function createStage(projectId: string, _prev: FormState, formData:
   });
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: `Etapa "${parsed.data.name}" agregada.` };
 }
 
@@ -104,7 +105,7 @@ export async function updateStage(
   if (error) return { ok: false, message: dbErrorMessage(error) };
   if (!data?.length) return { ok: false, message: "Solo el dueño del estudio puede cambiar honorarios." };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: "Guardado." };
 }
 
@@ -119,7 +120,7 @@ export async function deleteStage(projectId: string, stageId: string): Promise<F
   }
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true };
 }
 
@@ -134,15 +135,11 @@ export async function createTimeEntry(_prev: FormState, formData: FormData): Pro
   if (!parsed.success) return fieldErrors(parsed.error);
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("time_entries")
-    .insert({ ...parsed.data, user_id: user.id })
-    .select("project_id")
-    .single();
+  const { error } = await supabase.from("time_entries").insert({ ...parsed.data, user_id: user.id });
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
   revalidatePath("/horas");
-  revalidatePath(`/proyectos/${data.project_id}`);
+  revalidateProjectPages();
   const h = String(parsed.data.hours).replace(".", ",");
   return { ok: true, message: `Listo: ${h} h cargadas.` };
 }
@@ -153,5 +150,5 @@ export async function deleteTimeEntry(entryId: string): Promise<void> {
   const supabase = await createClient();
   const { data } = await supabase.from("time_entries").delete().eq("id", entryId).select("project_id");
   revalidatePath("/horas");
-  if (data?.[0]) revalidatePath(`/proyectos/${data[0].project_id}`);
+  if (data?.[0]) revalidateProjectPages();
 }

@@ -20,7 +20,7 @@ import {
   type AnalysisOption,
   type ItemValues,
 } from "../../../../budget-forms";
-import { ProjectTabs, ProjectTitle, loadWorksProject } from "../../project-header";
+import { loadWorksProject } from "../../project-header";
 
 export const metadata: Metadata = { title: "Presupuesto" };
 
@@ -50,12 +50,9 @@ const ANALYSES_LIMIT = 500;
 
 export default function BudgetPage({ params }: PageProps<"/proyectos/[id]/presupuestos/[budgetId]">) {
   return (
-    <div className="flex flex-col gap-8">
-      <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
-      <Suspense fallback={<PageSkeleton label="Cargando presupuesto…" cards={3} list={false} />}>
-        <BudgetEditor params={params} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<PageSkeleton label="Cargando presupuesto…" title={false} cards={3} list={false} />}>
+      <BudgetEditor params={params} />
+    </Suspense>
   );
 }
 
@@ -137,9 +134,6 @@ async function BudgetEditor({ params }: { params: Promise<{ id: string; budgetId
 
   return (
     <BudgetEditorProvider value={{ projectId: project.id, budgetId: budget.id, currency: budget.currency, rate, analyses }}>
-      <ProjectTitle project={project} />
-      <ProjectTabs projectId={project.id} active="budgets" />
-
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Link href={`/proyectos/${project.id}/presupuestos`} className="text-sm text-muted hover:underline">
           Presupuestos

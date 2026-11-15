@@ -156,7 +156,7 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
       const signer = String(p.signer_name ?? "El cliente");
       const amount = formatMoney(p.amount, p.currency);
       const verb = approved ? "aprobó" : "rechazó";
-      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}#ordenes`;
+      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}/ordenes`;
       const subject = `${project}: ${signer} ${verb} ${code}`;
       const comment = p.comment ? String(p.comment) : "";
       const extra = approved ? `Se suma ${amount} a los honorarios de la etapa.` : "La orden no suma a los honorarios.";
@@ -179,7 +179,7 @@ export function renderEmail(msg: OutboxMessage, appUrl: string): Email {
       const doc = String(p.document_code ?? "");
       const from = String(p.from_revision_code ?? "");
       const to = String(p.to_revision_code ?? "");
-      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}#piezas`;
+      const url = `${base}/proyectos/${encodeURIComponent(String(p.project_id ?? ""))}/documentos#piezas`;
       const subject = `${project}: «${piece}» quedó a revisar`;
       const body = `Se publicó ${doc} ${to}, que reemplaza a la ${from} sobre la que se hizo este ${kind}. Revisá si sigue sirviendo o si hay que rehacerlo.`;
       return {

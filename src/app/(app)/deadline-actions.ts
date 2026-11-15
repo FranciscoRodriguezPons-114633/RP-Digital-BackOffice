@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -8,7 +9,7 @@ import { deadlineSchema, fieldErrors, idSchema, type FormState } from "@/lib/val
 
 function revalidateDeadlines(projectId: string | null) {
   revalidatePath("/vencimientos");
-  if (projectId) revalidatePath(`/proyectos/${projectId}`);
+  if (projectId) revalidateProjectPages();
 }
 
 export async function createDeadline(_prev: FormState, formData: FormData): Promise<FormState> {

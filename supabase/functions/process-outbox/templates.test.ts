@@ -105,7 +105,7 @@ describe("renderEmail", () => {
       APP,
     );
     expect(email.subject).toBe("Edificio Alba: Juan Pérez rechazó OC-012");
-    expect(email.text).toContain("https://app.rp.test/proyectos/p-1#ordenes");
+    expect(email.text).toContain("https://app.rp.test/proyectos/p-1/ordenes");
     expect(email.text).toContain("ARS 600");
     expect(email.html).toContain("&lt;b&gt;Muy caro&lt;/b&gt;");
   });
@@ -130,7 +130,7 @@ describe("renderEmail", () => {
     );
     expect(email.subject).toBe("Edificio Alba: «Render fachada norte» quedó a revisar");
     expect(email.text).toContain("Se publicó A-201 C02, que reemplaza a la C01 sobre la que se hizo este render.");
-    expect(email.text).toContain("https://app.rp.test/proyectos/p-1#piezas");
+    expect(email.text).toContain("https://app.rp.test/proyectos/p-1/documentos#piezas");
   });
 
   it("envío de archivos: lista lo compartido y lleva al proyecto", () => {

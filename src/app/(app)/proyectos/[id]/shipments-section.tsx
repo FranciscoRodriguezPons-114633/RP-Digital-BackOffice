@@ -136,7 +136,7 @@ export async function ShipmentsSection({ projectId }: { projectId: string }) {
   return (
     <section id="envios" className="card flex scroll-mt-6 flex-col gap-6">
       <div>
-        <h2 className="font-medium">Envíos</h2>
+        <h2 className="font-bold">Envíos</h2>
         <p className="mt-1 text-sm text-muted">
           Qué le mandaste a cada cliente, renderista o contratista, cuándo, y si lo abrió. Si una revisión enviada se
           reemplazó, lo vas a ver acá.

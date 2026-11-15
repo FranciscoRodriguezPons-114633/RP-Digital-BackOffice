@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -18,8 +19,8 @@ import type { PrepareResult } from "./document-actions";
 // Piezas dependientes (renders, planos de venta, brochures). Los permisos los aplica la base:
 // el estudio las crea y decide; el responsable (puede ser un renderista invitado) sube el archivo.
 
-function revalidatePieces(projectId: string) {
-  revalidatePath(`/proyectos/${projectId}`);
+function revalidatePieces() {
+  revalidateProjectPages();
   revalidatePath("/a-revisar");
 }
 
@@ -46,7 +47,7 @@ export async function createPiece(projectId: string, _prev: FormState, formData:
   if (error?.code === "22023") return { ok: false, message: "La revisión de origen ya no es la vigente." };
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePieces(projectId);
+  revalidatePieces();
   return { ok: true, message: `Pieza «${parsed.data.title}» creada. Subí su archivo cuando esté.` };
 }
 
@@ -86,7 +87,7 @@ export async function finishPieceUpload(projectId: string, pieceId: string): Pro
   const { error } = await supabase.rpc("complete_dependency_upload", { p_id: pieceId, p_sha256: sha256 });
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePieces(projectId);
+  revalidatePieces();
   return { ok: true, message: "Archivo de la pieza subido." };
 }
 
@@ -98,6 +99,6 @@ export async function reviewPiece(projectId: string, pieceId: string, decision: 
   const { error } = await supabase.rpc("review_dependency", { p_id: pieceId, p_decision: parsed.data });
   if (error?.code === "22023") return { ok: false, message: "Esta pieza ya no está a revisar." };
   if (error) return { ok: false, message: dbErrorMessage(error) };
-  revalidatePieces(projectId);
+  revalidatePieces();
   return { ok: true };
 }
