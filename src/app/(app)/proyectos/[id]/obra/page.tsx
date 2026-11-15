@@ -6,18 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { formatArea, formatDate } from "@/lib/format";
 import { QUALITY_LABEL, TYPOLOGY_LABEL, WORK_ROLE_SHORT } from "@/lib/validation";
 import { WorkForm, type WorkValues } from "../../../work-forms";
-import { ProjectTabs, ProjectTitle, loadWorksProject } from "../project-header";
+import { loadWorksProject } from "../project-header";
 
 export const metadata: Metadata = { title: "Obra" };
 
 export default function WorkPage({ params }: PageProps<"/proyectos/[id]/obra">) {
   return (
-    <div className="flex flex-col gap-8">
-      <Link href="/proyectos" className="text-sm text-muted hover:underline">← Proyectos</Link>
-      <Suspense fallback={<PageSkeleton label="Cargando ficha de obra…" cards={1} list={false} />}>
-        <Work params={params} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<PageSkeleton label="Cargando ficha de obra…" title={false} cards={1} list={false} />}>
+      <Work params={params} />
+    </Suspense>
   );
 }
 
@@ -39,9 +36,6 @@ async function Work({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <ProjectTitle project={project} />
-      <ProjectTabs projectId={project.id} active="work" />
-
       {work && (
         <section className="card flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline gap-3">

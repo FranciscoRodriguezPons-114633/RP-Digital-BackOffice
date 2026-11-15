@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -16,8 +17,8 @@ import {
 
 // Igual que en actions.ts: cada acción verifica la sesión; los permisos los aplica la base.
 
-function revalidateWork(projectId: string) {
-  for (const path of ["", "/obra", "/presupuestos"]) revalidatePath(`/proyectos/${projectId}${path}`);
+function revalidateWork() {
+  revalidateProjectPages();
   revalidatePath("/obras");
 }
 
@@ -57,7 +58,7 @@ export async function saveWork(projectId: string, _prev: FormState, formData: Fo
   });
   if (error?.code === "23514") return { ok: false, errors: { client_party_id: ["Elegí un comitente de la lista"] } };
   if (error) return { ok: false, message: dbErrorMessage(error) };
-  revalidateWork(projectId);
+  revalidateWork();
   return { ok: true, message: "Ficha de obra guardada." };
 }
 
@@ -105,7 +106,7 @@ export async function createParametricBudget(
     .select("total, currency")
     .eq("budget_id", data.id)
     .maybeSingle<{ total: string; currency: string }>();
-  revalidateWork(projectId);
+  revalidateWork();
   return {
     ok: true,
     message: `Listo: versión ${data.number}${totals ? `, ${formatMoney(totals.total, totals.currency)}` : ""}.`,

@@ -51,7 +51,7 @@ export async function ProfitabilitySection({ projectId, orgId }: { projectId: st
   return (
     <section className="card flex flex-col gap-4" aria-labelledby="rentabilidad">
       <div>
-        <h2 id="rentabilidad" className="font-medium">
+        <h2 id="rentabilidad" className="font-bold">
           Rentabilidad
         </h2>
         <p className="mt-1 text-sm text-muted">

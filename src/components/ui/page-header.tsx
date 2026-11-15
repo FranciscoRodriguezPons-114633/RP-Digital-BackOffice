@@ -18,7 +18,7 @@ export function PageHeader({
 }) {
   return (
     <header className="flex flex-wrap items-end gap-4">
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <div className="flex min-w-0 grow basis-72 flex-col gap-1.5">
         {back && (
           <Link href={back.href} className="flex w-fit items-center gap-1.5 text-sm text-muted hover:text-foreground">
             <ArrowLeft aria-hidden="true" size={15} />

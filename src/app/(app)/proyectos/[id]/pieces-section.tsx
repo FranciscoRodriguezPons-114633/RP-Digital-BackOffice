@@ -75,7 +75,7 @@ export function PieceRow({
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
         {showProject && piece.projects && (
-          <Link href={`/proyectos/${piece.project_id}#piezas`} className="underline">
+          <Link href={`/proyectos/${piece.project_id}/documentos#piezas`} className="underline">
             {piece.projects.name}
           </Link>
         )}
@@ -166,7 +166,7 @@ export async function PiecesSection({ projectId }: { projectId: string }) {
   return (
     <section id="piezas" className="card flex scroll-mt-6 flex-col gap-6">
       <div>
-        <h2 className="font-medium">Piezas dependientes</h2>
+        <h2 className="font-bold">Piezas dependientes</h2>
         <p className="mt-1 text-sm text-muted">
           Renders, planos de venta y brochures hechos sobre una revisión. Si esa revisión se reemplaza, la pieza queda
           «a revisar» y su responsable recibe un aviso.

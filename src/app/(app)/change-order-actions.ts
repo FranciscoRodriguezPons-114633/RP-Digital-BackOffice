@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -126,7 +127,7 @@ export async function createChangeOrder(projectId: string, _prev: FormState, for
     .single<{ id: string; number: number }>();
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: `${changeOrderCode(data.number)} creada como borrador.` };
 }
 
@@ -154,7 +155,7 @@ export async function updateChangeOrder(
   if (error?.code === "22023") return { ok: false, message: "Esta orden ya no se puede editar." };
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: "Cambios guardados." };
 }
 
@@ -184,7 +185,7 @@ export async function sendChangeOrder(
   if (error?.code === "22023") return { ok: false, message: "Esta orden ya no se puede enviar." };
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   revalidatePath("/recuperado");
   return {
     ok: true,
@@ -209,6 +210,6 @@ export async function voidChangeOrder(
   const { error } = await supabase.rpc("void_change_order", { p_id: orderId, p_reason: parsed.data.reason });
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: "Orden anulada." };
 }

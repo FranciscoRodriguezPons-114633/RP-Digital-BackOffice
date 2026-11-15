@@ -18,11 +18,11 @@ export type DeadlineRow = {
 export const DEADLINE_SELECT = "id, project_id, title, due_date, notify_days, notes, done_at, projects(name)";
 
 // Días entre hoy (Córdoba) y la fecha, sin depender de la hora.
-function daysUntil(isoDate: string, today: string) {
+export function daysUntil(isoDate: string, today: string) {
   return Math.round((Date.parse(`${isoDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000);
 }
 
-function whenLabel(days: number) {
+export function whenLabel(days: number) {
   if (days < 0) return days === -1 ? "Venció ayer" : `Venció hace ${-days} días`;
   if (days === 0) return "Vence hoy";
   if (days === 1) return "Vence mañana";

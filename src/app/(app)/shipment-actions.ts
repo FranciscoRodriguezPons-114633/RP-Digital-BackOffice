@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -33,7 +33,7 @@ export async function sendShipment(projectId: string, _prev: FormState, formData
   if (error?.code === "22023") return { ok: false, message: "Algún archivo ya no está disponible. Recargá la página." };
   if (error) return { ok: false, message: dbErrorMessage(error) };
 
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   const n = parsed.data.revision_ids.length + parsed.data.dependency_ids.length;
   return { ok: true, message: `Envío registrado: ${n === 1 ? "1 archivo" : `${n} archivos`} a ${parsed.data.recipient_email}.` };
 }

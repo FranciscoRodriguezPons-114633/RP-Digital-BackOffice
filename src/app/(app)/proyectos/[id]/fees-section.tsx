@@ -5,6 +5,7 @@ import { STAGE_KIND_LABEL, type StageKind } from "@/lib/validation";
 import { applyFeeTemplate } from "../../fee-actions";
 import { DeleteStageButton, StageForm } from "../../fee-forms";
 import { SubmitButton } from "@/components/form";
+import { ProgressBar } from "@/components/ui/progress-bar";
 
 type StageSummary = {
   id: string;
@@ -30,11 +31,11 @@ type StageSummary = {
   total_amount: string | null;
 };
 
+// Texto del avance de horas (los mismos umbrales que el color de la barra).
 function hoursTone(pct: number | null) {
-  if (pct === null) return { bar: "bg-line", text: "text-muted", label: "" };
-  if (pct >= 100) return { bar: "bg-danger", text: "text-danger", label: "Pasó lo previsto" };
-  if (pct >= 80) return { bar: "bg-warn", text: "text-warn", label: "Cerca del límite" };
-  return { bar: "bg-accent", text: "text-muted", label: "" };
+  if (pct !== null && pct >= 100) return { text: "text-danger", label: "Pasó lo previsto" };
+  if (pct !== null && pct >= 80) return { text: "text-warn", label: "Cerca del límite" };
+  return { text: "text-muted", label: "" };
 }
 
 const isAdjusted = (s: StageSummary) => s.index_current_value !== null && s.index_base_value !== null;
@@ -75,19 +76,16 @@ function ExtrasCell({ s }: { s: StageSummary }) {
   );
 }
 
-function HoursBar({ pct, tone, className }: { pct: number | null; tone: ReturnType<typeof hoursTone>; className: string }) {
+// Verde, ámbar o rojo según el avance (ver ProgressBar).
+function HoursBar({ pct, className }: { pct: number | null; className: string }) {
   if (pct === null) return null;
-  return (
-    <div className={`h-1.5 overflow-hidden rounded-full bg-line ${className}`} aria-hidden="true">
-      <div className={`h-full ${tone.bar}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-    </div>
-  );
+  return <ProgressBar pct={pct} size="sm" className={className} />;
 }
 
-function OverBudgetLink({ s, pct }: { s: StageSummary; pct: number | null }) {
+function OverBudgetLink({ projectId, s, pct }: { projectId: string; s: StageSummary; pct: number | null }) {
   if (pct === null || pct < 100) return null;
   return (
-    <Link href={`?oc_etapa=${s.id}#ordenes`} className="text-xs text-accent underline">
+    <Link href={`/proyectos/${projectId}/ordenes?etapa=${s.id}`} className="text-xs text-accent underline">
       ¿Cambios del cliente? Crear orden de cambio
     </Link>
   );
@@ -121,14 +119,9 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
 
   return (
     <section className="card flex flex-col gap-6">
-      <div className="flex flex-wrap items-start gap-3">
-        <div>
-          <h2 className="font-medium">Honorarios por etapa</h2>
-          <p className="mt-1 text-sm text-muted">Honorario actualizado, adicionales aprobados y horas contra lo previsto.</p>
-        </div>
-        {stages.length > 0 && (
-          <Link href={`/horas?proyecto=${projectId}`} className="btn btn-primary ml-auto">Cargar horas</Link>
-        )}
+      <div>
+        <h2 className="font-bold">Honorarios por etapa</h2>
+        <p className="mt-1 text-sm text-muted">Honorario actualizado, adicionales aprobados y horas contra lo previsto.</p>
       </div>
 
       {stages.length === 0 ? (
@@ -186,11 +179,11 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                       {formatHours(s.hours_used)}
                       {s.budget_hours !== null && <span className="text-muted"> / {formatHours(s.budget_hours)}</span>}
                     </span>
-                    <HoursBar pct={pct} tone={tone} className="flex-1" />
+                    <HoursBar pct={pct} className="flex-1" />
                     {pct !== null && <span className={`text-xs ${tone.text}`}>{`${String(pct).replace(".", ",")}%`}</span>}
                   </div>
                   {tone.label && <span className={`text-xs ${tone.text}`}>{tone.label}</span>}
-                  <OverBudgetLink s={s} pct={pct} />
+                  <OverBudgetLink projectId={projectId} s={s} pct={pct} />
                 </li>
               );
             })}
@@ -234,12 +227,12 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                           {formatHours(s.hours_used)}
                           {s.budget_hours !== null && <span className="text-muted"> / {formatHours(s.budget_hours)}</span>}
                         </div>
-                        <HoursBar pct={pct} tone={tone} className="mt-1.5 w-32" />
+                        <HoursBar pct={pct} className="mt-1.5 w-32" />
                       </td>
                       <td className={`py-3 text-xs ${tone.text}`}>
                         <div className="whitespace-nowrap">{pct !== null && `${String(pct).replace(".", ",")}%`}</div>
                         {tone.label && <div className="whitespace-nowrap">{tone.label}</div>}
-                        <OverBudgetLink s={s} pct={pct} />
+                        <OverBudgetLink projectId={projectId} s={s} pct={pct} />
                       </td>
                     </tr>
                   );

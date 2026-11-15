@@ -21,14 +21,14 @@ export function StatCard({
   const hintColor = { muted: "text-muted", ok: "text-ok", warn: "text-warn", danger: "text-danger" }[tone];
   return (
     <div
-      className={`flex flex-col gap-1.5 rounded-[var(--radius-card)] p-5 ${
+      className={`flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-card)] p-4 sm:p-5 ${
         dark ? "bg-nav text-nav-strong" : "border border-[var(--card-border)] bg-surface shadow-[var(--card-shadow)]"
       }`}
     >
-      <p className={`text-sm font-semibold ${dark ? "text-nav-muted" : "text-muted"}`}>{label}</p>
+      <p className={`text-xs font-semibold sm:text-sm ${dark ? "text-nav-muted" : "text-muted"}`}>{label}</p>
       <p className="stat">{value}</p>
       {children}
-      {hint && <p className={`text-sm ${dark ? "text-nav-fg" : hintColor} ${tone !== "muted" ? "font-semibold" : ""}`}>{hint}</p>}
+      {hint && <p className={`text-xs sm:text-sm ${dark ? "text-nav-fg" : hintColor} ${tone !== "muted" ? "font-semibold" : ""}`}>{hint}</p>}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 // Navegación en pastillas (secciones de un proyecto, filtros por tipo). La activa va oscura.
-export type PillNavItem = { href: string; label: string; count?: number; current?: boolean };
+// countLabel: lo que el número cuenta, para los lectores de pantalla («esperando respuesta»).
+export type PillNavItem = { href: string; label: string; count?: number; countLabel?: string; current?: boolean };
 
 export function PillNav({ label, items, className = "" }: { label: string; items: PillNavItem[]; className?: string }) {
   return (
@@ -18,7 +19,12 @@ export function PillNav({ label, items, className = "" }: { label: string; items
           }`}
         >
           {item.label}
-          {item.count ? <span className={`tabular text-xs ${item.current ? "opacity-80" : "text-muted"}`}>{item.count}</span> : null}
+          {item.count ? (
+            <span className={`tabular text-xs ${item.current ? "opacity-80" : "text-muted"}`}>
+              {item.count}
+              {item.countLabel && <span className="sr-only"> {item.countLabel}</span>}
+            </span>
+          ) : null}
         </Link>
       ))}
     </nav>

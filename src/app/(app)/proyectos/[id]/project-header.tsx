@@ -1,61 +1,98 @@
+import { cache } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { Clock, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { idSchema } from "@/lib/validation";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusPill } from "@/components/status-pill";
+import { ProjectNav } from "./project-nav";
 
-export type ProjectTab = "summary" | "work" | "budgets";
+export type ProjectRecord = {
+  id: string;
+  org_id: string;
+  name: string;
+  code: string | null;
+  client_name: string | null;
+  status: "active" | "archived";
+  organizations: { name: string } | null;
+};
 
-const TABS: { key: ProjectTab; label: string; path: string }[] = [
-  { key: "summary", label: "Resumen", path: "" },
-  { key: "work", label: "Obra", path: "/obra" },
-  { key: "budgets", label: "Presupuestos", path: "/presupuestos" },
-];
-
-// Pestañas del proyecto. Obra y Presupuestos son de Finanzas de obra: solo se ven si la
-// plataforma habilitó «works» para la organización.
-export function ProjectTabs({ projectId, active }: { projectId: string; active: ProjectTab }) {
-  return (
-    <nav aria-label="Secciones del proyecto" className="-mt-4 flex gap-1 overflow-x-auto border-b border-line">
-      {TABS.map((t) => (
-        <Link
-          key={t.key}
-          href={`/proyectos/${projectId}${t.path}`}
-          aria-current={t.key === active ? "page" : undefined}
-          className={`-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-focus ${
-            t.key === active
-              ? "border-accent font-medium text-foreground"
-              : "border-transparent text-muted hover:text-foreground"
-          }`}
-        >
-          {t.label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
-export type WorksProject = { id: string; org_id: string; name: string; code: string | null; client_name: string | null };
-
-// Proyecto de una pestaña de obra: solo para miembros de una organización con «works».
-// Para cualquier otro (invitado, otra organización, sin la función) es como si no existiera.
-export async function loadWorksProject(id: string) {
+// El proyecto y la organización de quien mira. Lo usan el encabezado (layout) y cada sección
+// en el mismo pedido: cache() hace una sola consulta. RLS devuelve vacío si no hay acceso, y
+// eso se muestra igual que si el proyecto no existiera.
+export const loadProject = cache(async (id: string) => {
   if (!idSchema.safeParse(id).success) notFound();
   await requireUser();
   const supabase = await createClient();
-  const [{ data }, org] = await Promise.all([
-    supabase.from("projects").select("id, org_id, name, code, client_name").eq("id", id).maybeSingle<WorksProject>(),
+  const [{ data: project }, org] = await Promise.all([
+    supabase
+      .from("projects")
+      .select("id, org_id, name, code, client_name, status, organizations(name)")
+      .eq("id", id)
+      .maybeSingle<ProjectRecord>(),
     getCurrentOrg(),
   ]);
-  if (!data || org?.id !== data.org_id || !hasWorks(org)) notFound();
-  return { project: data, org };
+  if (!project) notFound();
+  return { project, org, isMember: org?.id === project.org_id };
+});
+
+// Secciones del estudio (honorarios, órdenes, documentos…): solo para miembros. Un invitado
+// solo tiene la portada del proyecto, y si llega a una sección (por un link de un correo) va
+// a la portada, donde está lo que le compartieron.
+export async function loadMemberProject(id: string) {
+  const { project, org, isMember } = await loadProject(id);
+  if (!isMember || !org) redirect(`/proyectos/${project.id}`);
+  return { project, org, isOwner: org.role === "owner", works: hasWorks(org) };
 }
 
-export function ProjectTitle({ project }: { project: WorksProject }) {
+// Obra y Presupuestos son de Finanzas de obra: solo si la plataforma habilitó «works» para la
+// organización. Para cualquier otro es como si no existieran.
+export async function loadWorksProject(id: string) {
+  const { project, org, works } = await loadMemberProject(id);
+  if (!works) notFound();
+  return { project, org };
+}
+
+// Encabezado común a todas las secciones del proyecto: nombre, datos, acciones y pestañas.
+export async function ProjectHeader({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { project, org, isMember } = await loadProject(id);
+  const supabase = await createClient();
+  const { count: waiting } = isMember
+    ? await supabase
+        .from("change_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", id)
+        .eq("status", "sent")
+    : { count: 0 };
+
   return (
-    <header>
-      <h1 className="text-2xl font-semibold">{project.name}</h1>
-      <p className="mt-1 text-sm text-muted">{[project.code, project.client_name].filter(Boolean).join(" · ")}</p>
-    </header>
+    <>
+      <PageHeader
+        back={{ href: "/proyectos", label: "Proyectos" }}
+        title={project.name}
+        status={project.status === "archived" ? <StatusPill>Archivado</StatusPill> : null}
+        meta={[project.code, project.client_name, !isMember && project.organizations?.name].filter(Boolean).join(" · ")}
+        actions={
+          isMember && (
+            <>
+              <Link href={`/horas?proyecto=${project.id}`} className="btn btn-primary">
+                <Clock aria-hidden="true" size={16} />
+                Cargar horas
+              </Link>
+              {/* Descarga un archivo: enlace común, sin navegación del cliente. En el teléfono no:
+                  la planilla se abre en la computadora. */}
+              <a href={`/proyectos/${project.id}/exportar`} className="btn btn-secondary hidden sm:inline-flex">
+                <Download aria-hidden="true" size={16} />
+                Exportar a Excel
+              </a>
+            </>
+          )
+        }
+      />
+      {isMember && <ProjectNav projectId={project.id} works={hasWorks(org)} waiting={waiting ?? 0} />}
+    </>
   );
 }

@@ -159,8 +159,9 @@ body {
     @apply rounded-[var(--radius-card)] border border-[var(--card-border)] bg-surface p-6 shadow-[var(--card-shadow)];
   }
   /* Número grande de una tarjeta de resumen. */
+  /* En el teléfono van de a dos por fila: más chico. */
   .stat {
-    @apply text-3xl font-extrabold tracking-tight tabular-nums;
+    @apply text-[22px] leading-tight font-extrabold tracking-tight tabular-nums sm:text-3xl;
   }
   .field {
     @apply flex flex-col gap-1 text-sm font-medium;

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
@@ -16,9 +17,8 @@ function budgetPath(projectId: string, budgetId: string) {
   return `/proyectos/${projectId}/presupuestos/${budgetId}`;
 }
 
-function revalidateBudget(projectId: string, budgetId: string) {
-  revalidatePath(budgetPath(projectId, budgetId));
-  revalidatePath(`/proyectos/${projectId}/presupuestos`);
+function revalidateBudget() {
+  revalidateProjectPages();
   revalidatePath("/obras");
 }
 
@@ -44,7 +44,7 @@ export async function createItemBudget(projectId: string, _prev: FormState, form
     .single<{ id: string; number: number }>();
   if (error?.code === "22023") return { ok: false, message: error.message };
   if (error) return { ok: false, message: dbErrorMessage(error) };
-  revalidateBudget(projectId, data.id);
+  revalidateBudget();
   redirect(budgetPath(projectId, data.id));
 }
 
@@ -64,7 +64,7 @@ export async function setBudgetExchangeRate(
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_budget_exchange_rate", { p_budget_id: budgetId, p_rate: rate });
   if (error) return { ok: false, message: message(error) };
-  revalidateBudget(projectId, budgetId);
+  revalidateBudget();
   return { ok: true, message: "Tipo de cambio guardado." };
 }
 
@@ -89,7 +89,7 @@ export async function addChapter(projectId: string, budgetId: string, _prev: For
     .insert({ budget_id: budgetId, name: name.data, position: (last?.position ?? 0) + 1 });
   if (error?.code === "23505") return { ok: false, errors: { name: ["Ya hay un rubro con ese nombre"] } };
   if (error) return { ok: false, message: message(error) };
-  revalidateBudget(projectId, budgetId);
+  revalidateBudget();
   return { ok: true, message: `Rubro «${name.data}» agregado.` };
 }
 
@@ -108,7 +108,7 @@ export async function renameChapter(
   const { error } = await supabase.from("budget_chapters").update({ name: name.data }).eq("id", chapterId);
   if (error?.code === "23505") return { ok: false, errors: { name: ["Ya hay un rubro con ese nombre"] } };
   if (error) return { ok: false, message: message(error) };
-  revalidateBudget(projectId, budgetId);
+  revalidateBudget();
   return { ok: true, message: "Rubro renombrado." };
 }
 
@@ -118,7 +118,7 @@ export async function deleteChapter(projectId: string, budgetId: string, chapter
   const supabase = await createClient();
   const { error } = await supabase.from("budget_chapters").delete().eq("id", chapterId);
   if (error) return { ok: false, message: message(error) };
-  revalidateBudget(projectId, budgetId);
+  revalidateBudget();
   return { ok: true, message: "Rubro borrado." };
 }
 
@@ -133,7 +133,7 @@ export async function moveBudgetRow(
   if (!idSchema.safeParse(id).success || (kind !== "chapter" && kind !== "item")) return;
   const supabase = await createClient();
   await supabase.rpc("move_budget_row", { p_kind: kind, p_id: id, p_direction: direction === -1 ? -1 : 1 });
-  revalidateBudget(projectId, budgetId);
+  revalidateBudget();
 }
 
 // ---------- Ítems ----------
@@ -178,7 +178,7 @@ export async function saveBudgetItem(
     ({ error } = await supabase.from("budget_items").update(parsed.data).eq("id", itemId).eq("budget_id", budgetId));
   }
   if (error) return { ok: false, message: message(error) };
-  revalidateBudget(projectId, budgetId);
+  revalidateBudget();
   return { ok: true, message: itemId ? "Ítem guardado." : `«${parsed.data.description}» agregado.` };
 }
 
@@ -188,6 +188,6 @@ export async function deleteBudgetItem(projectId: string, budgetId: string, item
   const supabase = await createClient();
   const { error } = await supabase.from("budget_items").delete().eq("id", itemId);
   if (error) return { ok: false, message: message(error) };
-  revalidateBudget(projectId, budgetId);
+  revalidateBudget();
   return { ok: true, message: "Ítem borrado." };
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openProject, signInAs } from "./helpers";
+import { openProject, openProjectSection, signInAs } from "./helpers";
 
 // Link fijo de la OC-001 que deja el seed (ver supabase/seed.sql).
 const OC_001_LINK = "/aprobar/link-de-prueba-local-para-aprobar-la-oc-001";
@@ -19,6 +19,7 @@ test("el cliente aprueba la OC-001 desde el link, sin cuenta", async ({ page }) 
 test("un link de una orden editada después del envío avisa que la orden cambió", async ({ page, browser }) => {
   await signInAs(page, "Ana");
   await openProject(page, "Edificio Alba");
+  await openProjectSection(page, "Órdenes de cambio");
 
   await page.getByText("Enviar o editar OC-003").click();
   const order = page.locator("details", { hasText: "Enviar o editar OC-003" });

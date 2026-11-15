@@ -1,14 +1,12 @@
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/skeleton";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrg, requireUser } from "@/lib/dal";
-import { idSchema } from "@/lib/validation";
 import { eventText, type EventRow } from "../event-text";
+import { loadMemberProject } from "../project-header";
 
-export const metadata: Metadata = { title: "Historial" };
+export const metadata: Metadata = { title: "Actividad" };
 
 const PAGE_SIZE = 100;
 
@@ -20,11 +18,9 @@ const dateFmt = new Intl.DateTimeFormat("es-AR", {
 
 export default function HistoryPage({ params, searchParams }: PageProps<"/proyectos/[id]/historial">) {
   return (
-    <div className="flex flex-col gap-8">
-      <Suspense fallback={<PageSkeleton label="Cargando historial…" list={false} />}>
-        <History params={params} searchParams={searchParams} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<PageSkeleton label="Cargando actividad…" title={false} list={false} />}>
+      <History params={params} searchParams={searchParams} />
+    </Suspense>
   );
 }
 
@@ -38,16 +34,10 @@ async function History({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  if (!idSchema.safeParse(id).success) notFound();
-  await requireUser();
+  await loadMemberProject(id);
   const page = Math.max(1, Number(typeof query.pagina === "string" ? query.pagina : 1) || 1);
 
   const supabase = await createClient();
-  const [{ data: project }, org] = await Promise.all([
-    supabase.from("projects").select("id, org_id, name").eq("id", id).maybeSingle(),
-    getCurrentOrg(),
-  ]);
-  if (!project || org?.id !== project.org_id) notFound();
 
   const from = (page - 1) * PAGE_SIZE;
   const { data, count } = await supabase
@@ -60,24 +50,23 @@ async function History({
   const pages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (
-    <>
-      <div className="flex flex-col gap-1">
-        <Link href={`/proyectos/${id}`} className="text-sm text-muted hover:underline">
-          ← {project.name}
-        </Link>
-        <h1 className="text-2xl font-semibold">Historial</h1>
-        <p className="text-sm text-muted">
-          {count ?? 0} eventos. El registro no se puede editar ni borrar: queda quién hizo cada cosa y cuándo.
-        </p>
-      </div>
-      <section className="card">
+    <div className="flex flex-col gap-4">
+      <section className="card flex flex-col gap-4" aria-labelledby="actividad">
+        <div>
+          <h2 id="actividad" className="font-bold">Actividad</h2>
+          <p className="mt-1 text-sm text-muted">
+            {count ?? 0} eventos. El registro no se puede editar ni borrar: queda quién hizo cada cosa y cuándo.
+          </p>
+        </div>
         {events.length === 0 ? (
           <p className="text-sm text-muted">Todavía no hay eventos.</p>
         ) : (
           <ol className="flex flex-col gap-2 text-sm">
             {events.map((e) => (
               <li key={e.id} className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-                <time className="shrink-0 text-muted sm:w-32">{dateFmt.format(new Date(e.created_at))}</time>
+                <time dateTime={e.created_at} className="shrink-0 text-muted sm:w-32">
+                  {dateFmt.format(new Date(e.created_at))}
+                </time>
                 <span>{eventText(e)}</span>
               </li>
             ))}
@@ -91,6 +80,6 @@ async function History({
           {page < pages && <Link href={`?pagina=${page + 1}`} className="underline">Más viejos</Link>}
         </nav>
       )}
-    </>
+    </div>
   );
 }

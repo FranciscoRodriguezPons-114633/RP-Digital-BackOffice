@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateProjectPages } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
@@ -38,7 +38,7 @@ export async function addComment(
     p_anchor: parsed.data.anchor,
   });
   if (error) return { ok: false, message: dbErrorMessage(error) };
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true };
 }
 
@@ -47,7 +47,7 @@ export async function resolveComment(projectId: string, commentId: string): Prom
   if (!idSchema.safeParse(commentId).success) return;
   const supabase = await createClient();
   await supabase.rpc("resolve_comment", { p_id: commentId });
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
 }
 
 export async function closeRound(projectId: string, pieceId: string): Promise<FormState> {
@@ -57,6 +57,6 @@ export async function closeRound(projectId: string, pieceId: string): Promise<Fo
   const { data, error } = await supabase.rpc("close_round", { p_dependency_id: pieceId });
   if (error?.code === "22023") return { ok: false, message: "La ronda no tiene comentarios sin resolver." };
   if (error) return { ok: false, message: dbErrorMessage(error) };
-  revalidatePath(`/proyectos/${projectId}`);
+  revalidateProjectPages();
   return { ok: true, message: `Ronda cerrada: le avisamos al responsable. Ahora corre la ronda ${String(data)}.` };
 }
