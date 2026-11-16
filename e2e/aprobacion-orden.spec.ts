@@ -21,8 +21,8 @@ test("un link de una orden editada después del envío avisa que la orden cambi�
   await openProject(page, "Edificio Alba");
   await openProjectSection(page, "Órdenes de cambio");
 
-  await page.getByText("Enviar o editar OC-003").click();
-  const order = page.locator("details", { hasText: "Enviar o editar OC-003" });
+  await page.getByRole("button", { name: "Enviar o editar OC-003" }).click();
+  const order = page.getByRole("dialog", { name: "Enviar o editar OC-003" });
   await order.getByLabel("Enviar al cliente").fill("cliente@estudio.test");
   await order.getByRole("button", { name: "Enviar para aprobar" }).click();
   const link = await order.locator("code").filter({ hasText: "/aprobar/" }).textContent();

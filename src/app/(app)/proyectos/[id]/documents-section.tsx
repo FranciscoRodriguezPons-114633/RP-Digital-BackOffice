@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { Disclosure } from "@/components/disclosure";
 import { SubmitButton } from "@/components/form";
 import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatBytes } from "@/lib/format";
@@ -8,6 +7,8 @@ import { discardRevision } from "../../document-actions";
 import { BulkUploadForm, DocumentForm, PublishRevisionButton, RevisionUploadForm } from "../../document-forms";
 import { CommentThread } from "../../comment-thread";
 import { loadComments } from "./comments";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Plus, Upload } from "lucide-react";
 
 type RevisionRow = {
   id: string;
@@ -63,27 +64,14 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
         </p>
       </div>
 
-      <Disclosure
-        defaultOpen={documents.length === 0}
-        className="rounded-md border border-dashed border-line"
-        summary="Nuevo documento"
-        summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
-      >
-        <div className="border-t border-line p-4">
+      <div className="flex flex-wrap gap-2">
+        <PanelButton label="Nuevo documento" title="Nuevo documento" eyebrow="Planos y documentos" variant="primary" icon={<Plus aria-hidden="true" size={16} />}>
           <DocumentForm projectId={projectId} />
-        </div>
-      </Disclosure>
-
-      <Disclosure
-        defaultOpen={false}
-        className="rounded-md border border-dashed border-line"
-        summary="Cargar varios planos de una vez"
-        summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
-      >
-        <div className="border-t border-line p-4">
+        </PanelButton>
+        <PanelButton label="Cargar varios planos de una vez" title="Cargar varios planos" eyebrow="Planos y documentos" icon={<Upload aria-hidden="true" size={16} />}>
           <BulkUploadForm projectId={projectId} />
-        </div>
-      </Disclosure>
+        </PanelButton>
+      </div>
 
       {documents.length > 0 && (
         <ul className="flex flex-col divide-y divide-line">
@@ -106,11 +94,15 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
                   {DISCIPLINE_LABEL[d.discipline]}
                   {current?.published_at && ` · publicada el ${dateFmt.format(new Date(current.published_at))}`}
                 </div>
-                <details className="rounded-md border border-line">
-                  <summary className="cursor-pointer px-4 py-2 text-sm">
-                    Revisiones ({d.revisions.length}) y subir nueva
-                  </summary>
-                  <div className="flex flex-col gap-5 border-t border-line p-4">
+                <PanelButton
+                  label={`Revisiones (${d.revisions.length}) y subir nueva`}
+                  title={`${d.code} · ${d.title}`}
+                  eyebrow="Revisiones"
+                  size="sm"
+                  className="self-start"
+                  closeOnSuccess={false}
+                >
+                  <div className="flex flex-col gap-5">
                     {d.revisions.length > 0 && (
                       <ul className="flex flex-col divide-y divide-line text-sm">
                         {d.revisions.map((r) => (
@@ -177,7 +169,7 @@ export async function DocumentsSection({ projectId }: { projectId: string }) {
                       />
                     </div>
                   </div>
-                </details>
+                </PanelButton>
               </li>
             );
           })}

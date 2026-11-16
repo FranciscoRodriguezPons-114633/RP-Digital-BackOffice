@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openDisclosure, signInAs, trackPageErrors } from "./helpers";
+import { openPanel, signInAs, trackPageErrors } from "./helpers";
 
 // Del insumo al análisis de precio: usa el cemento del seed (CEM-PORT, ARS 190 por kg).
 test("se arma un análisis de precio con un insumo y el costo se calcula en vivo", async ({ page }) => {
@@ -8,7 +8,7 @@ test("se arma un análisis de precio con un insumo y el costo se calcula en vivo
   await signInAs(page, "Ana");
   await page.goto("/analisis-de-precios");
 
-  await openDisclosure(page, "Nuevo análisis de precio");
+  await openPanel(page, "Nuevo análisis de precio");
   await page.getByLabel("Código", { exact: true }).fill(code);
   await page.getByLabel("Nombre", { exact: true }).fill("Carpeta de cemento de 2 cm");
   await page.getByLabel("Rubro", { exact: true }).fill("Contrapisos y carpetas");

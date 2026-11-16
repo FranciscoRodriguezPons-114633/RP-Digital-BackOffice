@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadProjectGuests } from "./guests";
-import { Disclosure } from "@/components/disclosure";
 import { StatusPill, type PillTone } from "@/components/status-pill";
 import { PIECE_KIND_LABEL, SHIPMENT_CHANNEL_LABEL, type PieceKind } from "@/lib/validation";
 import { ShipmentForm, type ShippableFile } from "../../shipment-forms";
 import { CommentThread, type CommentView } from "../../comment-thread";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Send } from "lucide-react";
 
 export type ShipmentItem = {
   id: string;
@@ -148,21 +149,14 @@ export async function ShipmentsSection({ projectId }: { projectId: string }) {
       ) : revisions.length + pieces.length === 0 ? (
         <p className="text-sm text-muted">Todavía no hay archivos para enviar: subí una revisión en Planos y documentos.</p>
       ) : (
-        <Disclosure
-          defaultOpen={false}
-          className="rounded-md border border-dashed border-line"
-          summary="Enviar archivos a un invitado"
-          summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
-        >
-          <div className="border-t border-line p-4">
-            <ShipmentForm
-              projectId={projectId}
-              guests={guests.map(({ email, kind }) => ({ email, kind }))}
-              revisions={revisions}
-              pieces={pieces}
-            />
-          </div>
-        </Disclosure>
+        <PanelButton label="Enviar archivos a un invitado" title="Enviar archivos" eyebrow="Envíos" variant="primary" icon={<Send aria-hidden="true" size={16} />} className="self-start">
+          <ShipmentForm
+            projectId={projectId}
+            guests={guests.map(({ email, kind }) => ({ email, kind }))}
+            revisions={revisions}
+            pieces={pieces}
+          />
+        </PanelButton>
       )}
 
       {byRecipient.size > 0 && (

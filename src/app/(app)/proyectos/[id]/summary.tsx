@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleCheck } from "lucide-react";
+import { CircleCheck, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay, formatHours, formatMoney, formatPeriod, sumAmounts, todayInCordoba } from "@/lib/format";
 import { changeOrderCode } from "@/lib/validation";
@@ -7,10 +7,10 @@ import { StatCard } from "@/components/ui/stat-card";
 import { CountUp } from "@/components/motion/count-up";
 import { ProgressBar, progressTone } from "@/components/ui/progress-bar";
 import { AttentionItem, type AttentionTone } from "@/components/ui/attention";
-import { Disclosure } from "@/components/disclosure";
 import { DeadlineForm } from "../../deadline-forms";
 import { DEADLINE_SELECT, DeadlineList, daysUntil, whenLabel, type DeadlineRow } from "../../vencimientos/deadline-list";
 import { eventText, type EventRow } from "./event-text";
+import { PanelButton } from "@/components/ui/panel-button";
 
 type StageRow = {
   id: string;
@@ -330,16 +330,9 @@ export async function ProjectSummary({
           ) : (
             <p className="text-sm text-muted">No hay vencimientos pendientes.</p>
           )}
-          <Disclosure
-            defaultOpen={false}
-            className="rounded-[var(--radius-control)] border border-dashed border-line-strong"
-            summary="Nuevo vencimiento"
-            summaryClassName="cursor-pointer px-4 py-3 text-sm font-semibold"
-          >
-            <div className="border-t border-line p-4">
-              <DeadlineForm projectId={projectId} />
-            </div>
-          </Disclosure>
+          <PanelButton label="Nuevo vencimiento" title="Nuevo vencimiento" eyebrow="Vencimientos" variant="dashed" icon={<Plus aria-hidden="true" size={16} />}>
+            <DeadlineForm projectId={projectId} />
+          </PanelButton>
         </section>
 
         <section className="card flex flex-col gap-4 lg:col-span-2" aria-labelledby="actividad-reciente">

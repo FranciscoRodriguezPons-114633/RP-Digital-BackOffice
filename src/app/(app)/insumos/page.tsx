@@ -3,7 +3,6 @@ import Link from "next/link";
 import { PillNav } from "@/components/ui/pill-nav";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { Disclosure } from "@/components/disclosure";
 import { ListSkeleton } from "@/components/skeleton";
 import { StatusPill } from "@/components/status-pill";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +12,8 @@ import { SUPPLY_KINDS, SUPPLY_KIND_LABEL, type SupplyKind } from "@/lib/supplies
 import { LaborSettingForm, SupplyForm } from "../supply-forms";
 import { loadSupplyFormData } from "./data";
 import { RevealText } from "@/components/motion/reveal-title";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Plus } from "lucide-react";
 
 export const metadata: Metadata = { title: "Insumos" };
 
@@ -100,16 +101,9 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
   return (
     <>
       <section className="card flex flex-col gap-4">
-        <Disclosure
-          defaultOpen={total === 0 && !filtered}
-          className="rounded-md border border-dashed border-line"
-          summary="Nuevo insumo"
-          summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
-        >
-          <div className="border-t border-line p-4">
-            <SupplyForm suppliers={form.suppliers} laborSeries={form.laborSeries} chargesPct={form.chargesPct} today={today} />
-          </div>
-        </Disclosure>
+        <PanelButton label="Nuevo insumo" title="Nuevo insumo" eyebrow="Insumos" variant="primary" icon={<Plus aria-hidden="true" size={16} />} className="self-start">
+          <SupplyForm suppliers={form.suppliers} laborSeries={form.laborSeries} chargesPct={form.chargesPct} today={today} />
+        </PanelButton>
 
         <form action="/insumos" className="flex flex-wrap items-end gap-3">
           <label className="field min-w-0 flex-1">

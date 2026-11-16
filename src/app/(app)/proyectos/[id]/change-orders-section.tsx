@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadProjectGuests } from "./guests";
-import { Disclosure } from "@/components/disclosure";
 import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatHours, formatMoney } from "@/lib/format";
 import { CHANGE_ORDER_STATUS_LABEL, changeOrderCode, type ChangeOrderStatus } from "@/lib/validation";
 import { ChangeOrderForm, SendChangeOrderForm, VoidChangeOrderForm, type StageChoice } from "../../co-forms";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Plus } from "lucide-react";
 
 type OrderRow = {
   id: string;
@@ -109,29 +110,33 @@ export async function ChangeOrdersSection({
 
   return (
     <section id="ordenes" className="card flex scroll-mt-6 flex-col gap-6">
-      <div>
-        <h2 className="font-bold">Órdenes de cambio</h2>
-        <p className="mt-1 text-sm text-muted">
-          Lo que el cliente pidió fuera de lo contratado, con horas y monto. Se la mandás por link y la aprueba sin
-          crear cuenta; aprobada, suma a su etapa.
-        </p>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0 grow basis-72">
+          <h2 className="font-bold">Órdenes de cambio</h2>
+          <p className="mt-1 text-sm text-muted">
+            Lo que el cliente pidió fuera de lo contratado, con horas y monto. Se la mandás por link y la aprueba sin
+            crear cuenta; aprobada, suma a su etapa.
+          </p>
+        </div>
+        {stages.length > 0 && (
+          // Abierto al llegar desde «Crear orden de cambio» de una etapa pasada de horas; la key lo
+          // vuelve a abrir si se llega desde otra etapa.
+          <PanelButton
+            key={validDefault ?? "nueva"}
+            label="Nueva orden de cambio"
+            title="Nueva orden de cambio"
+            eyebrow="Órdenes de cambio"
+            variant="primary"
+            icon={<Plus aria-hidden="true" size={16} />}
+            defaultOpen={Boolean(validDefault)}
+          >
+            <ChangeOrderForm projectId={projectId} stages={stages} defaultStageId={validDefault} />
+          </PanelButton>
+        )}
       </div>
 
-      {stages.length === 0 ? (
+      {stages.length === 0 && (
         <p className="text-sm text-muted">Para crear órdenes, primero cargá las etapas de honorarios.</p>
-      ) : (
-        // La key vuelve a abrir el formulario cuando se llega desde "Crear orden de cambio" de otra etapa.
-        <Disclosure
-          key={validDefault ?? "nueva"}
-          defaultOpen={Boolean(validDefault) || orders.length === 0}
-          className="rounded-md border border-dashed border-line"
-          summary="Nueva orden de cambio"
-          summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
-        >
-          <div className="border-t border-line p-4">
-            <ChangeOrderForm projectId={projectId} stages={stages} defaultStageId={validDefault} />
-          </div>
-        </Disclosure>
       )}
 
       {orders.length > 0 && (
@@ -190,9 +195,16 @@ export async function ChangeOrdersSection({
                 )}
                 {o.status === "void" && o.void_reason && <p className="text-xs text-muted">Motivo: {o.void_reason}</p>}
                 {(editable || correctable || (isOwner && o.status !== "void")) && (
-                  <details className="rounded-md border border-line">
-                    <summary className="cursor-pointer px-4 py-2 text-sm">{summary}</summary>
-                    <div className="flex flex-col gap-5 border-t border-line p-4">
+                  // Queda abierto al guardar: el link de aprobación se ve una sola vez, para copiarlo.
+                  <PanelButton
+                    label={summary}
+                    title={summary}
+                    eyebrow={o.title}
+                    size="sm"
+                    className="self-start"
+                    closeOnSuccess={false}
+                  >
+                    <div className="flex flex-col gap-5">
                       {editable && (
                         <SendChangeOrderForm
                           projectId={projectId}
@@ -229,7 +241,7 @@ export async function ChangeOrdersSection({
                         </div>
                       )}
                     </div>
-                  </details>
+                  </PanelButton>
                 )}
               </li>
             );
