@@ -66,7 +66,22 @@ export function eventText(e: EventRow) {
   }
   if (e.type === "budget.created") {
     const total = e.data?.total ? ` por ${formatMoney(String(e.data.total), String(e.data?.currency ?? "USD"))}` : "";
-    return `${e.actor_email ?? "Alguien"} creó la estimación paramétrica V${String(e.data?.number ?? "")}${total}`;
+    const what =
+      e.data?.level === "by_item" ? "el presupuesto por ítem" : e.data?.level === "by_chapter" ? "el presupuesto por rubros" : "la estimación paramétrica";
+    return `${e.actor_email ?? "Alguien"} creó ${what} V${String(e.data?.number ?? "")}${total}`;
+  }
+  if (e.type === "budget.markup_changed") {
+    const after = (e.data?.after ?? {}) as Record<string, unknown>;
+    const pct = (v: unknown) => `${String(v ?? 0).replace(".", ",")} %`;
+    return `${e.actor_email ?? "Alguien"} cambió el pase de un presupuesto: gastos generales ${pct(after.overhead)}, beneficio ${pct(after.profit)} e impuestos ${pct(after.tax)}`;
+  }
+  if (e.type === "budget.fees_set") {
+    const amount = e.data?.amount ? ` (${formatMoney(String(e.data.amount), String(e.data?.currency ?? "USD"))})` : "";
+    const how = e.data?.mode === "stages" ? "tomó de las etapas los honorarios" : e.data?.mode === "hours" ? "estimó por horas los honorarios" : "quitó los honorarios";
+    return `${e.actor_email ?? "Alguien"} ${how} de un presupuesto${e.data?.mode === "none" ? "" : amount}`;
+  }
+  if (e.type === "budget.overhead_template_applied") {
+    return `${e.actor_email ?? "Alguien"} cargó la plantilla de personal e indirectos de un presupuesto`;
   }
   if (e.type === "shipment.sent") {
     const items = Array.isArray(e.data?.items) ? e.data.items.length : 0;

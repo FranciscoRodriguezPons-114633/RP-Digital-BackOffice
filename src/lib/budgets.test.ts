@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { budgetItemSchema, conversionFactor, itemLine } from "./budgets";
+import { budgetItemSchema, conversionFactor, feesSchema, itemLine, markup, markupSchema, overheadSchema } from "./budgets";
 
 // Mismos casos que supabase/tests/database/21_presupuesto_por_item.test.sql: el monto en vivo
 // del formulario tiene que dar lo mismo que la vista budget_item_costs.
@@ -71,5 +71,67 @@ describe("budgetItemSchema", () => {
   });
   it("la cantidad tiene que ser mayor que cero", () => {
     expect(budgetItemSchema.safeParse({ ...base, quantity: "0", mode: "direct", unit_price: "1", direct_class: "other" }).success).toBe(false);
+  });
+});
+
+describe("markup (pase)", () => {
+  // Los mismos números que la prueba pgTAP 22_presupuesto_resumen.
+  const pcts = { overheadPct: 10, profitPct: 15, taxPct: 5 };
+
+  it("en cascada aplica cada porcentaje sobre el subtotal anterior", () => {
+    const m = markup(19500, { ...pcts, method: "cascade" });
+    expect(m).toMatchObject({ overhead: 1950, profit: 3217.5, tax: 1233.38, amount: 6400.88, price: 25900.88 });
+    expect(m.coefficient).toBeCloseTo(1.32825, 5);
+  });
+
+  it("sobre el costo aplica los tres porcentajes al costo", () => {
+    expect(markup(19500, { ...pcts, method: "on_cost" })).toMatchObject({
+      overhead: 1950,
+      profit: 2925,
+      tax: 975,
+      amount: 5850,
+      price: 25350,
+    });
+  });
+
+  it("suma los honorarios después del pase, sin aplicarles porcentajes", () => {
+    const m = markup(19500, { ...pcts, method: "cascade" }, 25000);
+    expect(m.amount).toBe(6400.88);
+    expect(m.price).toBe(50900.88);
+  });
+
+  it("sin costo no hay coeficiente", () => {
+    expect(markup(0, { ...pcts, method: "cascade" })).toMatchObject({ price: 0, coefficient: null });
+  });
+});
+
+describe("esquemas del resumen", () => {
+  it("los porcentajes vacíos son cero y aceptan coma decimal", () => {
+    expect(markupSchema.parse({ overhead_pct: "12,5", profit_pct: "", tax_pct: "3", markup_method: "on_cost" })).toEqual({
+      overhead_pct: 12.5,
+      profit_pct: 0,
+      tax_pct: 3,
+      markup_method: "on_cost",
+    });
+    expect(markupSchema.safeParse({ overhead_pct: "120", profit_pct: "0", tax_pct: "0", markup_method: "cascade" }).success).toBe(false);
+  });
+
+  it("un indirecto puede quedar sin costo mensual", () => {
+    expect(overheadSchema.parse({ kind: "staff", concept: " Capataz ", months: "7", monthly_cost: "" })).toEqual({
+      kind: "staff",
+      concept: "Capataz",
+      months: 7,
+      monthly_cost: null,
+    });
+  });
+
+  it("por horas pide horas y costo por hora", () => {
+    expect(feesSchema.safeParse({ fees_mode: "hours", fees_hours: "", fees_hourly_rate: "250" }).success).toBe(false);
+    expect(feesSchema.parse({ fees_mode: "hours", fees_hours: "100", fees_hourly_rate: "250" })).toEqual({
+      mode: "hours",
+      hours: 100,
+      rate: 250,
+    });
+    expect(feesSchema.parse({ fees_mode: "stages" })).toEqual({ mode: "stages", hours: null, rate: null });
   });
 });

@@ -35,11 +35,11 @@ test("se arma un presupuesto por ítem y el total cierra con el desglose", async
 
   // Resumen: total y partes.
   const summary = page.getByRole("region", { name: "Resumen del presupuesto" });
-  await expect(summary.getByText("USD 3.269", { exact: true })).toBeVisible();
-  await expect(summary.getByText("Materiales")).toBeVisible();
-  await expect(summary.getByText("USD 2.469", { exact: true })).toBeVisible();
-  await expect(summary.getByText("Subcontratos")).toBeVisible();
-  await expect(summary.getByText("USD 800", { exact: true })).toBeVisible();
+  await expect(summary.getByRole("row", { name: /^Costo directo/ })).toContainText("USD 3.269");
+  await expect(summary.getByRole("row", { name: /^Materiales/ })).toContainText("USD 2.469");
+  await expect(summary.getByRole("row", { name: /^Subcontratos/ })).toContainText("USD 800");
+  // Sin indirectos, pase ni honorarios, el precio es el costo directo.
+  await expect(summary.getByRole("row", { name: /^Precio sin IVA/ })).toContainText("USD 3.269");
   expect(errors).toEqual([]);
 });
 
@@ -84,6 +84,8 @@ test("un ítem con análisis de precios en pesos se pasa a dólares con el tipo 
   await rubro.getByRole("button", { name: "Agregar ítem" }).click();
   await expect(rubro.getByText("«Carpeta de planta baja» agregado.")).toBeVisible();
   // En el resumen, el total y la parte de materiales dan lo mismo: es lo único que hay.
-  await expect(page.getByRole("region", { name: "Resumen del presupuesto" }).getByText("USD 199,50", { exact: true })).toHaveCount(2);
+  const resumen = page.getByRole("region", { name: "Resumen del presupuesto" });
+  await expect(resumen.getByRole("row", { name: /^Materiales/ })).toContainText("USD 199,50");
+  await expect(resumen.getByRole("row", { name: /^Precio sin IVA/ })).toContainText("USD 199,50");
   expect(errors).toEqual([]);
 });
