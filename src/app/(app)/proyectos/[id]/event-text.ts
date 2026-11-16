@@ -80,6 +80,17 @@ export function eventText(e: EventRow) {
     const how = e.data?.mode === "stages" ? "tomó de las etapas los honorarios" : e.data?.mode === "hours" ? "estimó por horas los honorarios" : "quitó los honorarios";
     return `${e.actor_email ?? "Alguien"} ${how} de un presupuesto${e.data?.mode === "none" ? "" : amount}`;
   }
+  if (e.type === "budget.issued") {
+    return `${e.actor_email ?? "Alguien"} emitió el presupuesto V${String(e.data?.number ?? "")}: sus montos quedaron fijos`;
+  }
+  if (e.type === "budget.copied") {
+    return `${e.actor_email ?? "Alguien"} creó la V${String(e.data?.number ?? "")} a partir de la V${String(e.data?.from_number ?? "")}`;
+  }
+  if (e.type === "budget.index_set") {
+    return e.data?.mode === "none"
+      ? `${e.actor_email ?? "Alguien"} quitó el ajuste por índice de la V${String(e.data?.number ?? "")}`
+      : `${e.actor_email ?? "Alguien"} actualizó por índice la V${String(e.data?.number ?? "")}`;
+  }
   if (e.type === "budget.overhead_template_applied") {
     return `${e.actor_email ?? "Alguien"} cargó la plantilla de personal e indirectos de un presupuesto`;
   }

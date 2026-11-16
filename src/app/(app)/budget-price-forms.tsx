@@ -5,6 +5,8 @@ import { Field, FormMessage, SubmitButton, useActionForm } from "@/components/fo
 import {
   FEES_MODES,
   FEES_MODE_LABEL,
+  INDEX_MODES,
+  INDEX_MODE_LABEL,
   MARKUP_METHODS,
   MARKUP_METHOD_HINT,
   MARKUP_METHOD_LABEL,
@@ -12,6 +14,7 @@ import {
   OVERHEAD_KIND_LABEL,
   markup,
   type FeesMode,
+  type IndexMode,
   type MarkupMethod,
   type OverheadKind,
 } from "@/lib/budgets";
@@ -19,9 +22,12 @@ import { formatMoney } from "@/lib/format";
 import { parseDecimal } from "@/lib/validation";
 import {
   applyOverheadTemplate,
+  copyBudget,
   deleteOverhead,
+  issueBudget,
   saveOverhead,
   setBudgetFees,
+  setBudgetIndex,
   setBudgetMarkup,
 } from "./budget-actions";
 
@@ -241,6 +247,116 @@ export function MarkupForm({
       <div>
         <SubmitButton pending={pending} variant="secondary" pendingLabel="Guardando…">
           Guardar el pase
+        </SubmitButton>
+      </div>
+      <FormMessage state={state} />
+    </form>
+  );
+}
+
+// ---------- Versiones (sprint 8) ----------
+
+// Emitir: después no se edita y deja de seguir los precios. Se confirma.
+export function IssueBudgetButton({ projectId, budgetId, number }: Omit<Ids, "currency"> & { number: number }) {
+  const { state, pending, formProps } = useActionForm(() => issueBudget(projectId, budgetId));
+  function confirmIssue(event: FormEvent<HTMLFormElement>) {
+    const text = `¿Emitir la V${number}? Sus montos quedan fijos: deja de seguir los precios de los insumos y ya no se edita.`;
+    if (!window.confirm(text)) {
+      event.preventDefault();
+      return;
+    }
+    formProps.onSubmit(event);
+  }
+  return (
+    <form {...formProps} onSubmit={confirmIssue} className="flex flex-col items-start gap-2">
+      <SubmitButton pending={pending} pendingLabel="Emitiendo…">
+        Emitir
+      </SubmitButton>
+      {state.ok === false && <FormMessage state={state} />}
+    </form>
+  );
+}
+
+// Versión nueva a partir de esta: copia todo y lleva al editor de la copia.
+export function CopyBudgetButton({ projectId, budgetId, number, draft }: Omit<Ids, "currency"> & { number: number; draft: boolean }) {
+  const { state, pending, formProps } = useActionForm(() => copyBudget(projectId, budgetId));
+  function confirmCopy(event: FormEvent<HTMLFormElement>) {
+    if (draft && !window.confirm(`La V${number} queda congelada y reemplazada por la versión nueva. ¿Seguir?`)) {
+      event.preventDefault();
+      return;
+    }
+    formProps.onSubmit(event);
+  }
+  return (
+    <form {...formProps} onSubmit={confirmCopy} className="flex flex-col items-start gap-2">
+      <SubmitButton pending={pending} variant="secondary" pendingLabel="Copiando…">
+        Nueva versión
+      </SubmitButton>
+      {state.ok === false && <FormMessage state={state} />}
+    </form>
+  );
+}
+
+// Ajuste por índice: una serie general o materiales y mano de obra por separado, desde un mes base.
+export function IndexForm({
+  projectId,
+  budgetId,
+  parametric,
+  indexNames,
+  values,
+}: Omit<Ids, "currency"> & {
+  parametric: boolean;
+  indexNames: string[];
+  values: { mode: IndexMode; basePeriod: string | null; general: string | null; materials: string | null; labor: string | null };
+}) {
+  const { state, pending, formProps } = useActionForm(setBudgetIndex.bind(null, projectId, budgetId), { resetOnSuccess: false });
+  const [mode, setMode] = useState<IndexMode>(values.mode);
+  const modes = INDEX_MODES.filter((m) => !(parametric && m === "by_part"));
+
+  const select = (name: string, label: string, value: string | null, optional = false) => (
+    <Field label={label} errors={state.errors?.[name]}>
+      <select name={name} defaultValue={value ?? ""} className="input">
+        <option value="">{optional ? "Sin ajustar" : "Elegí un índice"}</option>
+        {indexNames.map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+
+  return (
+    <form {...formProps} className="flex flex-col gap-4">
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-sm font-medium">Cómo se ajusta</legend>
+        {modes.map((m) => (
+          <label key={m} className="flex items-center gap-2 text-sm">
+            <input type="radio" name="index_mode" value={m} checked={mode === m} onChange={() => setMode(m)} />
+            {INDEX_MODE_LABEL[m]}
+          </label>
+        ))}
+      </fieldset>
+      {mode !== "none" && (
+        <>
+          <Field label="Mes base (el de los precios del presupuesto)" errors={state.errors?.index_base_period}>
+            <input name="index_base_period" type="month" defaultValue={values.basePeriod?.slice(0, 7) ?? ""} className="input w-48" />
+          </Field>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {mode === "by_part" && select("index_materials", "Materiales", values.materials)}
+            {mode === "by_part" && select("index_labor", "Mano de obra", values.labor)}
+            {select("index_general", mode === "by_part" ? "El resto del costo" : "Índice", values.general, mode === "by_part")}
+          </div>
+          {indexNames.length === 0 && (
+            <p className="text-sm text-warn">
+              Todavía no hay índices cargados: adoptá una serie (CAC, ICC Córdoba) en Índices.
+            </p>
+          )}
+        </>
+      )}
+      <div>
+        <SubmitButton pending={pending} variant="secondary" pendingLabel="Guardando…">
+          Guardar el ajuste
         </SubmitButton>
       </div>
       <FormMessage state={state} />

@@ -218,3 +218,48 @@ export const feesSchema = z
     if (!rate.success) ctx.addIssue({ code: "custom", path: ["fees_hourly_rate"], message: rate.error.issues[0].message });
     return { mode: s.fees_mode, hours: hours.success ? hours.data : null, rate: rate.success ? rate.data : null };
   });
+
+// ---------- Ajuste por índice (sprint 8) ----------
+
+export const INDEX_MODES = ["none", "general", "by_part"] as const;
+export type IndexMode = (typeof INDEX_MODES)[number];
+export const INDEX_MODE_LABEL: Record<IndexMode, string> = {
+  none: "Sin ajuste",
+  general: "Una serie para todo",
+  by_part: "Materiales y mano de obra por separado",
+};
+
+const indexName = z
+  .unknown()
+  .transform((v) => (typeof v === "string" && v.trim() ? v.trim() : null));
+
+// El mes base llega como «2026-10» (input type="month") o como fecha completa.
+export const budgetIndexSchema = z
+  .object({
+    index_mode: z.enum(INDEX_MODES, { error: "Elegí cómo se ajusta" }),
+    index_base_period: z.unknown().optional(),
+    index_general: indexName.optional(),
+    index_materials: indexName.optional(),
+    index_labor: indexName.optional(),
+  })
+  .transform((s, ctx) => {
+    if (s.index_mode === "none") return { mode: s.index_mode, basePeriod: null, general: null, materials: null, labor: null };
+    const raw = typeof s.index_base_period === "string" ? s.index_base_period.trim() : "";
+    const m = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(raw);
+    if (!m) ctx.addIssue({ code: "custom", path: ["index_base_period"], message: "Elegí el mes base" });
+    const general = s.index_general ?? null;
+    if (s.index_mode === "general" && !general) {
+      ctx.addIssue({ code: "custom", path: ["index_general"], message: "Elegí el índice" });
+    }
+    if (s.index_mode === "by_part") {
+      if (!s.index_materials) ctx.addIssue({ code: "custom", path: ["index_materials"], message: "Elegí el índice de materiales" });
+      if (!s.index_labor) ctx.addIssue({ code: "custom", path: ["index_labor"], message: "Elegí el índice de mano de obra" });
+    }
+    return {
+      mode: s.index_mode,
+      basePeriod: m ? `${m[1]}-${m[2]}-01` : null,
+      general,
+      materials: s.index_mode === "by_part" ? (s.index_materials ?? null) : null,
+      labor: s.index_mode === "by_part" ? (s.index_labor ?? null) : null,
+    };
+  });

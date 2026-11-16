@@ -6,7 +6,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
-import { ITEM_LEVELS, budgetItemSchema, chapterNameSchema, feesSchema, markupSchema, overheadSchema } from "@/lib/budgets";
+import {
+  ITEM_LEVELS,
+  budgetIndexSchema,
+  budgetItemSchema,
+  chapterNameSchema,
+  feesSchema,
+  markupSchema,
+  overheadSchema,
+} from "@/lib/budgets";
 import { fieldErrors, idSchema, parseDecimal, type FormState } from "@/lib/validation";
 
 // Cada acción verifica la sesión; los permisos (miembro, borrador) los aplica la base.
@@ -303,4 +311,56 @@ export async function setBudgetFees(projectId: string, budgetId: string, _prev: 
     ok: true,
     message: parsed.data.mode === "none" ? "Honorarios quitados." : parsed.data.mode === "stages" ? "Honorarios tomados de las etapas." : "Honorarios guardados.",
   };
+}
+
+// ---------- Versiones y ajuste por índice (sprint 8) ----------
+
+// Emitir: pasa a enviado y congela los costos (deja de seguir los precios de los insumos).
+export async function issueBudget(projectId: string, budgetId: string): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(budgetId).success) return { ok: false, message: "Presupuesto inválido." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("issue_budget", { p_budget_id: budgetId });
+  if (error?.code === "22023") return { ok: false, message: error.message };
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  return { ok: true, message: "Presupuesto emitido: sus montos quedan fijos." };
+}
+
+// Versión nueva a partir de esta: lleva al editor de la copia.
+export async function copyBudget(projectId: string, budgetId: string): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(budgetId).success) return { ok: false, message: "Presupuesto inválido." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("copy_budget", { p_budget_id: budgetId }).single<{ id: string; number: number }>();
+  if (error?.code === "22023") return { ok: false, message: error.message };
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  redirect(budgetPath(projectId, data.id));
+}
+
+export async function setBudgetIndex(projectId: string, budgetId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(budgetId).success) return { ok: false, message: "Presupuesto inválido." };
+  const parsed = budgetIndexSchema.safeParse({
+    index_mode: formData.get("index_mode"),
+    index_base_period: formData.get("index_base_period") ?? undefined,
+    index_general: formData.get("index_general") ?? undefined,
+    index_materials: formData.get("index_materials") ?? undefined,
+    index_labor: formData.get("index_labor") ?? undefined,
+  });
+  if (!parsed.success) return fieldErrors(parsed.error);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_budget_index", {
+    p_budget_id: budgetId,
+    p_mode: parsed.data.mode,
+    p_base_period: parsed.data.basePeriod,
+    p_general: parsed.data.general,
+    p_materials: parsed.data.materials,
+    p_labor: parsed.data.labor,
+  });
+  if (error?.code === "22023" || error?.code === "23514") return { ok: false, message: error.message };
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  return { ok: true, message: parsed.data.mode === "none" ? "Sin ajuste por índice." : "Ajuste por índice guardado." };
 }
