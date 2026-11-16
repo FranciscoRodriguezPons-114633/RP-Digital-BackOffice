@@ -1,0 +1,60 @@
+name: Copia de seguridad
+
+# Todos los días a las 3 de Córdoba (6 UTC), y a mano desde la pestaña Actions.
+# Copia la base del entorno de prueba, la guarda cifrada 30 días como artefacto y prueba
+# restaurarla en un Postgres vacío. Los archivos de Storage no entran (solo sus metadatos).
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: copia-de-seguridad
+  cancel-in-progress: false
+
+jobs:
+  copia:
+    name: Copia y restauración de prueba
+    runs-on: ubuntu-latest
+    environment: prueba
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: ¿Está configurado el entorno?
+        id: env
+        run: |
+          if [ -n "$SUPABASE_DB_URL" ] && [ -n "$BACKUP_PASSPHRASE" ]; then
+            echo "listo=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Faltan SUPABASE_DB_URL o BACKUP_PASSPHRASE (docs/operacion.md): no se copia."
+            echo "listo=no" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.env.outputs.listo == 'si'
+      - uses: supabase/setup-cli@v1
+        if: steps.env.outputs.listo == 'si'
+        with:
+          version: 2.121.0
+      - name: Copiar la base
+        if: steps.env.outputs.listo == 'si'
+        run: scripts/db/backup.sh copia
+      - name: Probar la restauración
+        if: steps.env.outputs.listo == 'si'
+        run: scripts/db/restore-check.sh copia
+      - name: Cifrar
+        if: steps.env.outputs.listo == 'si'
+        run: |
+          name="copia-$(date -u +%F)"
+          tar -czf - copia | gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 -o "$name.tar.gz.gpg"
+          echo "COPIA=$name" >> "$GITHUB_ENV"
+          rm -rf copia
+      - uses: actions/upload-artifact@v4
+        if: steps.env.outputs.listo == 'si'
+        with:
+          name: ${{ env.COPIA }}
+          path: ${{ env.COPIA }}.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error

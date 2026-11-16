@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { dbErrorMessage } from "@/lib/errors";
+import { RATE_LIMITED_MESSAGE, clientIp, withinRateLimit } from "@/lib/rate-limit";
 import { decisionSchema, fieldErrors, isApprovalToken, type FormState } from "@/lib/validation";
 
 // Sin sesión: la función de la base valida el token, que no haya vencido ni se haya usado,
@@ -17,9 +18,10 @@ export async function decideChangeOrder(token: string, _prev: FormState, formDat
   });
   if (!parsed.success) return fieldErrors(parsed.error);
 
-  const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+  const ip = await clientIp();
+  if (!(await withinRateLimit("approval_decide", ip))) return { ok: false, message: RATE_LIMITED_MESSAGE };
 
+  const h = await headers();
   const supabase = await createClient();
   const { error } = await supabase.rpc("decide_change_order", {
     p_token: token,

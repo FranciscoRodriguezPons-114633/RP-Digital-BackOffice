@@ -26,6 +26,8 @@ El plan completo está en [`docs/plan-desarrollo-mvp.md`](docs/plan-desarrollo-m
 
 **Interfaz:** dirección «Tablero de obra» (fondo gris, tarjetas blancas, barra lateral oscura, acento naranja), con tema claro, oscuro o automático que se elige desde la barra lateral. Los componentes base están en `src/components/ui/` y se ven todos juntos en `/sistema`. El buscador se abre con ⌘K (o Ctrl+K). Lo que sigue (entorno en la nube, ciclo de obra y diferenciales, hasta el 12/2/2027) está en [`docs/plan-de-desarrollo-2026-2027.md`](docs/plan-de-desarrollo-2026-2027.md).
 
+**Entorno en la nube (N1):** con cada push a `main` y todo en verde, el CI aplica las migraciones en Supabase (São Paulo), despliega la función de correos y recién después le pide a Vercel que construya la app (deploy hook; Vercel no despliega solo). Todos los días a las 3 de Córdoba, `copia-de-seguridad.yml` copia la base, prueba restaurarla en un Postgres vacío comparando conteos y guarda la copia cifrada 30 días. Los errores del servidor van a Sentry desde `src/instrumentation.ts`, sin el SDK y sin datos del pedido. `/login` y `/aprobar` tienen límites de pedidos por IP y por correo, contados en la base (`hit_rate_limit`). Mientras falten los secretos, el despliegue y la copia no hacen nada. La puesta en marcha con tus cuentas, paso a paso, está en [`docs/operacion.md`](docs/operacion.md).
+
 ## Stack
 
 - **Next.js 16** (App Router, Server Actions, Cache Components) + Tailwind 4 + Lucide (íconos) + Inter

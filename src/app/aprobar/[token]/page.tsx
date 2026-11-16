@@ -3,6 +3,7 @@ import { CardSkeleton } from "@/components/skeleton";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { formatHours, formatMoney } from "@/lib/format";
+import { clientIp, withinRateLimit } from "@/lib/rate-limit";
 import { changeOrderCode, isApprovalToken, type ApprovalLinkState } from "@/lib/validation";
 import { DecisionForm } from "./decision-form";
 
@@ -55,6 +56,9 @@ export default function ApprovalPage({ params }: PageProps<"/aprobar/[token]">) 
 
 async function Approval({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  if (!(await withinRateLimit("approval_view", await clientIp()))) {
+    return <Notice title="Demasiados pedidos seguidos">Esperá unos minutos y volvé a abrir el link.</Notice>;
+  }
   const supabase = await createClient();
   const { data } = isApprovalToken(token)
     ? await supabase.rpc("get_change_order_for_approval", { p_token: token }).single<ApprovalView>()
