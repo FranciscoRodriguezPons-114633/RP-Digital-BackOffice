@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { CardSkeleton } from "@/components/skeleton";
@@ -10,6 +9,8 @@ import { SUPPLY_KIND_LABEL } from "@/lib/supplies";
 import { idSchema } from "@/lib/validation";
 import { SupplyForm, type SupplyValues } from "../../supply-forms";
 import { loadSupplyFormData } from "../data";
+import { RevealText } from "@/components/motion/reveal-title";
+import { BackLink } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Insumo" };
 
@@ -21,8 +22,8 @@ const dateTimeFmt = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", time
 
 export default function SupplyPage({ params }: PageProps<"/insumos/[id]">) {
   return (
-    <div className="flex flex-col gap-8">
-      <Link href="/insumos" className="text-sm text-muted hover:underline">← Insumos</Link>
+    <div className="reveal-group flex flex-col gap-8">
+      <BackLink href="/insumos" label="Insumos" />
       <Suspense fallback={<CardSkeleton label="Cargando insumo…" lines={6} />}>
         <Supply params={params} />
       </Suspense>
@@ -59,7 +60,7 @@ async function Supply({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-semibold">{supply.name}</h1>
+        <h1 className="page-title"><RevealText text={supply.name} /></h1>
         <p className="mt-1 text-sm text-muted">
           <span className="font-mono">{supply.code}</span> · {SUPPLY_KIND_LABEL[supply.kind]} ·{" "}
           {supply.price === null ? (
@@ -74,7 +75,7 @@ async function Supply({ params }: { params: Promise<{ id: string }> }) {
       </header>
 
       <section className="card flex flex-col gap-4">
-        <h2 className="font-medium">Editar</h2>
+        <h2 className="font-bold">Editar</h2>
         <SupplyForm
           supply={supply}
           suppliers={form.suppliers}
@@ -86,7 +87,7 @@ async function Supply({ params }: { params: Promise<{ id: string }> }) {
 
       <section className="card flex flex-col gap-4">
         <div>
-          <h2 className="font-medium">Historial de precios</h2>
+          <h2 className="font-bold">Historial de precios</h2>
           <p className="mt-1 text-sm text-muted">Cada precio que tuvo el insumo. No se borra ni se edita.</p>
         </div>
         {prices.length === 0 && <p className="text-sm text-muted">Todavía no tiene precio: cargalo arriba.</p>}

@@ -7,14 +7,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { formatArea, formatMoney } from "@/lib/format";
 import { WORK_ROLE_SHORT, type WorkRole } from "@/lib/validation";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Obras" };
 
 export default function WorksPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Obras</h1>
+        <h1 className="page-title"><RevealText text="Obras" /></h1>
         <p className="mt-1 text-sm text-muted">Los proyectos con ficha de obra y su última estimación de costo.</p>
       </div>
       <Suspense fallback={<PageSkeleton label="Cargando obras…" title={false} cards={0} />}>
@@ -52,7 +53,7 @@ async function Works() {
   if (rows.length === 0) {
     return (
       <section className="card flex flex-col items-start gap-3">
-        <h2 className="font-medium">Todavía no hay obras</h2>
+        <h2 className="font-bold">Todavía no hay obras</h2>
         <p className="text-sm text-muted">Entrá a un proyecto, abrí la pestaña «Obra» y completá la ficha.</p>
         <Link href="/proyectos" className="btn btn-primary">Ir a proyectos</Link>
       </section>

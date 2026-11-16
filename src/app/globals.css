@@ -38,6 +38,23 @@
   --card-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 16px rgb(15 23 42 / 0.04);
   --card-border: transparent;
   --overlay: rgb(15 23 42 / 0.45);
+
+  /* Movimiento (el spec de animaciones de la rama de movimiento, adaptado al sistema nuevo):
+     ningún componente usa números sueltos. Lo nuevo entra en capas. */
+  --dur-press: 90ms; /* al presionar un botón */
+  --dur-fast: 150ms; /* hover */
+  --dur-base: 240ms; /* entrada de bloques y letras del título */
+  --dur-data: 900ms; /* conteo de números */
+  --dur-bar: 600ms; /* barras que crecen */
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1); /* easeOutQuart */
+  --ease-data: cubic-bezier(0.16, 1, 0.3, 1); /* ≈ easeOutExpo, números y barras */
+  --reveal-start: 40ms; /* desde que llega el contenido hasta la primera entrada */
+  --reveal-data: 120ms; /* números y barras, después de su tarjeta */
+  --stagger-char: 25ms;
+  --stagger-block: 45ms;
+  --stagger-bar: 60ms;
+  --stagger-max: 360ms; /* tope del escalonado de una página */
+  --blur-enter: 6px;
   color-scheme: light;
 }
 
@@ -163,6 +180,10 @@ body {
   .stat {
     @apply text-[22px] leading-tight font-extrabold tracking-tight tabular-nums sm:text-3xl;
   }
+  /* Título de página: el mismo en todas (ver components/ui/page-header.tsx). */
+  .page-title {
+    @apply text-2xl font-extrabold tracking-tight sm:text-3xl;
+  }
   .field {
     @apply flex flex-col gap-1 text-sm font-medium;
   }
@@ -173,7 +194,15 @@ body {
   /* Botones: 44 px de alto (se usan con guantes y en el teléfono), foco visible con teclado.
      Tamaños: btn-sm y btn-lg. */
   .btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-transparent px-4 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-transparent px-4 text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+    transition-property: color, background-color, border-color, transform;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-out);
+  }
+  /* Al presionar se achica un 3 % y vuelve con la curva de salida. */
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: var(--dur-press);
   }
   .btn-sm {
     @apply min-h-9 px-3 text-xs;
@@ -249,5 +278,119 @@ body {
   /* Esqueletos de carga. Ver components/skeleton.tsx. */
   .skeleton {
     @apply block rounded-md bg-line motion-safe:animate-pulse;
+  }
+}
+
+/* ─── Movimiento ──────────────────────────────────────────────────────────────────────────
+   Lo nuevo entra en capas: título → bloques → datos. Todo sale de los tokens de :root.
+   Las animaciones corren cuando React inserta el bloque (al llegar a una página o al
+   resolverse un Suspense); un router.refresh() después de guardar reutiliza los nodos y no
+   vuelve a animar. */
+
+/* Índice de escalonado: no se hereda, así una fila no toma el índice de su tarjeta. */
+@property --i {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+/* Registrada para que el conteo (count-up.tsx) lea el tiempo ya resuelto. */
+@property --dur-data {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 900ms;
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    filter: blur(var(--blur-enter));
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes char-rise {
+  from {
+    transform: translateY(105%);
+  }
+}
+@keyframes bar-grow {
+  from {
+    clip-path: inset(0 100% 0 0 round 99px);
+  }
+}
+
+/* Título con máscara: cada letra (o palabra, en títulos largos) sube desde una ranura bajo la
+   línea de base. --n es la cantidad de piezas: el paso se achica para que el escalonado
+   entero no pase de --dur-fast y el título se lea enseguida. */
+.reveal-title__mask {
+  display: inline-block;
+  overflow: hidden;
+  padding-block: 0.08em;
+  margin-block: -0.08em;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+.reveal-title__piece {
+  display: inline-block;
+  animation: char-rise var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-start) + var(--i) * min(var(--stagger-char), var(--dur-fast) / var(--n, 1)));
+}
+
+/* Entrada de bloques: opacidad y desenfoque que se resuelven, sin desplazamiento.
+   `backwards` (no `both`): al terminar no queda ningún filter aplicado.
+   .reveal-group numera a sus hijos solo; desde el 13 aparecen juntos, solo con opacidad. */
+.reveal-group > * {
+  animation: reveal-in var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-start) + min(var(--i) * var(--stagger-block), var(--stagger-max)));
+}
+.reveal-group > :nth-child(2) { --i: 1; }
+.reveal-group > :nth-child(3) { --i: 2; }
+.reveal-group > :nth-child(4) { --i: 3; }
+.reveal-group > :nth-child(5) { --i: 4; }
+.reveal-group > :nth-child(6) { --i: 5; }
+.reveal-group > :nth-child(7) { --i: 6; }
+.reveal-group > :nth-child(8) { --i: 7; }
+.reveal-group > :nth-child(9) { --i: 8; }
+.reveal-group > :nth-child(10) { --i: 9; }
+.reveal-group > :nth-child(11) { --i: 10; }
+.reveal-group > :nth-child(12) { --i: 11; }
+.reveal-group > :nth-child(n + 13) {
+  --i: 11;
+  animation-name: fade-in;
+}
+
+/* Conteo: el valor final reserva el ancho (el número que cuenta no mueve nada). */
+.count-up {
+  display: inline-grid;
+  font-variant-numeric: tabular-nums;
+}
+.count-up > *,
+.count-up::after {
+  grid-area: 1 / 1;
+}
+.count-up::after {
+  content: attr(data-final);
+  visibility: hidden;
+}
+
+/* Barras de avance: el relleno crece desde la izquierda, de a --stagger-bar por fila. */
+.bar-fill {
+  animation: bar-grow var(--dur-bar) var(--ease-data) backwards;
+  animation-delay: calc(var(--reveal-data) + min(var(--i) * var(--stagger-bar), var(--stagger-max)));
+}
+
+/* Movimiento reducido: sin movimiento, sin desenfoque, sin escalonado; los números aparecen
+   con su valor final (count-up.tsx también lo mira). */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-group > *,
+  .reveal-title__piece,
+  .bar-fill {
+    animation: none !important;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
   }
 }

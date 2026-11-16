@@ -21,6 +21,7 @@ import {
   type ItemValues,
 } from "../../../../budget-forms";
 import { loadWorksProject } from "../../project-header";
+import { CountUp } from "@/components/motion/count-up";
 
 export const metadata: Metadata = { title: "Presupuesto" };
 
@@ -147,7 +148,9 @@ async function BudgetEditor({ params }: { params: Promise<{ id: string; budgetId
 
       <section className="card flex flex-col gap-4" aria-label="Resumen del presupuesto">
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-          <span className="font-mono text-3xl font-semibold">{formatMoney(total, budget.currency)}</span>
+          <span className="font-mono text-3xl font-semibold">
+            <CountUp value={total} currency={budget.currency} />
+          </span>
           <span className="font-mono text-sm text-muted">
             {formatCostPerM2(totals.cost_per_m2, budget.currency)} · {formatArea(totals.weighted_m2)} ponderados
           </span>

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { DeadlineForm } from "../deadline-forms";
 import { DEADLINE_SELECT, DeadlineList, type DeadlineRow } from "./deadline-list";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Vencimientos" };
 
@@ -16,9 +17,9 @@ function requestTime() {
 
 export default function DeadlinesPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Vencimientos</h1>
+        <h1 className="page-title"><RevealText text="Vencimientos" /></h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Las fechas que no se pueden pasar: presentaciones, entregas, permisos o seguros. Te avisamos por correo los días
           que elijas antes de cada una.
@@ -47,11 +48,11 @@ async function Deadlines() {
   return (
     <>
       <section className="card">
-        <h2 className="mb-4 font-medium">Nuevo vencimiento</h2>
+        <h2 className="mb-4 font-bold">Nuevo vencimiento</h2>
         <DeadlineForm projects={(projects ?? []) as { id: string; name: string }[]} />
       </section>
       <section className="card">
-        <h2 className="mb-4 font-medium">Pendientes</h2>
+        <h2 className="mb-4 font-bold">Pendientes</h2>
         {(pending ?? []).length === 0 ? (
           <p className="text-sm text-muted">No hay vencimientos pendientes.</p>
         ) : (
@@ -60,7 +61,7 @@ async function Deadlines() {
       </section>
       {(done ?? []).length > 0 && (
         <section className="card">
-          <h2 className="mb-4 font-medium">Hechos</h2>
+          <h2 className="mb-4 font-bold">Hechos</h2>
           <DeadlineList deadlines={(done ?? []) as unknown as DeadlineRow[]} showProject now={now} />
         </section>
       )}

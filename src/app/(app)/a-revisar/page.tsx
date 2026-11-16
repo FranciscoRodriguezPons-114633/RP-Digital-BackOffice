@@ -5,14 +5,15 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, requireUser } from "@/lib/dal";
 import { PIECE_SELECT, PieceRow, currentRevisionByDocument, type PieceRowData } from "../proyectos/[id]/pieces-section";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "A revisar" };
 
 export default function ToReviewPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">A revisar</h1>
+        <h1 className="page-title"><RevealText text="A revisar" /></h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Renders, planos de venta y brochures cuya revisión de origen se reemplazó. Decidí si cada pieza sigue
           sirviendo con la revisión nueva o si quedó obsoleta.

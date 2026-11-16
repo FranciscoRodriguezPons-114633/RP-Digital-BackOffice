@@ -11,10 +11,10 @@ export async function generateMetadata({ params }: LayoutProps<"/proyectos/[id]"
 }
 
 // Todas las secciones del proyecto comparten el encabezado y las pestañas. Al pasar de una
-// sección a otra solo cambia el contenido de abajo.
+// sección a otra solo cambia (y entra con su animación) el contenido de abajo.
 export default function ProjectLayout({ children, params }: LayoutProps<"/proyectos/[id]">) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="reveal-group flex flex-col gap-6">
       <Suspense fallback={<HeaderSkeleton />}>
         <ProjectHeader params={params} />
       </Suspense>

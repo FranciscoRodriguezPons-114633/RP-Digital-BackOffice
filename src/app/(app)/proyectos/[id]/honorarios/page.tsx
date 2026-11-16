@@ -19,7 +19,7 @@ async function Fees({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { org, isOwner, works } = await loadMemberProject(id);
   return (
-    <div className="flex flex-col gap-6">
+    <div className="reveal-group flex flex-col gap-6">
       <FeesSection projectId={id} isOwner={isOwner} />
       {isOwner && works && <ProfitabilitySection projectId={id} orgId={org.id} />}
     </div>

@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/dal";
 import { PLAN_LABEL, type PaidPlan } from "@/lib/plans";
 import { DecideBillingForm } from "../../plan-forms";
 import { StatusPill } from "@/components/status-pill";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Cobros" };
 
@@ -41,9 +42,9 @@ function suggestedPaidUntil(cycle: "monthly" | "yearly") {
 
 export default function BillingAdminPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Cobros</h1>
+        <h1 className="page-title"><RevealText text="Cobros" /></h1>
         <p className="mt-1 text-sm text-muted">
           Pedidos de pase a pago de los estudios. Cuando llega la transferencia, confirmá el pago y el estudio queda en
           su plan.{" "}

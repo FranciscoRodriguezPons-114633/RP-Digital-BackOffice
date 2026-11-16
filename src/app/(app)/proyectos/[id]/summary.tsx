@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDay, formatHours, formatMoney, formatPeriod, sumAmounts, todayInCordoba } from "@/lib/format";
 import { changeOrderCode } from "@/lib/validation";
 import { StatCard } from "@/components/ui/stat-card";
+import { CountUp } from "@/components/motion/count-up";
 import { ProgressBar, progressTone } from "@/components/ui/progress-bar";
 import { AttentionItem, type AttentionTone } from "@/components/ui/attention";
 import { Disclosure } from "@/components/disclosure";
@@ -51,11 +52,13 @@ function byCurrency<T extends { currency: string }>(rows: T[], amount: (r: T) =>
 // Sin centavos en las tarjetas de arriba: el importe exacto está en cada sección.
 const roundMoney = (amount: number | string, currency: string) => formatMoney(Math.round(Number(amount)), currency);
 
-// El primer importe va grande; si hay otra moneda, se nombra abajo (no se convierten monedas).
+// El primer importe va grande (y cuenta al aparecer); si hay otra moneda, se nombra abajo
+// (no se convierten monedas).
 function splitMoney(list: { currency: string; total: number }[]) {
   const shown = list.filter((m) => m.total !== 0);
   return {
     main: shown[0] ? roundMoney(shown[0].total, shown[0].currency) : "—",
+    value: shown[0] ? <CountUp value={Math.round(shown[0].total)} currency={shown[0].currency} /> : "—",
     rest: shown.slice(1).map((m) => roundMoney(m.total, m.currency)).join(" y "),
   };
 }
@@ -202,9 +205,9 @@ export async function ProjectSummary({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${showResult || next ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
-        <StatCard label="Honorarios" value={<span className="tabular">{fees.main}</span>} hint={fees.rest ? `y ${fees.rest} · con índice y adicionales` : "Con índice y adicionales"} />
+    <div className="reveal-group flex flex-col gap-6">
+      <div className={`reveal-group grid grid-cols-2 gap-3 sm:gap-4 ${showResult || next ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
+        <StatCard label="Honorarios" value={fees.value} hint={fees.rest ? `y ${fees.rest} · con índice y adicionales` : "Con índice y adicionales"} />
         <StatCard
           label="Horas usadas"
           value={<span className="tabular">{hoursPct === null ? formatHours(used) : pctLabel(hoursPct)}</span>}
@@ -215,7 +218,7 @@ export async function ProjectSummary({
         </StatCard>
         <StatCard
           label="Adicionales aprobados"
-          value={<span className="tabular">{extras.main}</span>}
+          value={extras.value}
           hint={`${extras.rest ? `y ${extras.rest} · ` : ""}${
             pending.main !== "—"
               ? `${[pending.main, pending.rest].filter(Boolean).join(" y ")} esperando respuesta`
@@ -227,7 +230,7 @@ export async function ProjectSummary({
           <StatCard
             dark
             label="Resultado · solo vos"
-            value={<span className="tabular">{result ? roundMoney(result.profit, result.currency) : "—"}</span>}
+            value={result ? <CountUp value={Math.round(Number(result.profit))} currency={result.currency} /> : "—"}
             hint={
               result && Number(result.income) > 0
                 ? `${pctLabel(Math.round((1000 * Number(result.profit)) / Number(result.income)) / 10)} del honorario`
@@ -267,7 +270,7 @@ export async function ProjectSummary({
             </p>
           ) : (
             <ul className="flex flex-col gap-4">
-              {stages.map((s) => {
+              {stages.map((s, i) => {
                 const pct = s.budget_pct === null ? null : Number(s.budget_pct);
                 const tone = progressTone(pct);
                 return (
@@ -279,7 +282,7 @@ export async function ProjectSummary({
                         {s.budget_hours !== null && ` / ${formatHours(s.budget_hours)}`}
                       </span>
                     </div>
-                    <ProgressBar pct={pct} />
+                    <ProgressBar pct={pct} index={i} />
                     {pct === null ? (
                       <span className="text-xs text-muted">Sin horas previstas</span>
                     ) : (

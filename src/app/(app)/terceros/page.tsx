@@ -11,14 +11,15 @@ import {
   formatCuit,
 } from "@/lib/validation";
 import { DeletePartyForm, PartyForm, type PartyValues } from "../party-forms";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Terceros" };
 
 export default function PartiesPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Terceros</h1>
+        <h1 className="page-title"><RevealText text="Terceros" /></h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Comitentes, proveedores y subcontratistas, con su CUIT y su condición impositiva. El comitente se elige en la
           ficha de obra; los proveedores y subcontratistas se usan en presupuestos y compras.
@@ -48,7 +49,7 @@ async function Parties() {
   return (
     <>
       <section className="card flex flex-col gap-4">
-        <h2 className="font-medium">Registrar un tercero</h2>
+        <h2 className="font-bold">Registrar un tercero</h2>
         <PartyForm />
       </section>
 
@@ -56,7 +57,7 @@ async function Parties() {
         <p className="text-sm text-muted">Todavía no hay terceros registrados.</p>
       ) : (
         <section className="card flex flex-col gap-4">
-          <h2 className="font-medium">
+          <h2 className="font-bold">
             {parties.length} {parties.length === 1 ? "tercero" : "terceros"}
           </h2>
           <ul className="flex flex-col divide-y divide-line">

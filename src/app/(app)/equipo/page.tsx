@@ -9,6 +9,7 @@ import { MemberInviteForm } from "../forms";
 import { OrganizationKindForm } from "../work-forms";
 import { DeleteMemberCostButton, MemberCostForm } from "../cost-forms";
 import { ORG_KIND_LABEL } from "@/lib/validation";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Equipo" };
 
@@ -20,8 +21,8 @@ const ROLE_LABEL = { owner: "Dueño", member: "Miembro" } as const;
 
 export default function TeamPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Equipo</h1>
+    <div className="reveal-group flex flex-col gap-8">
+      <h1 className="page-title"><RevealText text="Equipo" /></h1>
       <Suspense fallback={<CardSkeleton label="Cargando equipo…" lines={4} />}>
         <Team />
       </Suspense>
@@ -64,7 +65,7 @@ async function Team() {
     <>
       <section className="card">
         <div className="mb-4 flex flex-wrap items-baseline gap-3">
-          <h2 className="font-medium">{org.name}</h2>
+          <h2 className="font-bold">{org.name}</h2>
           <span className="badge">{ORG_KIND_LABEL[org.kind]}</span>
         </div>
         <ul className="divide-y divide-line text-sm">
@@ -88,7 +89,7 @@ async function Team() {
       {org.role === "owner" && (
         <section className="card flex flex-col gap-3">
           <div>
-            <h2 className="font-medium">Tipo de organización</h2>
+            <h2 className="font-bold">Tipo de organización</h2>
             <p className="mt-1 text-sm text-muted">Define qué funciones ves. Lo puede cambiar solo el dueño.</p>
           </div>
           <OrganizationKindForm kind={org.kind} />
@@ -98,7 +99,7 @@ async function Team() {
       {showCosts && (
         <section className="card flex flex-col gap-4">
           <div>
-            <h2 className="font-medium">Costo por hora</h2>
+            <h2 className="font-bold">Costo por hora</h2>
             <p className="mt-1 text-sm text-muted">
               Lo que le cuesta al estudio una hora de cada persona (sueldo, cargas y lo que corresponda), desde una
               fecha. Cada hora cargada usa el costo vigente a su fecha; con eso sale la rentabilidad de cada proyecto.
@@ -142,7 +143,7 @@ async function Team() {
 
       {org.role === "owner" ? (
         <section className="card">
-          <h2 className="mb-4 font-medium">Sumar a alguien del estudio</h2>
+          <h2 className="mb-4 font-bold">Sumar a alguien del estudio</h2>
           <MemberInviteForm orgId={org.id} />
         </section>
       ) : (

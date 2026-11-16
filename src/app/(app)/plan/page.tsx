@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, getUser, requireUser } from "@/lib/dal";
 import { FOUNDER_OFFER, PLANS, PLAN_LABEL, type PaidPlan } from "@/lib/plans";
 import { BillingRequestForm } from "../plan-forms";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Plan" };
 
@@ -20,8 +21,8 @@ function daysLeft(iso: string) {
 
 export default function PlanPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Plan</h1>
+    <div className="reveal-group flex flex-col gap-8">
+      <h1 className="page-title"><RevealText text="Plan" /></h1>
       <Suspense fallback={<CardSkeleton lines={2} />}>
         <Plan />
       </Suspense>
@@ -79,7 +80,7 @@ async function Plan() {
       ) : (
         <section className="card flex flex-col gap-4">
           <div>
-            <h2 className="font-medium">{status.plan === "trial" ? "Pasar a pago" : "Cambiar de plan o renovar"}</h2>
+            <h2 className="font-bold">{status.plan === "trial" ? "Pasar a pago" : "Cambiar de plan o renovar"}</h2>
             <p className="mt-1 text-sm text-muted">{FOUNDER_OFFER}</p>
           </div>
           <BillingRequestForm defaultEmail={user?.email ?? ""} />

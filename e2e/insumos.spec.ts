@@ -39,7 +39,8 @@ test("el dueño importa una lista de precios desde Excel, con vista previa", asy
   // Quedan en la biblioteca, y la búsqueda por código los encuentra.
   await page.goto(`/insumos?q=${prefix}`);
   await expect(page.getByRole("link", { name: "Cal hidráulica x 25 kg" })).toBeVisible();
-  await expect(page.getByText("ARS 4.850,50")).toBeVisible();
+  // La fila de la tabla (en el teléfono la misma información va en una lista, oculta acá).
+  await expect(page.getByRole("row", { name: /Cal hidráulica x 25 kg/ })).toContainText("ARS 4.850,50");
   await expect(page.getByText("3 insumos", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });

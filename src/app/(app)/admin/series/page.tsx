@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { formatIndexValue, formatPeriod } from "@/lib/format";
 import { SeriesPasteForm } from "../../series-forms";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Series de referencia" };
 
@@ -44,9 +45,9 @@ const dateTimeFmt = new Intl.DateTimeFormat("es-AR", {
 
 export default function ReferenceSeriesAdminPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Series de referencia</h1>
+        <h1 className="page-title"><RevealText text="Series de referencia" /></h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Los índices que publican otros, cargados una vez para todos los estudios. Cada valor nuevo o rectificado
           llega en el acto a los estudios que adoptaron la serie. Para rectificar un mes, pegalo de nuevo con el valor
@@ -88,12 +89,12 @@ async function SeriesAdmin() {
   return (
     <>
       <section className="card flex flex-col gap-4">
-        <h2 className="font-medium">Cargar valores</h2>
+        <h2 className="font-bold">Cargar valores</h2>
         <SeriesPasteForm series={series.map(({ code, name, unit }) => ({ code, name, unit }))} />
       </section>
 
       <section className="card flex flex-col gap-4">
-        <h2 className="font-medium">Series</h2>
+        <h2 className="font-bold">Series</h2>
         <ul className="flex flex-col divide-y divide-line">
           {series.map((s) => {
             const provisional = s.provisional_months;
@@ -130,7 +131,7 @@ async function SeriesAdmin() {
       </section>
 
       <section className="card flex flex-col gap-4">
-        <h2 className="font-medium">Últimas rectificaciones</h2>
+        <h2 className="font-bold">Últimas rectificaciones</h2>
         {revisions.length === 0 ? (
           <p className="text-sm text-muted">Todavía no se rectificó ningún valor.</p>
         ) : (
