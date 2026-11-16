@@ -403,3 +403,37 @@ body {
     transform: none;
   }
 }
+
+/* ─── Impresión ───────────────────────────────────────────────────────────────────────────
+   En una página con un documento para imprimir (.print-doc, por ejemplo el presupuesto), se
+   imprime solo el documento: se oculta todo lo que no lo contiene ni está adentro de él. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  :root {
+    color-scheme: light;
+  }
+  body {
+    background: #fff !important;
+  }
+  body:has(.print-doc) :not(:has(.print-doc)):not(.print-doc):not(.print-doc *),
+  .no-print {
+    display: none !important;
+  }
+  .print-doc {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+  /* En el papel no hay animaciones: todo con su valor final. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

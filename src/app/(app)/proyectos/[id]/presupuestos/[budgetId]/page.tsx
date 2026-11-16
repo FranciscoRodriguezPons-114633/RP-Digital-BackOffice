@@ -7,16 +7,27 @@ import { PageSkeleton } from "@/components/skeleton";
 import { StatusPill } from "@/components/status-pill";
 import { createClient } from "@/lib/supabase/server";
 import {
-  COST_CLASSES,
   COST_CLASS_LABEL,
   FEES_MODE_LABEL,
   MARKUP_METHOD_LABEL,
   OVERHEAD_KIND_LABEL,
   type CostClass,
+  INDEX_MODE_LABEL,
   type FeesMode,
+  type IndexMode,
   type MarkupMethod,
 } from "@/lib/budgets";
-import { formatArea, formatCostPerM2, formatIndexValue, formatMoney, formatUnitPrice, sumAmounts } from "@/lib/format";
+import {
+  formatArea,
+  formatCostPerM2,
+  formatDate,
+  formatIndexValue,
+  formatMoney,
+  formatPeriod,
+  formatUnitPrice,
+  sumAmounts,
+  todayInCordoba,
+} from "@/lib/format";
 import { BUDGET_LEVEL_LABEL, BUDGET_STATUS_LABEL, idSchema, type BudgetLevel, type BudgetStatus } from "@/lib/validation";
 import {
   AddChapterForm,
@@ -30,13 +41,17 @@ import {
   type ItemValues,
 } from "../../../../budget-forms";
 import { loadWorksProject } from "../../project-header";
+import { SummaryTable, TOTALS_SELECT, type Totals } from "./budget-summary";
 import { CountUp } from "@/components/motion/count-up";
-import { Pencil, Plus } from "lucide-react";
+import { FileSpreadsheet, GitCompare, Pencil, Plus, Printer } from "lucide-react";
 import { PanelButton } from "@/components/ui/panel-button";
 import { PillNav } from "@/components/ui/pill-nav";
 import {
+  CopyBudgetButton,
   DeleteOverheadButton,
   FeesForm,
+  IndexForm,
+  IssueBudgetButton,
   MarkupForm,
   OverheadForm,
   OverheadTemplateButton,
@@ -60,37 +75,27 @@ type Budget = {
   fees_mode: FeesMode;
   fees_hours: string | null;
   fees_hourly_rate: string | null;
+  issued_at: string | null;
+  copied_from: string | null;
+  index_mode: IndexMode;
+  index_base_period: string | null;
+  index_general: string | null;
+  index_materials: string | null;
+  index_labor: string | null;
 };
-type Totals = Record<CostClass, string | null> & {
-  total: string;
-  cost_per_m2: string | null;
-  weighted_m2: string;
-  items: number;
-  items_unpriced: number;
-  items_missing_rate: number;
-  overheads_staff: string;
-  overheads_indirect: string;
-  overheads_unpriced: number;
-  cost: string;
-  overhead_pct: string;
-  profit_pct: string;
-  tax_pct: string;
-  markup_method: MarkupMethod;
-  overhead_amount: string;
-  profit_amount: string;
-  tax_amount: string;
-  markup_amount: string;
-  fees_mode: FeesMode;
-  fees_amount: string;
-  fees_taken_at: string | null;
-  price: string;
-  price_per_m2: string | null;
+type Adjusted = {
+  general_factor: string | null;
+  general_period: string | null;
+  materials_factor: string | null;
+  materials_period: string | null;
+  labor_factor: string | null;
+  labor_period: string | null;
+  missing: string[];
+  adjusted_cost: string | null;
+  adjusted_price: string | null;
+  adjusted_price_per_m2: string | null;
 };
 
-const TOTALS_SELECT =
-  "total, cost_per_m2, weighted_m2, materials, labor, equipment, subcontract, other, items, items_unpriced, items_missing_rate, " +
-  "overheads_staff, overheads_indirect, overheads_unpriced, cost, overhead_pct, profit_pct, tax_pct, markup_method, " +
-  "overhead_amount, profit_amount, tax_amount, markup_amount, fees_mode, fees_amount, fees_taken_at, price, price_per_m2";
 type Chapter = { id: string; name: string; position: number };
 type Item = ItemValues & { position: number; unit_analyses: { code: string; name: string } | null };
 type ItemCost = Record<CostClass, string> & { item_id: string; total: string; unpriced_components: number; missing_rate: boolean };
@@ -125,7 +130,8 @@ async function BudgetEditor({
       .from("budgets")
       .select(
         "id, number, level, status, currency, exchange_rate, created_at, overhead_pct, profit_pct, tax_pct, markup_method, " +
-          "fees_mode, fees_hours, fees_hourly_rate",
+          "fees_mode, fees_hours, fees_hourly_rate, issued_at, copied_from, index_mode, index_base_period, index_general, " +
+          "index_materials, index_labor",
       )
       .eq("id", budgetId)
       .eq("project_id", id)
@@ -194,8 +200,10 @@ async function BudgetEditor({
   // Personal e indirectos, y lo que suman hoy las etapas de honorarios (solo en la vista de precio).
   let overheads: OverheadValues[] = [];
   let stagesSummary: string | null = null;
+  let adjusted: Adjusted | null = null;
+  let indexNames: string[] = [];
   if (view === "price") {
-    const [{ data: overheadData }, { data: stageData }] = await Promise.all([
+    const [{ data: overheadData }, { data: stageData }, { data: adjustedData }, { data: nameData }] = await Promise.all([
       supabase
         .from("budget_overheads")
         .select("id, kind, concept, months, monthly_cost")
@@ -203,8 +211,19 @@ async function BudgetEditor({
         .order("position")
         .order("created_at"),
       supabase.from("fee_stage_summary").select("currency, total_amount").eq("project_id", id),
+      supabase
+        .from("budget_adjusted_totals")
+        .select(
+          "general_factor, general_period, materials_factor, materials_period, labor_factor, labor_period, missing, " +
+            "adjusted_cost, adjusted_price, adjusted_price_per_m2",
+        )
+        .eq("budget_id", budgetId)
+        .maybeSingle<Adjusted>(),
+      supabase.from("price_index_names").select("name").eq("org_id", org.id).order("name"),
     ]);
     overheads = (overheadData ?? []) as OverheadValues[];
+    adjusted = adjustedData ?? null;
+    indexNames = ((nameData ?? []) as { name: string }[]).map((n) => n.name);
     const byCurrency = new Map<string, (string | null)[]>();
     for (const st of (stageData ?? []) as { currency: string; total_amount: string | null }[]) {
       byCurrency.set(st.currency, [...(byCurrency.get(st.currency) ?? []), st.total_amount]);
@@ -217,16 +236,50 @@ async function BudgetEditor({
 
   return (
     <BudgetEditorProvider value={{ projectId: project.id, budgetId: budget.id, currency: budget.currency, rate, analyses }}>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Link href={`/proyectos/${project.id}/presupuestos`} className="text-sm text-muted hover:underline">
-          Presupuestos
-        </Link>
-        <span className="text-sm text-muted">/</span>
-        <h2 className="text-lg font-semibold">
-          V{budget.number} · {BUDGET_LEVEL_LABEL[level]}
-        </h2>
-        <StatusPill tone={editable ? "neutral" : "accent"}>{BUDGET_STATUS_LABEL[budget.status]}</StatusPill>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-0 grow basis-72 flex-wrap items-baseline gap-x-3 gap-y-1">
+          <Link href={`/proyectos/${project.id}/presupuestos`} className="text-sm text-muted hover:underline">
+            Presupuestos
+          </Link>
+          <span className="text-sm text-muted">/</span>
+          <h2 className="text-lg font-semibold">
+            V{budget.number} · {BUDGET_LEVEL_LABEL[level]}
+          </h2>
+          <StatusPill tone={editable ? "neutral" : "accent"} struck={budget.status === "superseded" || budget.status === "void"}>
+            {BUDGET_STATUS_LABEL[budget.status]}
+          </StatusPill>
+        </div>
+        <div className="flex flex-wrap items-start gap-2">
+          {editable && <IssueBudgetButton projectId={project.id} budgetId={budget.id} number={budget.number} />}
+          {budget.status !== "void" && (
+            <CopyBudgetButton projectId={project.id} budgetId={budget.id} number={budget.number} draft={editable} />
+          )}
+          {budget.copied_from && (
+            <Link
+              href={`/proyectos/${project.id}/presupuestos/comparar?a=${budget.copied_from}&b=${budget.id}`}
+              className="btn btn-secondary"
+            >
+              <GitCompare aria-hidden="true" size={16} />
+              Comparar
+            </Link>
+          )}
+          <Link href={`/proyectos/${project.id}/presupuestos/${budget.id}/imprimir`} className="btn btn-secondary">
+            <Printer aria-hidden="true" size={16} />
+            Imprimir o PDF
+          </Link>
+          {/* Descarga un archivo: enlace común, sin navegación del cliente. */}
+          <a href={`/proyectos/${project.id}/presupuestos/${budget.id}/exportar`} className="btn btn-secondary">
+            <FileSpreadsheet aria-hidden="true" size={16} />
+            Excel
+          </a>
+        </div>
       </div>
+      {budget.issued_at && (
+        <p className="-mt-3 text-xs text-muted">
+          Emitido el {formatDate(todayInCordoba(new Date(budget.issued_at)))}: los montos quedaron fijos ese día y no siguen los
+          precios de los insumos.
+        </p>
+      )}
 
       <PriceSummary totals={totals} currency={budget.currency}>
         {editable ? (
@@ -255,6 +308,9 @@ async function BudgetEditor({
           stagesSummary={stagesSummary}
           editable={editable}
         />
+      )}
+      {view === "price" && (
+        <IndexCard projectId={project.id} budget={budget} totals={totals} adjusted={adjusted} indexNames={indexNames} />
       )}
 
       {view === "items" && chapters.map((ch, ci) => {
@@ -412,44 +468,8 @@ async function BudgetEditor({
 
 // Del costo directo al precio sin IVA, en una tabla: cada fila con su monto (y su parte del costo
 // directo, en las partes). Las filas en cero no se muestran.
-function SummaryRow({
-  label,
-  amount,
-  currency,
-  share,
-  strong = false,
-}: {
-  label: string;
-  amount: number;
-  currency: string;
-  share?: string;
-  strong?: boolean;
-}) {
-  return (
-    <tr className={strong ? "border-t border-line font-semibold" : ""}>
-      <th scope="row" className={`py-1.5 pr-4 text-left ${strong ? "" : "font-normal text-subtle"}`}>
-        {label}
-      </th>
-      <td className="py-1.5 pr-4 text-right font-mono whitespace-nowrap">{formatMoney(amount, currency)}</td>
-      <td className="w-16 py-1.5 text-right text-xs whitespace-nowrap text-muted">{share ?? ""}</td>
-    </tr>
-  );
-}
-
 function PriceSummary({ totals, currency, children }: { totals: Totals; currency: string; children: ReactNode }) {
-  const n = (v: string | null | undefined) => Number(v ?? 0);
-  const direct = n(totals.total);
-  const parts = COST_CLASSES.map((c) => ({ c, amount: n(totals[c]) })).filter((p) => p.amount !== 0);
-  const staff = n(totals.overheads_staff);
-  const indirect = n(totals.overheads_indirect);
-  const pct = (v: string) => `${String(Number(v)).replace(".", ",")} %`;
-  const markupRows = [
-    { label: `Gastos generales (${pct(totals.overhead_pct)})`, amount: n(totals.overhead_amount) },
-    { label: `Beneficio (${pct(totals.profit_pct)})`, amount: n(totals.profit_amount) },
-    { label: `Impuestos (${pct(totals.tax_pct)}, a validar)`, amount: n(totals.tax_amount) },
-  ].filter((r) => r.amount !== 0);
-  const fees = n(totals.fees_amount);
-  const price = n(totals.price);
+  const price = Number(totals.price ?? 0);
 
   return (
     <section className="card flex flex-col gap-4" aria-label="Resumen del presupuesto">
@@ -465,31 +485,7 @@ function PriceSummary({ totals, currency, children }: { totals: Totals; currency
         </p>
       </div>
 
-      <table className="w-full max-w-xl border-collapse text-sm">
-        <tbody>
-          {parts.map((p) => (
-            <SummaryRow
-              currency={currency}
-              key={p.c}
-              label={COST_CLASS_LABEL[p.c]}
-              amount={p.amount}
-              share={direct > 0 ? `${((p.amount / direct) * 100).toFixed(1).replace(".", ",")} %` : undefined}
-            />
-          ))}
-          <SummaryRow currency={currency} label="Costo directo" amount={direct} strong />
-          {staff !== 0 && <SummaryRow currency={currency} label={OVERHEAD_KIND_LABEL.staff} amount={staff} />}
-          {indirect !== 0 && <SummaryRow currency={currency} label={OVERHEAD_KIND_LABEL.indirect} amount={indirect} />}
-          {(staff !== 0 || indirect !== 0) && <SummaryRow currency={currency} label="Costo" amount={n(totals.cost)} strong />}
-          {markupRows.map((r) => (
-            <SummaryRow currency={currency} key={r.label} label={r.label} amount={r.amount} />
-          ))}
-          {markupRows.length > 0 && (
-            <SummaryRow currency={currency} label={`Pase (${MARKUP_METHOD_LABEL[totals.markup_method].toLowerCase()})`} amount={n(totals.markup_amount)} strong />
-          )}
-          {fees !== 0 && <SummaryRow currency={currency} label={`Honorarios (${FEES_MODE_LABEL[totals.fees_mode].toLowerCase()})`} amount={fees} />}
-          <SummaryRow currency={currency} label="Precio sin IVA" amount={price} strong />
-        </tbody>
-      </table>
+      <SummaryTable totals={totals} currency={currency} className="max-w-xl" />
 
       {totals.items_missing_rate > 0 && (
         <p className="rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">
@@ -690,5 +686,88 @@ function PriceSetup({
         </section>
       </div>
     </>
+  );
+}
+
+// Actualizado por índice: una proyección del presupuesto a hoy, sin cambiar sus montos.
+function IndexCard({
+  projectId,
+  budget,
+  totals,
+  adjusted,
+  indexNames,
+}: {
+  projectId: string;
+  budget: Budget;
+  totals: Totals;
+  adjusted: Adjusted | null;
+  indexNames: string[];
+}) {
+  const factor = (label: string, name: string | null, f: string | null, period: string | null) =>
+    name && (
+      <li key={label} className="flex flex-wrap items-baseline gap-x-2">
+        <span className="text-subtle">{label}:</span>
+        <span className="font-medium">{name}</span>
+        <span className="font-mono text-muted">
+          {f === null ? "sin valor" : `× ${formatIndexValue(f)}`}
+          {period && ` (${formatPeriod(budget.index_base_period)} → ${formatPeriod(period)})`}
+        </span>
+      </li>
+    );
+  return (
+    <section className="card flex flex-col gap-4" aria-labelledby="ajuste">
+      <div>
+        <h2 id="ajuste" className="font-bold">
+          Actualizado por índice
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Cuánto sería hoy, con los índices del mes base al último cargado. No cambia los montos del presupuesto: se puede
+          ajustar también después de emitirlo.
+        </p>
+      </div>
+      {adjusted && budget.index_mode !== "none" && (
+        <div className="flex flex-col gap-3 rounded-[var(--radius-control)] bg-sunken p-4 text-sm">
+          <ul className="flex flex-col gap-1">
+            {factor("Materiales", budget.index_materials, adjusted.materials_factor, adjusted.materials_period)}
+            {factor("Mano de obra", budget.index_labor, adjusted.labor_factor, adjusted.labor_period)}
+            {factor(budget.index_mode === "by_part" ? "El resto" : "Todo el costo", budget.index_general, adjusted.general_factor, adjusted.general_period)}
+          </ul>
+          {adjusted.missing.length > 0 ? (
+            <p className="text-warn">
+              Falta el valor de {formatPeriod(budget.index_base_period)} de {adjusted.missing.join(" y ")}: cargalo en{" "}
+              <Link href="/indices" className="underline">
+                Índices
+              </Link>{" "}
+              o elegí otro mes base.
+            </p>
+          ) : (
+            <p>
+              Precio sin IVA actualizado:{" "}
+              <span className="font-mono text-base font-semibold">{formatMoney(adjusted.adjusted_price, budget.currency)}</span>
+              <span className="text-muted">
+                {" "}
+                · {formatCostPerM2(adjusted.adjusted_price_per_m2, budget.currency)} · antes{" "}
+                {formatMoney(totals.price, budget.currency)} ({INDEX_MODE_LABEL[budget.index_mode].toLowerCase()})
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+      {budget.status !== "void" && (
+        <IndexForm
+          projectId={projectId}
+          budgetId={budget.id}
+          parametric={false}
+          indexNames={indexNames}
+          values={{
+            mode: budget.index_mode,
+            basePeriod: budget.index_base_period ?? `${budget.created_at.slice(0, 7)}-01`,
+            general: budget.index_general,
+            materials: budget.index_materials,
+            labor: budget.index_labor,
+          }}
+        />
+      )}
+    </section>
   );
 }

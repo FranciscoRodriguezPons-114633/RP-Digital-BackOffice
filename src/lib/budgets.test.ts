@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { budgetItemSchema, conversionFactor, feesSchema, itemLine, markup, markupSchema, overheadSchema } from "./budgets";
+import {
+  budgetIndexSchema,
+  budgetItemSchema,
+  conversionFactor,
+  feesSchema,
+  itemLine,
+  markup,
+  markupSchema,
+  overheadSchema,
+} from "./budgets";
 
 // Mismos casos que supabase/tests/database/21_presupuesto_por_item.test.sql: el monto en vivo
 // del formulario tiene que dar lo mismo que la vista budget_item_costs.
@@ -133,5 +142,28 @@ describe("esquemas del resumen", () => {
       rate: 250,
     });
     expect(feesSchema.parse({ fees_mode: "stages" })).toEqual({ mode: "stages", hours: null, rate: null });
+  });
+});
+
+describe("budgetIndexSchema", () => {
+  it("el mes base del input de mes se guarda como primer día", () => {
+    expect(budgetIndexSchema.parse({ index_mode: "general", index_base_period: "2026-10", index_general: "CAC general" })).toEqual({
+      mode: "general",
+      basePeriod: "2026-10-01",
+      general: "CAC general",
+      materials: null,
+      labor: null,
+    });
+  });
+
+  it("por partes pide los índices de materiales y mano de obra; el general es opcional", () => {
+    expect(budgetIndexSchema.safeParse({ index_mode: "by_part", index_base_period: "2026-10", index_materials: "CAC mat" }).success).toBe(false);
+    expect(
+      budgetIndexSchema.parse({ index_mode: "by_part", index_base_period: "2026-10-15", index_materials: "CAC mat", index_labor: "CAC MO", index_general: "" }),
+    ).toMatchObject({ basePeriod: "2026-10-01", general: null, materials: "CAC mat", labor: "CAC MO" });
+  });
+
+  it("sin ajuste limpia todo", () => {
+    expect(budgetIndexSchema.parse({ index_mode: "none", index_general: "CAC" })).toMatchObject({ mode: "none", general: null, basePeriod: null });
   });
 });
