@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/dal";
 import { dbErrorMessage } from "@/lib/errors";
-import { ITEM_LEVELS, budgetItemSchema, chapterNameSchema } from "@/lib/budgets";
+import { ITEM_LEVELS, budgetItemSchema, chapterNameSchema, feesSchema, markupSchema, overheadSchema } from "@/lib/budgets";
 import { fieldErrors, idSchema, parseDecimal, type FormState } from "@/lib/validation";
 
 // Cada acción verifica la sesión; los permisos (miembro, borrador) los aplica la base.
@@ -190,4 +190,117 @@ export async function deleteBudgetItem(projectId: string, budgetId: string, item
   if (error) return { ok: false, message: message(error) };
   revalidateBudget();
   return { ok: true, message: "Ítem borrado." };
+}
+
+// ---------- Personal e indirectos ----------
+
+export async function saveOverhead(
+  projectId: string,
+  budgetId: string,
+  overheadId: string | null,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const user = await requireUser();
+  if (!idSchema.safeParse(budgetId).success) return { ok: false, message: "Presupuesto inválido." };
+  if (overheadId !== null && !idSchema.safeParse(overheadId).success) return { ok: false, message: "Concepto inválido." };
+  const parsed = overheadSchema.safeParse({
+    kind: formData.get("kind"),
+    concept: formData.get("concept"),
+    months: formData.get("months"),
+    monthly_cost: formData.get("monthly_cost") ?? "",
+  });
+  if (!parsed.success) return fieldErrors(parsed.error);
+
+  const supabase = await createClient();
+  let error;
+  if (overheadId === null) {
+    const { data: last } = await supabase
+      .from("budget_overheads")
+      .select("position")
+      .eq("budget_id", budgetId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ position: number }>();
+    ({ error } = await supabase
+      .from("budget_overheads")
+      .insert({ ...parsed.data, budget_id: budgetId, position: (last?.position ?? 0) + 1, created_by: user.id }));
+  } else {
+    ({ error } = await supabase.from("budget_overheads").update(parsed.data).eq("id", overheadId).eq("budget_id", budgetId));
+  }
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  return { ok: true, message: overheadId ? `«${parsed.data.concept}» guardado.` : `«${parsed.data.concept}» agregado.` };
+}
+
+export async function deleteOverhead(projectId: string, budgetId: string, overheadId: string): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(overheadId).success) return { ok: false, message: "Concepto inválido." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("budget_overheads").delete().eq("id", overheadId).eq("budget_id", budgetId);
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  return { ok: true, message: "Concepto borrado." };
+}
+
+export async function applyOverheadTemplate(projectId: string, budgetId: string): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(budgetId).success) return { ok: false, message: "Presupuesto inválido." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("apply_overhead_template", { p_budget_id: budgetId });
+  if (error?.code === "22023") return { ok: false, message: error.message };
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  return { ok: true, message: `Se cargaron ${Number(data)} conceptos: completá el costo mensual de cada uno.` };
+}
+
+// ---------- Pase y honorarios ----------
+
+export async function setBudgetMarkup(projectId: string, budgetId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(budgetId).success) return { ok: false, message: "Presupuesto inválido." };
+  const parsed = markupSchema.safeParse({
+    overhead_pct: formData.get("overhead_pct"),
+    profit_pct: formData.get("profit_pct"),
+    tax_pct: formData.get("tax_pct"),
+    markup_method: formData.get("markup_method"),
+  });
+  if (!parsed.success) return fieldErrors(parsed.error);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_budget_markup", {
+    p_budget_id: budgetId,
+    p_overhead_pct: parsed.data.overhead_pct,
+    p_profit_pct: parsed.data.profit_pct,
+    p_tax_pct: parsed.data.tax_pct,
+    p_method: parsed.data.markup_method,
+  });
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  return { ok: true, message: "Pase guardado." };
+}
+
+export async function setBudgetFees(projectId: string, budgetId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  if (!idSchema.safeParse(budgetId).success) return { ok: false, message: "Presupuesto inválido." };
+  const parsed = feesSchema.safeParse({
+    fees_mode: formData.get("fees_mode"),
+    fees_hours: formData.get("fees_hours") ?? undefined,
+    fees_hourly_rate: formData.get("fees_hourly_rate") ?? undefined,
+  });
+  if (!parsed.success) return fieldErrors(parsed.error);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_budget_fees", {
+    p_budget_id: budgetId,
+    p_mode: parsed.data.mode,
+    p_hours: parsed.data.hours,
+    p_hourly_rate: parsed.data.rate,
+  });
+  // Sin etapas o sin tipo de cambio: el mensaje de la base dice qué falta.
+  if (error?.code === "22023") return { ok: false, message: error.message };
+  if (error) return { ok: false, message: message(error) };
+  revalidateBudget();
+  return {
+    ok: true,
+    message: parsed.data.mode === "none" ? "Honorarios quitados." : parsed.data.mode === "stages" ? "Honorarios tomados de las etapas." : "Honorarios guardados.",
+  };
 }

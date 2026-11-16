@@ -171,6 +171,15 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+@layer base {
+  /* Una franja con scroll horizontal (tablas, pastillas) contiene a sus textos para lectores de
+     pantalla (sr-only, con posición absoluta): si no, se escapan del scroll y ensanchan la
+     página en el teléfono. Va en base para que una utilidad absolute o sticky la pueda pisar. */
+  .overflow-x-auto {
+    position: relative;
+  }
+}
+
 @layer components {
   .card {
     @apply rounded-[var(--radius-card)] border border-[var(--card-border)] bg-surface p-6 shadow-[var(--card-shadow)];

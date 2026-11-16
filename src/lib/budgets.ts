@@ -124,3 +124,97 @@ export const chapterNameSchema = z
   .trim()
   .min(2, { error: "Indicá el nombre del rubro" })
   .max(80, { error: "Hasta 80 caracteres" });
+
+// ---------- Personal e indirectos, honorarios y pase (sprint 7) ----------
+
+export const OVERHEAD_KINDS = ["staff", "indirect"] as const;
+export type OverheadKind = (typeof OVERHEAD_KINDS)[number];
+export const OVERHEAD_KIND_LABEL: Record<OverheadKind, string> = {
+  staff: "Personal de obra",
+  indirect: "Indirectos",
+};
+
+export const MARKUP_METHODS = ["cascade", "on_cost"] as const;
+export type MarkupMethod = (typeof MARKUP_METHODS)[number];
+export const MARKUP_METHOD_LABEL: Record<MarkupMethod, string> = {
+  cascade: "En cascada",
+  on_cost: "Sobre el costo",
+};
+export const MARKUP_METHOD_HINT: Record<MarkupMethod, string> = {
+  cascade: "Cada porcentaje va sobre el subtotal anterior: beneficio sobre costo más gastos generales, e impuestos sobre todo eso.",
+  on_cost: "Los tres porcentajes van sobre el costo.",
+};
+
+export const FEES_MODES = ["none", "stages", "hours"] as const;
+export type FeesMode = (typeof FEES_MODES)[number];
+export const FEES_MODE_LABEL: Record<FeesMode, string> = {
+  none: "Sin honorarios",
+  stages: "De las etapas del proyecto",
+  hours: "Por horas estimadas",
+};
+
+// Misma cuenta que la vista budget_totals, para ver el pase en vivo mientras se cargan los
+// porcentajes. Cada monto se redondea al centavo y el precio es la suma de los redondeados.
+//   cascada   : GG = costo × gg% · B = (costo + GG) × b% · I = (costo + GG + B) × i%
+//   s/ costo  : GG = costo × gg% · B = costo × b%        · I = costo × i%
+// Los honorarios van aparte, después del pase.
+export function markup(
+  cost: number,
+  { overheadPct, profitPct, taxPct, method }: { overheadPct: number; profitPct: number; taxPct: number; method: MarkupMethod },
+  fees = 0,
+) {
+  const overhead = round2((cost * overheadPct) / 100);
+  const profit = round2(((method === "cascade" ? cost + overhead : cost) * profitPct) / 100);
+  const tax = round2(((method === "cascade" ? cost + overhead + profit : cost) * taxPct) / 100);
+  const amount = round2(overhead + profit + tax);
+  const price = round2(cost + amount + fees);
+  // Coeficiente de pase: precio sin honorarios sobre costo (1,30 = 30 % arriba del costo).
+  const coefficient = cost > 0 ? (cost + amount) / cost : null;
+  return { overhead, profit, tax, amount, price, coefficient };
+}
+
+const percentage = (label: string) =>
+  z
+    .unknown()
+    .transform((v) => (v === "" || v === null || v === undefined ? 0 : typeof v === "number" ? v : parseDecimal(v)))
+    .refine((v): v is number => v !== null && !Number.isNaN(v) && v >= 0 && v <= 100, {
+      error: `${label}: de 0 a 100`,
+    });
+
+export const markupSchema = z.object({
+  overhead_pct: percentage("Gastos generales"),
+  profit_pct: percentage("Beneficio"),
+  tax_pct: percentage("Impuestos"),
+  markup_method: z.enum(MARKUP_METHODS, { error: "Elegí cómo se aplica el pase" }),
+});
+
+export const overheadSchema = z.object({
+  kind: z.enum(OVERHEAD_KINDS, { error: "Elegí si es personal o un indirecto" }),
+  concept: z
+    .string({ error: "Indicá el concepto" })
+    .trim()
+    .min(2, { error: "Indicá el concepto" })
+    .max(120, { error: "Hasta 120 caracteres" }),
+  months: positive("Meses", 9999),
+  // Vacío: todavía sin costo (no suma y se avisa).
+  monthly_cost: z
+    .unknown()
+    .transform((v) => (v === "" || v === null || v === undefined ? null : typeof v === "number" ? v : parseDecimal(v)))
+    .refine((v) => v === null || (!Number.isNaN(v) && v > 0), { error: "Costo mensual: mayor que cero, o vacío" })
+    .refine((v) => v === null || v <= 9_999_999_999, { error: "Costo mensual: es demasiado grande" }),
+});
+
+export const feesSchema = z
+  .object({
+    fees_mode: z.enum(FEES_MODES, { error: "Elegí de dónde salen los honorarios" }),
+    fees_hours: z.unknown().optional(),
+    fees_hourly_rate: z.unknown().optional(),
+  })
+  .transform((s, ctx) => {
+    if (s.fees_mode !== "hours") return { mode: s.fees_mode, hours: null, rate: null };
+    const hours = positive("Horas", 999_999).safeParse(s.fees_hours);
+    if (!hours.success) ctx.addIssue({ code: "custom", path: ["fees_hours"], message: hours.error.issues[0].message });
+    const rate = positive("Costo por hora", 9_999_999_999).safeParse(s.fees_hourly_rate);
+    if (!rate.success) ctx.addIssue({ code: "custom", path: ["fees_hourly_rate"], message: rate.error.issues[0].message });
+    return { mode: s.fees_mode, hours: hours.success ? hours.data : null, rate: rate.success ? rate.data : null };
+  });
