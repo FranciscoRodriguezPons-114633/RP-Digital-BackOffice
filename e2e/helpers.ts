@@ -23,14 +23,12 @@ export async function openProjectSection(page: Page, label: string) {
   await expect(link).toHaveAttribute("aria-current", "page");
 }
 
-// Abre un desplegable de alta («Nuevo insumo», «Nuevo análisis de precio») si está cerrado:
-// arranca abierto solo cuando la lista está vacía. Espera a que la página termine de cargar
-// antes de mirar, para no cerrarlo por error.
-export async function openDisclosure(page: Page, summary: string) {
-  const toggle = page.locator("summary", { hasText: summary });
-  await expect(toggle).toBeVisible();
-  const details = page.locator("details", { has: toggle });
-  if ((await details.getAttribute("open")) === null) await toggle.click();
+// Abre el panel de un botón («Nuevo insumo», «Nuevo análisis de precio») y lo devuelve.
+export async function openPanel(page: Page, button: string) {
+  await page.getByRole("button", { name: button, exact: true }).click();
+  const panel = page.getByRole("dialog");
+  await expect(panel).toBeVisible();
+  return panel;
 }
 
 // Errores que la página tira sin que nadie los ataje (por ejemplo, un componente que falla al

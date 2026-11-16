@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openDisclosure, openProject, signInAs, trackPageErrors } from "./helpers";
+import { openPanel, openProject, signInAs, trackPageErrors } from "./helpers";
 
 // Presupuesto por ítem de Edificio Alba (ficha en dólares del seed), con precios directos.
 test("se arma un presupuesto por ítem y el total cierra con el desglose", async ({ page }) => {
@@ -51,7 +51,7 @@ test("un ítem con análisis de precios en pesos se pasa a dólares con el tipo 
 
   // Análisis: 10 kg de cemento (ARS 190) con 5 % de desperdicio = ARS 1.995 por m2.
   await page.goto("/analisis-de-precios");
-  await openDisclosure(page, "Nuevo análisis de precio");
+  await openPanel(page, "Nuevo análisis de precio");
   await page.getByLabel("Código", { exact: true }).fill(code);
   await page.getByLabel("Nombre", { exact: true }).fill(`Carpeta ${code}`);
   await page.getByLabel("Rubro", { exact: true }).fill("Contrapisos y carpetas");

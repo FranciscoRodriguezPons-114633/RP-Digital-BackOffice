@@ -12,6 +12,8 @@ import {
 } from "@/lib/validation";
 import { DeletePartyForm, PartyForm, type PartyValues } from "../party-forms";
 import { RevealText } from "@/components/motion/reveal-title";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Pencil } from "lucide-react";
 
 export const metadata: Metadata = { title: "Terceros" };
 
@@ -85,9 +87,16 @@ async function Parties() {
                     .filter(Boolean)
                     .join(" · ") || "Sin datos de contacto"}
                 </p>
-                <details className="rounded-md border border-line">
-                  <summary className="cursor-pointer px-4 py-2 text-sm">Editar {p.name}</summary>
-                  <div className="flex flex-col gap-5 border-t border-line p-4">
+                <PanelButton
+                  label="Editar"
+                  title={`Editar ${p.name}`}
+                  eyebrow="Terceros"
+                  variant="ghost"
+                  size="sm"
+                  icon={<Pencil aria-hidden="true" size={14} />}
+                  className="self-start"
+                >
+                  <div className="flex flex-col gap-5">
                     <PartyForm party={p} />
                     {org.role === "owner" && (
                       <div className="border-t border-line pt-4">
@@ -95,7 +104,7 @@ async function Parties() {
                       </div>
                     )}
                   </div>
-                </details>
+                </PanelButton>
               </li>
             ))}
           </ul>

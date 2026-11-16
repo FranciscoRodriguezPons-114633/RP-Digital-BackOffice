@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { expect, test } from "@playwright/test";
-import { openDisclosure, signInAs, trackPageErrors } from "./helpers";
+import { openPanel, signInAs, trackPageErrors } from "./helpers";
 
 // Arma en memoria una lista de precios como la plantilla, con una fila inválida.
 async function priceList(prefix: string) {
@@ -51,7 +51,7 @@ test("la mano de obra toma el precio de la escala UOCRA más las cargas", async 
   await signInAs(page, "Ana");
   await page.goto("/insumos");
 
-  await openDisclosure(page, "Nuevo insumo");
+  await openPanel(page, "Nuevo insumo");
   await page.getByRole("combobox", { name: "Tipo", exact: true }).selectOption({ label: "Mano de obra" });
   await page.getByLabel("Código", { exact: true }).fill(code);
   await page.getByLabel("Unidad", { exact: true }).fill("h");

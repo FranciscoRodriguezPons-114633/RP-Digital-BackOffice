@@ -34,7 +34,8 @@ export function Sheet({
   }, [open]);
 
   const position = {
-    right: "ml-auto mr-0 h-dvh max-h-dvh w-full sm:w-[440px] rounded-none sm:rounded-l-[var(--radius-card)]",
+    // max-w-none: el navegador le pone a <dialog> un ancho máximo menor que la pantalla.
+    right: "ml-auto mr-0 h-dvh max-h-dvh w-full max-w-none sm:w-[440px] rounded-none sm:rounded-l-[var(--radius-card)]",
     bottom: "mt-auto mb-0 w-full max-w-none rounded-t-[var(--radius-card)] max-h-[85dvh]",
     center: "m-auto w-[calc(100%-2rem)] max-w-lg rounded-[var(--radius-card)]",
   }[side];

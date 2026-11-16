@@ -3,12 +3,14 @@
 import { useFormStatus } from "react-dom";
 import { startTransition, useActionState, useEffect, useRef, type FormEvent, type ReactNode } from "react";
 import type { FormState } from "@/lib/validation";
+import { usePanel } from "@/components/ui/panel-button";
 
 // Formularios con Server Actions que NO borran lo escrito cuando hay un error.
 // React vacía un <form action> al terminar cada envío, aunque la acción devuelva un
 // error de validación. Acá el envío pasa por onSubmit (sin vaciado automático) y el
 // formulario se limpia solo si la acción respondió ok y resetOnSuccess es true.
 // Sin JavaScript sigue funcionando por el atributo action.
+// Dentro de un PanelButton, una respuesta ok cierra el panel y muestra el mensaje en un aviso.
 export function useActionForm<S extends FormState = FormState>(
   action: (state: S, formData: FormData) => Promise<S>,
   { resetOnSuccess = true }: { resetOnSuccess?: boolean } = {},
@@ -19,10 +21,13 @@ export function useActionForm<S extends FormState = FormState>(
   );
   const state = awaitedState as S;
   const ref = useRef<HTMLFormElement>(null);
+  const panel = usePanel();
 
   useEffect(() => {
     if (state.ok && resetOnSuccess) ref.current?.reset();
-  }, [state, resetOnSuccess]);
+    // Dentro de un panel (PanelButton): guardado bien, el panel se cierra y avisa.
+    if (state.ok) panel?.saved(state.message);
+  }, [state, resetOnSuccess, panel]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

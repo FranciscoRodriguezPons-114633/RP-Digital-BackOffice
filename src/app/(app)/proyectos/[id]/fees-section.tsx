@@ -6,6 +6,8 @@ import { applyFeeTemplate } from "../../fee-actions";
 import { DeleteStageButton, StageForm } from "../../fee-forms";
 import { SubmitButton } from "@/components/form";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Pencil, Plus } from "lucide-react";
 
 type StageSummary = {
   id: string;
@@ -91,6 +93,40 @@ function OverBudgetLink({ projectId, s, pct }: { projectId: string; s: StageSumm
   );
 }
 
+// Editar o borrar una etapa (solo el dueño), en un panel.
+function EditStage({ projectId, indexNames, s }: { projectId: string; indexNames: string[]; s: StageSummary }) {
+  return (
+    <PanelButton
+      label="Editar"
+      title={`Editar «${s.name}»`}
+      eyebrow="Honorarios"
+      variant="ghost"
+      size="sm"
+      icon={<Pencil aria-hidden="true" size={14} />}
+      className="self-start"
+    >
+      <div className="flex flex-col gap-4">
+        <StageForm
+          projectId={projectId}
+          indexNames={indexNames}
+          stage={{
+            id: s.id,
+            name: s.name,
+            kind: s.kind,
+            currency: s.currency,
+            amount: s.amount,
+            hourly_rate: s.hourly_rate,
+            budget_hours: s.budget_hours,
+            index_name: s.index_name,
+            index_base_period: s.index_base_period,
+          }}
+        />
+        <DeleteStageButton projectId={projectId} stageId={s.id} />
+      </div>
+    </PanelButton>
+  );
+}
+
 export async function FeesSection({ projectId, isOwner }: { projectId: string; isOwner: boolean }) {
   const supabase = await createClient();
   const [{ data }, { data: indexRows }] = await Promise.all([
@@ -119,9 +155,16 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
 
   return (
     <section className="card flex flex-col gap-6">
-      <div>
-        <h2 className="font-bold">Honorarios por etapa</h2>
-        <p className="mt-1 text-sm text-muted">Honorario actualizado, adicionales aprobados y horas contra lo previsto.</p>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0 grow basis-72">
+          <h2 className="font-bold">Honorarios por etapa</h2>
+          <p className="mt-1 text-sm text-muted">Honorario actualizado, adicionales aprobados y horas contra lo previsto.</p>
+        </div>
+        {isOwner && stages.length > 0 && (
+          <PanelButton label="Agregar etapa" title="Nueva etapa" eyebrow="Honorarios" icon={<Plus aria-hidden="true" size={16} />}>
+            <StageForm projectId={projectId} indexNames={indexNames} />
+          </PanelButton>
+        )}
       </div>
 
       {stages.length === 0 ? (
@@ -184,6 +227,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                   </div>
                   {tone.label && <span className={`text-xs ${tone.text}`}>{tone.label}</span>}
                   <OverBudgetLink projectId={projectId} s={s} pct={pct} />
+                  {isOwner && <EditStage projectId={projectId} indexNames={indexNames} s={s} />}
                 </li>
               );
             })}
@@ -205,6 +249,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                   <th className="py-2 pr-4 font-medium">Adicionales</th>
                   <th className="py-2 pr-4 font-medium">Horas</th>
                   <th className="py-2 font-medium"><span className="sr-only">Estado</span></th>
+                  {isOwner && <th className="py-2 font-medium"><span className="sr-only">Editar</span></th>}
                 </tr>
               </thead>
               <tbody>
@@ -234,6 +279,11 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                         {tone.label && <div className="whitespace-nowrap">{tone.label}</div>}
                         <OverBudgetLink projectId={projectId} s={s} pct={pct} />
                       </td>
+                      {isOwner && (
+                        <td className="py-2 text-right">
+                          <EditStage projectId={projectId} indexNames={indexNames} s={s} />
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -248,7 +298,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                         <span className="ml-2 text-xs text-muted">con {formatMoney(t.extras, currency)} de adicionales</span>
                       )}
                     </td>
-                    <td colSpan={2} />
+                    <td colSpan={isOwner ? 3 : 2} />
                   </tr>
                 ))}
               </tfoot>
@@ -257,39 +307,6 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
         </>
       )}
 
-      {isOwner && stages.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {stages.map((s) => (
-            <details key={s.id} className="rounded-md border border-line">
-              <summary className="cursor-pointer px-4 py-3 text-sm">Editar «{s.name}»</summary>
-              <div className="flex flex-col gap-4 border-t border-line p-4">
-                <StageForm
-                  projectId={projectId}
-                  indexNames={indexNames}
-                  stage={{
-                    id: s.id,
-                    name: s.name,
-                    kind: s.kind,
-                    currency: s.currency,
-                    amount: s.amount,
-                    hourly_rate: s.hourly_rate,
-                    budget_hours: s.budget_hours,
-                    index_name: s.index_name,
-                    index_base_period: s.index_base_period,
-                  }}
-                />
-                <DeleteStageButton projectId={projectId} stageId={s.id} />
-              </div>
-            </details>
-          ))}
-          <details className="rounded-md border border-dashed border-line">
-            <summary className="cursor-pointer px-4 py-3 text-sm">Agregar etapa</summary>
-            <div className="border-t border-line p-4">
-              <StageForm projectId={projectId} indexNames={indexNames} />
-            </div>
-          </details>
-        </div>
-      )}
     </section>
   );
 }

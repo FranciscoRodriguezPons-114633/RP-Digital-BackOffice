@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { loadProjectGuests } from "./guests";
 import { createClient } from "@/lib/supabase/server";
-import { Disclosure } from "@/components/disclosure";
 import { StatusPill, type PillTone } from "@/components/status-pill";
 import { formatBytes } from "@/lib/format";
 import { PIECE_KIND_LABEL, PIECE_STATUS_LABEL, type PieceKind, type PieceStatus } from "@/lib/validation";
 import { CloseRoundButton, PieceFileForm, PieceForm, ReviewPieceButtons, type SourceChoice } from "../../piece-forms";
 import { CommentThread, type CommentView } from "../../comment-thread";
 import { loadComments } from "./comments";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Plus, Upload } from "lucide-react";
 
 export type PieceRowData = {
   id: string;
@@ -124,12 +125,16 @@ export function PieceRow({
         />
       )}
       {!piece.uploaded_at && piece.status !== "obsolete" && (
-        <details className="rounded-md border border-line">
-          <summary className="cursor-pointer px-4 py-2 text-sm">Subir el archivo de la pieza</summary>
-          <div className="border-t border-line p-4">
-            <PieceFileForm projectId={piece.project_id} pieceId={piece.id} />
-          </div>
-        </details>
+        <PanelButton
+          label="Subir el archivo de la pieza"
+          title={`Subir «${piece.title}»`}
+          eyebrow="Piezas dependientes"
+          size="sm"
+          icon={<Upload aria-hidden="true" size={15} />}
+          className="self-start"
+        >
+          <PieceFileForm projectId={piece.project_id} pieceId={piece.id} />
+        </PanelButton>
       )}
     </li>
   );
@@ -175,16 +180,9 @@ export async function PiecesSection({ projectId }: { projectId: string }) {
       {sources.length === 0 ? (
         <p className="text-sm text-muted">Para cargar piezas, primero publicá una revisión en Planos y documentos.</p>
       ) : (
-        <Disclosure
-          defaultOpen={pieces.length === 0}
-          className="rounded-md border border-dashed border-line"
-          summary="Nueva pieza"
-          summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
-        >
-          <div className="border-t border-line p-4">
-            <PieceForm projectId={projectId} sources={sources} emails={emails} />
-          </div>
-        </Disclosure>
+        <PanelButton label="Nueva pieza" title="Nueva pieza" eyebrow="Piezas dependientes" variant="primary" icon={<Plus aria-hidden="true" size={16} />} className="self-start">
+          <PieceForm projectId={projectId} sources={sources} emails={emails} />
+        </PanelButton>
       )}
       {pieces.length > 0 && (
         <ul className="flex flex-col divide-y divide-line">

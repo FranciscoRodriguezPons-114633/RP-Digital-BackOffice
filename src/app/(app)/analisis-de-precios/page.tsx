@@ -2,13 +2,14 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { Disclosure } from "@/components/disclosure";
 import { ListSkeleton } from "@/components/skeleton";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { formatMoney } from "@/lib/format";
 import { CatalogImportForm, UnitAnalysisForm, type CatalogItem } from "../analysis-forms";
 import { RevealText } from "@/components/motion/reveal-title";
+import { PanelButton } from "@/components/ui/panel-button";
+import { Plus } from "lucide-react";
 
 export const metadata: Metadata = { title: "Análisis de precios" };
 
@@ -81,16 +82,9 @@ async function Analyses() {
   return (
     <>
       <section className="card flex flex-col gap-4">
-        <Disclosure
-          defaultOpen={rows.length === 0}
-          className="rounded-md border border-dashed border-line"
-          summary="Nuevo análisis de precio"
-          summaryClassName="cursor-pointer px-4 py-3 text-sm font-medium"
-        >
-          <div className="border-t border-line p-4">
-            <UnitAnalysisForm chapters={chapters} />
-          </div>
-        </Disclosure>
+        <PanelButton label="Nuevo análisis de precio" title="Nuevo análisis de precio" eyebrow="Análisis de precios" variant="primary" icon={<Plus aria-hidden="true" size={16} />} className="self-start">
+          <UnitAnalysisForm chapters={chapters} />
+        </PanelButton>
 
         {rows.length === 0 ? (
           <p className="text-sm text-muted">
