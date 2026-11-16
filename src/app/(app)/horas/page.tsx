@@ -10,6 +10,7 @@ import { idSchema } from "@/lib/validation";
 import { SubmitButton } from "@/components/form";
 import { deleteTimeEntry } from "../fee-actions";
 import { TimeEntryForm, type ProjectStages } from "../fee-forms";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Horas" };
 
@@ -25,8 +26,8 @@ type EntryRow = {
 
 export default function HoursPage({ searchParams }: PageProps<"/horas">) {
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Cargar horas</h1>
+    <div className="reveal-group mx-auto flex w-full max-w-xl flex-col gap-8">
+      <h1 className="page-title"><RevealText text="Cargar horas" /></h1>
       <Suspense fallback={<CardSkeleton lines={4} />}>
         <Hours searchParams={searchParams} />
       </Suspense>
@@ -101,7 +102,7 @@ async function Hours({ searchParams }: { searchParams: Promise<Record<string, st
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline gap-3">
-          <h2 className="font-medium">Tus últimas dos semanas</h2>
+          <h2 className="font-bold">Tus últimas dos semanas</h2>
           <span className="ml-auto font-mono text-sm">{formatHours(total)}</span>
         </div>
         {entries.length === 0 ? (

@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { CardSkeleton } from "@/components/skeleton";
@@ -14,6 +13,8 @@ import {
   type AnalysisValues,
   type ComponentRow,
 } from "../../analysis-forms";
+import { RevealText } from "@/components/motion/reveal-title";
+import { BackLink } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Análisis de precio" };
 
@@ -28,8 +29,8 @@ const plain = (n: string) => String(Number(n)).replace(".", ",");
 
 export default function UnitAnalysisPage({ params }: PageProps<"/analisis-de-precios/[id]">) {
   return (
-    <div className="flex flex-col gap-8">
-      <Link href="/analisis-de-precios" className="text-sm text-muted hover:underline">← Análisis de precios</Link>
+    <div className="reveal-group flex flex-col gap-8">
+      <BackLink href="/analisis-de-precios" label="Análisis de precios" />
       <Suspense fallback={<CardSkeleton label="Cargando análisis…" lines={8} />}>
         <Analysis params={params} />
       </Suspense>
@@ -71,7 +72,7 @@ async function Analysis({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-semibold">{analysis.name}</h1>
+        <h1 className="page-title"><RevealText text={analysis.name} /></h1>
         <p className="mt-1 text-sm text-muted">
           <span className="font-mono">{analysis.code}</span> · {analysis.chapter} · por {analysis.unit}
           {analysis.origin === "catalog" && " · importado del catálogo"}
@@ -80,7 +81,7 @@ async function Analysis({ params }: { params: Promise<{ id: string }> }) {
 
       <section className="card flex flex-col gap-4">
         <div>
-          <h2 className="font-medium">Componentes</h2>
+          <h2 className="font-bold">Componentes</h2>
           <p className="mt-1 text-sm text-muted">
             Cada insumo con su rendimiento (cuánto se usa por {analysis.unit}) y su desperdicio. Costo = rendimiento ×
             (1 + desperdicio) × precio del insumo.
@@ -96,7 +97,7 @@ async function Analysis({ params }: { params: Promise<{ id: string }> }) {
       </section>
 
       <section className="card flex flex-col gap-4">
-        <h2 className="font-medium">Datos del análisis</h2>
+        <h2 className="font-bold">Datos del análisis</h2>
         <UnitAnalysisForm analysis={analysis} chapters={chapters} />
         {org.role === "owner" && (
           <div className="border-t border-line pt-4">

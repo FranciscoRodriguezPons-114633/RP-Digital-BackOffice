@@ -77,9 +77,9 @@ function ExtrasCell({ s }: { s: StageSummary }) {
 }
 
 // Verde, ámbar o rojo según el avance (ver ProgressBar).
-function HoursBar({ pct, className }: { pct: number | null; className: string }) {
+function HoursBar({ pct, index, className }: { pct: number | null; index: number; className: string }) {
   if (pct === null) return null;
-  return <ProgressBar pct={pct} size="sm" className={className} />;
+  return <ProgressBar pct={pct} size="sm" index={index} className={className} />;
 }
 
 function OverBudgetLink({ projectId, s, pct }: { projectId: string; s: StageSummary; pct: number | null }) {
@@ -149,7 +149,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
         <>
           {/* Teléfono: una tarjeta por etapa */}
           <ul className="flex flex-col divide-y divide-line sm:hidden">
-            {stages.map((s) => {
+            {stages.map((s, i) => {
               const pct = s.budget_pct === null ? null : Number(s.budget_pct);
               const tone = hoursTone(pct);
               return (
@@ -179,7 +179,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                       {formatHours(s.hours_used)}
                       {s.budget_hours !== null && <span className="text-muted"> / {formatHours(s.budget_hours)}</span>}
                     </span>
-                    <HoursBar pct={pct} className="flex-1" />
+                    <HoursBar pct={pct} index={i} className="flex-1" />
                     {pct !== null && <span className={`text-xs ${tone.text}`}>{`${String(pct).replace(".", ",")}%`}</span>}
                   </div>
                   {tone.label && <span className={`text-xs ${tone.text}`}>{tone.label}</span>}
@@ -208,7 +208,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                 </tr>
               </thead>
               <tbody>
-                {stages.map((s) => {
+                {stages.map((s, i) => {
                   const pct = s.budget_pct === null ? null : Number(s.budget_pct);
                   const tone = hoursTone(pct);
                   return (
@@ -227,7 +227,7 @@ export async function FeesSection({ projectId, isOwner }: { projectId: string; i
                           {formatHours(s.hours_used)}
                           {s.budget_hours !== null && <span className="text-muted"> / {formatHours(s.budget_hours)}</span>}
                         </div>
-                        <HoursBar pct={pct} className="mt-1.5 w-32" />
+                        <HoursBar pct={pct} index={i} className="mt-1.5 w-32" />
                       </td>
                       <td className={`py-3 text-xs ${tone.text}`}>
                         <div className="whitespace-nowrap">{pct !== null && `${String(pct).replace(".", ",")}%`}</div>

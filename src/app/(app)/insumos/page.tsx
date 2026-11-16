@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { PillNav } from "@/components/ui/pill-nav";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Disclosure } from "@/components/disclosure";
@@ -11,6 +12,7 @@ import { formatDate, formatIndexValue, formatUnitPrice, todayInCordoba } from "@
 import { SUPPLY_KINDS, SUPPLY_KIND_LABEL, type SupplyKind } from "@/lib/supplies";
 import { LaborSettingForm, SupplyForm } from "../supply-forms";
 import { loadSupplyFormData } from "./data";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Insumos" };
 
@@ -33,10 +35,10 @@ type Row = {
 
 export default function SuppliesPage({ searchParams }: PageProps<"/insumos">) {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div className="flex flex-wrap items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold">Insumos</h1>
+        <div className="min-w-0 grow basis-72">
+          <h1 className="page-title"><RevealText text="Insumos" /></h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">
             Materiales, mano de obra, equipos y personal, con su precio y la fecha de ese precio. Con esto se
             valorizan los análisis de precios y los presupuestos.
@@ -119,20 +121,14 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
             Buscar
           </button>
         </form>
-        <nav aria-label="Tipo de insumo" className="flex gap-1 overflow-x-auto border-b border-line">
-          {[undefined, ...SUPPLY_KINDS].map((k) => (
-            <Link
-              key={k ?? "all"}
-              href={href(k)}
-              aria-current={kind === k ? "true" : undefined}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-focus ${
-                kind === k ? "border-accent font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"
-              }`}
-            >
-              {k ? SUPPLY_KIND_LABEL[k] : "Todos"}
-            </Link>
-          ))}
-        </nav>
+        <PillNav
+          label="Tipo de insumo"
+          items={[undefined, ...SUPPLY_KINDS].map((k) => ({
+            href: href(k),
+            label: k ? SUPPLY_KIND_LABEL[k] : "Todos",
+            current: kind === k,
+          }))}
+        />
 
         {(unpriced ?? 0) > 0 && (
           <p className="rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">
@@ -156,7 +152,31 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
           </p>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Teléfono: una fila por insumo, con nombre, código y precio. */}
+            <ul className="flex flex-col divide-y divide-line sm:hidden">
+              {rows.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    href={`/insumos/${s.id}`}
+                    className={`flex items-baseline gap-3 py-3 outline-none focus-visible:ring-3 focus-visible:ring-focus ${s.active ? "" : "text-muted"}`}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">{s.name}</span>
+                      <span className="block text-xs text-muted">
+                        <span className="font-mono">{s.code}</span> · {s.unit}
+                        {s.price_date && ` · ${formatDate(s.price_date)}`}
+                        {!s.active && " · inactivo"}
+                      </span>
+                    </span>
+                    <span className="font-mono text-sm whitespace-nowrap">
+                      {s.price === null ? <span className="font-sans text-warn">Sin precio</span> : formatUnitPrice(s.price, s.currency)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {/* Computadora: tabla */}
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full min-w-[640px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-muted">
@@ -206,7 +226,7 @@ async function Supplies({ searchParams }: { searchParams: Promise<Record<string,
 
       <section className="card flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
-          <h2 className="font-medium">Cargas sobre la mano de obra</h2>
+          <h2 className="font-bold">Cargas sobre la mano de obra</h2>
           {form.chargesPct === null ? (
             <StatusPill tone="warn">Sin cargar</StatusPill>
           ) : (

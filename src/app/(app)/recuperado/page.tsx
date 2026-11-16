@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { formatMoney, formatPeriod, sumAmounts } from "@/lib/format";
 import { changeOrderCode } from "@/lib/validation";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Lo recuperado" };
 
@@ -42,9 +43,9 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export default function RecoveredPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Lo recuperado</h1>
+        <h1 className="page-title"><RevealText text="Lo recuperado" /></h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Adicionales que los clientes aprobaron, por proyecto y por mes, y lo que todavía espera respuesta. Lo
           aprobado ya suma a los honorarios de cada etapa. Los montos van por moneda, sin convertir.
@@ -131,7 +132,7 @@ async function Recovered() {
       ))}
 
       <section className="card flex flex-col gap-4">
-        <h2 className="font-medium">Por proyecto</h2>
+        <h2 className="font-bold">Por proyecto</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead>
@@ -168,7 +169,7 @@ async function Recovered() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card flex flex-col gap-4">
-          <h2 className="font-medium">Aprobado por mes</h2>
+          <h2 className="font-bold">Aprobado por mes</h2>
           {months.length === 0 ? (
             <p className="text-sm text-muted">Todavía ningún cliente aprobó una orden.</p>
           ) : (
@@ -194,7 +195,7 @@ async function Recovered() {
         </section>
 
         <section className="card flex flex-col gap-4">
-          <h2 className="font-medium">Esperando aprobación</h2>
+          <h2 className="font-bold">Esperando aprobación</h2>
           {pending.length === 0 ? (
             <p className="text-sm text-muted">No hay órdenes esperando al cliente.</p>
           ) : (

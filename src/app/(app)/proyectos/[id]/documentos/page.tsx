@@ -21,7 +21,7 @@ async function Documents({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await loadMemberProject(id);
   return (
-    <div className="flex flex-col gap-6">
+    <div className="reveal-group flex flex-col gap-6">
       <DocumentsSection projectId={id} />
       <PiecesSection projectId={id} />
       <ShipmentsSection projectId={id} />

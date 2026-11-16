@@ -39,7 +39,7 @@ async function Work({ params }: { params: Promise<{ id: string }> }) {
       {work && (
         <section className="card flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline gap-3">
-            <h2 className="font-medium">{WORK_ROLE_SHORT[work.org_role]}</h2>
+            <h2 className="font-bold">{WORK_ROLE_SHORT[work.org_role]}</h2>
             <span className="text-sm text-muted">{[work.address, work.city].filter(Boolean).join(", ")}</span>
             <Link href={`/proyectos/${project.id}/presupuestos`} className="btn btn-primary btn-sm ml-auto">
               Estimar costo
@@ -60,7 +60,7 @@ async function Work({ params }: { params: Promise<{ id: string }> }) {
 
       <section className="card flex flex-col gap-4">
         <div>
-          <h2 className="font-medium">{work ? "Editar la ficha" : "Ficha de obra"}</h2>
+          <h2 className="font-bold">{work ? "Editar la ficha" : "Ficha de obra"}</h2>
           <p className="mt-1 text-sm text-muted">
             Los datos base de la obra. Con los m², la tipología y la calidad sale la primera estimación de costo. Los
             invitados del proyecto no la ven.

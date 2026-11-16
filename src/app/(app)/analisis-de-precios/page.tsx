@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrg, hasWorks, requireUser } from "@/lib/dal";
 import { formatMoney } from "@/lib/format";
 import { CatalogImportForm, UnitAnalysisForm, type CatalogItem } from "../analysis-forms";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Análisis de precios" };
 
@@ -19,9 +20,9 @@ type Cost = { analysis_id: string; currency: string; total: string; components: 
 
 export default function UnitAnalysesPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Análisis de precios</h1>
+        <h1 className="page-title"><RevealText text="Análisis de precios" /></h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Cuánto cuesta una unidad de cada tarea (el m² de mampostería, el m³ de hormigón), separada en materiales,
           mano de obra y equipos. Cada componente es un insumo por su rendimiento y su desperdicio; el costo se
@@ -98,7 +99,7 @@ async function Analyses() {
         ) : (
           chapters.map((chapter) => (
             <div key={chapter} className="flex flex-col gap-1">
-              <h2 className="text-sm font-medium text-muted">{chapter}</h2>
+              <h2 className="text-sm font-bold text-muted">{chapter}</h2>
               <ul className="flex flex-col divide-y divide-line">
                 {rows
                   .filter((r) => r.chapter === chapter)
@@ -145,7 +146,7 @@ async function Analyses() {
 
       <section className="card flex flex-col gap-4">
         <div>
-          <h2 className="font-medium">Catálogo para importar</h2>
+          <h2 className="font-bold">Catálogo para importar</h2>
           <p className="mt-1 text-sm text-muted">
             Análisis de base para no empezar de cero. Al importarlos quedan como propios: los adaptás sin tocar el
             catálogo. Los insumos se emparejan por código con los tuyos; los que te falten se crean sin precio.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDay, formatHours, formatMoney, formatUnitPrice, todayInCordoba } from "./format";
+import { formatDay, formatHours, formatMoney, formatMoneyLike, formatUnitPrice, todayInCordoba } from "./format";
 
 describe("formatMoney", () => {
   it("usa separadores argentinos y muestra la moneda", () => {
@@ -114,5 +114,13 @@ describe("formatUnitPrice", () => {
     expect(formatUnitPrice("12.5000", "USD").replace(/\s/g, " ")).toBe("USD 12,50");
     expect(formatUnitPrice("0.0125", "USD").replace(/\s/g, " ")).toBe("USD 0,0125");
     expect(formatUnitPrice(null, "USD")).toBe("—");
+  });
+});
+
+describe("valores intermedios de un conteo", () => {
+  it("usan los decimales del valor final", () => {
+    expect(formatMoneyLike(8400.37, 16800, "USD").replace(/\s/g, " ")).toBe("USD 8.400");
+    expect(formatMoneyLike(2781, 5563.2, "USD").replace(/\s/g, " ")).toBe("USD 2.781,00");
+    expect(formatMoneyLike(16800, 16800, "USD")).toBe(formatMoney(16800, "USD"));
   });
 });

@@ -166,7 +166,7 @@ function ProjectGrid({
 }) {
   if (projects.length === 0) return null;
   return (
-    <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <ul className="reveal-group grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {projects.map((p) => (
         <li key={p.id}>
           <ProjectCard project={p} glance={glances.get(p.id)} today={today} member={member} />

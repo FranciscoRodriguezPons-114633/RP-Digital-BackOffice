@@ -16,12 +16,19 @@ function moneyFormatter(currency: string, decimals: 0 | 2) {
   return f;
 }
 
+const hasCents = (n: number) => Math.round(n * 100) % 100 !== 0;
+
 // Sin centavos si el monto es redondo ("USD 16.800"); con dos decimales si no ("USD 5.563,20").
 export function formatMoney(amount: number | string | null | undefined, currency: string) {
   if (amount === null || amount === undefined || amount === "") return "—";
   const n = Number(amount);
-  const hasCents = Math.round(n * 100) % 100 !== 0;
-  return moneyFormatter(currency, hasCents ? 2 : 0).format(n);
+  return moneyFormatter(currency, hasCents(n) ? 2 : 0).format(n);
+}
+
+// Un valor intermedio de un conteo, con los mismos decimales que el monto final: si el final
+// es redondo, el conteo no muestra centavos ("USD 8.400" → "USD 16.800").
+export function formatMoneyLike(n: number, final: number, currency: string) {
+  return moneyFormatter(currency, hasCents(final) ? 2 : 0).format(n);
 }
 
 const hoursFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });

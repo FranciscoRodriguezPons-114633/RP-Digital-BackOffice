@@ -9,6 +9,7 @@ import { formatDate, formatIndexValue, formatPeriod, todayInCordoba } from "@/li
 import { EXCHANGE_SOURCE_LABEL, type ExchangeSource } from "@/lib/validation";
 import { DeleteIndexValueForm, IndexValueForm } from "../co-forms";
 import { AdoptSeriesForm, DeleteExchangeRateForm, ExchangeRateForm } from "../series-forms";
+import { RevealText } from "@/components/motion/reveal-title";
 
 export const metadata: Metadata = { title: "Índices" };
 
@@ -42,9 +43,9 @@ const pctFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2, 
 
 export default function IndicesPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="reveal-group flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Índices</h1>
+        <h1 className="page-title"><RevealText text="Índices" /></h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Los índices con los que se actualizan los honorarios. Adoptá una serie de referencia (CAC, ICC Córdoba,
           UOCRA) y sus valores te llegan solos, o cargá a mano el valor de cada mes de un índice propio. Cada etapa
@@ -117,7 +118,7 @@ async function Indices() {
     <>
       {isOwner ? (
         <section className="card">
-          <h2 className="mb-4 font-medium">Cargar un valor</h2>
+          <h2 className="mb-4 font-bold">Cargar un valor</h2>
           <IndexValueForm names={manualNames} />
         </section>
       ) : (
@@ -133,7 +134,7 @@ async function Indices() {
             return (
               <section key={name} className="card">
                 <div className="mb-3 flex flex-wrap items-baseline gap-3">
-                  <h2 className="font-medium">{name}</h2>
+                  <h2 className="font-bold">{name}</h2>
                   {adoptedNames.has(name) && <StatusPill tone="info">Serie de referencia</StatusPill>}
                   <span className="ml-auto text-xs text-muted">Último: {formatPeriod(list[0].period)}</span>
                 </div>
@@ -187,7 +188,7 @@ async function Indices() {
 
       <section className="card flex flex-col gap-4">
         <div>
-          <h2 className="font-medium">Series de referencia</h2>
+          <h2 className="font-bold">Series de referencia</h2>
           <p className="mt-1 text-sm text-muted">
             Las carga la plataforma desde la fuente oficial. Al adoptar una, el historial se copia a tus índices y
             cada valor nuevo o corregido te llega solo; los provisorios se marcan hasta que se publica el definitivo.
@@ -226,7 +227,7 @@ async function Indices() {
 
       <section className="card flex flex-col gap-4">
         <div>
-          <h2 className="font-medium">Tipo de cambio</h2>
+          <h2 className="font-bold">Tipo de cambio</h2>
           <p className="mt-1 text-sm text-muted">
             Cuántos pesos vale un dólar en cada fecha, según la fuente. Para pasar un monto de una moneda a otra se usa
             la última cotización anterior o igual a su fecha.
