@@ -85,3 +85,47 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  deploy:
+    name: Despliegue al entorno de prueba
+    # Solo en main y con todo en verde. Primero la base y la función de correos; recién
+    # después Vercel construye la app, así nunca corre contra una base vieja.
+    needs: [app, database, edge-function, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prueba
+    concurrency:
+      group: deploy-prueba
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+    steps:
+      - name: ¿Está configurado el entorno?
+        id: env
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then
+            echo "listo=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Faltan los secretos del entorno de prueba (docs/operacion.md): no se despliega."
+            echo "listo=no" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.env.outputs.listo == 'si'
+      - uses: supabase/setup-cli@v1
+        if: steps.env.outputs.listo == 'si'
+        with:
+          version: 2.121.0
+      - name: Migraciones
+        if: steps.env.outputs.listo == 'si'
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          supabase db push
+      - name: Función de correos
+        if: steps.env.outputs.listo == 'si'
+        run: supabase functions deploy process-outbox --project-ref "$SUPABASE_PROJECT_REF"
+      - name: App en Vercel
+        if: steps.env.outputs.listo == 'si' && env.VERCEL_DEPLOY_HOOK != ''
+        run: curl -fsS -X POST "$VERCEL_DEPLOY_HOOK" > /dev/null && echo "Vercel está construyendo la app."
